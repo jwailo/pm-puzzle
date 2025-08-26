@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM Puzzle</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Clear+Sans:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="menu-left">
+                <button id="menu-btn" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="title">
+                <div class="brand-text">Ailo presents</div>
+                <h1>PM Puzzle</h1>
+                <div class="subtitle">...because PMs deserve a break</div>
+            </div>
+            <div class="menu-right">
+                <button id="test-btn" class="icon-btn" title="Testing Panel">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                    </svg>
+                </button>
+                <button id="help-btn" class="icon-btn">?</button>
+                <button id="stats-btn" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="12" width="4" height="9" rx="1"/>
+                        <rect x="10" y="8" width="4" height="13" rx="1"/>
+                        <rect x="17" y="4" width="4" height="17" rx="1"/>
+                    </svg>
+                </button>
+                <button id="settings-btn" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Auth Section -->
+        <div id="auth-section" class="auth-section">
+            <div id="auth-form" class="auth-form">
+                <h2 id="auth-title">Sign In</h2>
+                <form id="login-form">
+                    <input type="text" id="firstname" placeholder="First Name">
+                    <input type="email" id="email" placeholder="Email Address" required>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <div id="marketing-consent" class="marketing-consent hidden">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="marketing-checkbox">
+                            <span class="checkmark"></span>
+                            I consent to receive marketing materials from Ailo
+                        </label>
+                    </div>
+                    <button type="submit" id="auth-submit">Sign In</button>
+                </form>
+                <div class="mecca-voucher">
+                    $50 MECCA voucher given to a player daily
+                </div>
+                <div class="auth-switch">
+                    <span id="auth-switch-text">Don't have an account?</span>
+                    <button type="button" id="auth-toggle">Sign Up</button>
+                </div>
+                <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
+            </div>
+            <div id="user-info" class="user-info hidden">
+                <span id="username-display"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="game-board">
+            <div class="board-container">
+                <div class="board" id="board">
+                    <!-- 6 rows of 5 tiles each -->
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                    <div class="row">
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                        <div class="tile"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard -->
+        <div class="keyboard">
+            <div class="keyboard-row">
+                <button class="key" data-key="Q">Q</button>
+                <button class="key" data-key="W">W</button>
+                <button class="key" data-key="E">E</button>
+                <button class="key" data-key="R">R</button>
+                <button class="key" data-key="T">T</button>
+                <button class="key" data-key="Y">Y</button>
+                <button class="key" data-key="U">U</button>
+                <button class="key" data-key="I">I</button>
+                <button class="key" data-key="O">O</button>
+                <button class="key" data-key="P">P</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key" data-key="A">A</button>
+                <button class="key" data-key="S">S</button>
+                <button class="key" data-key="D">D</button>
+                <button class="key" data-key="F">F</button>
+                <button class="key" data-key="G">G</button>
+                <button class="key" data-key="H">H</button>
+                <button class="key" data-key="J">J</button>
+                <button class="key" data-key="K">K</button>
+                <button class="key" data-key="L">L</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key key-large" data-key="Enter">ENTER</button>
+                <button class="key" data-key="Z">Z</button>
+                <button class="key" data-key="X">X</button>
+                <button class="key" data-key="C">C</button>
+                <button class="key" data-key="V">V</button>
+                <button class="key" data-key="B">B</button>
+                <button class="key" data-key="N">N</button>
+                <button class="key" data-key="M">M</button>
+                <button class="key key-large" data-key="Backspace">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22 3H7c-.69 0-1.23.35-1.59.88L.88 11.88c-.43.65-.43 1.59 0 2.24l4.53 8c.36.53.9.88 1.59.88H22c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L3 12l4.07-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="message-container" class="message-container"></div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How To Play</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Guess the <strong>PROPERTY MANAGEMENT WORD</strong> in 6 tries.</p>
+                <ul>
+                    <li>Each guess must be a valid 5-letter word. Hit the enter button to submit.</li>
+                    <li>After each guess, the color of the tiles will change to show how close your guess was to the word.</li>
+                </ul>
+                <div class="examples">
+                    <h3>Examples</h3>
+                    <div class="example">
+                        <div class="example-row">
+                            <div class="example-tile correct">L</div>
+                            <div class="example-tile">E</div>
+                            <div class="example-tile">A</div>
+                            <div class="example-tile">S</div>
+                            <div class="example-tile">E</div>
+                        </div>
+                        <p>The letter <strong>L</strong> is in the word and in the correct spot.</p>
+                    </div>
+                    <div class="example">
+                        <div class="example-row">
+                            <div class="example-tile">R</div>
+                            <div class="example-tile present">E</div>
+                            <div class="example-tile">N</div>
+                            <div class="example-tile">T</div>
+                            <div class="example-tile">S</div>
+                        </div>
+                        <p>The letter <strong>E</strong> is in the word but in the wrong spot.</p>
+                    </div>
+                    <div class="example">
+                        <div class="example-row">
+                            <div class="example-tile">T</div>
+                            <div class="example-tile">O</div>
+                            <div class="example-tile">W</div>
+                            <div class="example-tile absent">E</div>
+                            <div class="example-tile">R</div>
+                        </div>
+                        <p>The letter <strong>E</strong> is not in the word in any spot.</p>
+                    </div>
+                </div>
+                <p><strong>A new PROPERTY MANAGEMENT WORD will be available each day at 12:00 PM!</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Statistics</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-number" id="games-played">0</div>
+                        <div class="stat-label">Played</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="win-percentage">0</div>
+                        <div class="stat-label">Win %</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="current-streak">0</div>
+                        <div class="stat-label">Current Streak</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="max-streak">0</div>
+                        <div class="stat-label">Max Streak</div>
+                    </div>
+                </div>
+                <div class="guess-distribution">
+                    <h3>Guess Distribution</h3>
+                    <div class="distribution-grid">
+                        <div class="distribution-row">
+                            <span>1</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-1"></div>
+                                <span class="distribution-count" id="count-1">0</span>
+                            </div>
+                        </div>
+                        <div class="distribution-row">
+                            <span>2</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-2"></div>
+                                <span class="distribution-count" id="count-2">0</span>
+                            </div>
+                        </div>
+                        <div class="distribution-row">
+                            <span>3</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-3"></div>
+                                <span class="distribution-count" id="count-3">0</span>
+                            </div>
+                        </div>
+                        <div class="distribution-row">
+                            <span>4</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-4"></div>
+                                <span class="distribution-count" id="count-4">0</span>
+                            </div>
+                        </div>
+                        <div class="distribution-row">
+                            <span>5</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-5"></div>
+                                <span class="distribution-count" id="count-5">0</span>
+                            </div>
+                        </div>
+                        <div class="distribution-row">
+                            <span>6</span>
+                            <div class="distribution-bar">
+                                <div class="distribution-fill" id="dist-6"></div>
+                                <span class="distribution-count" id="count-6">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="leaderboards" id="leaderboards-section">
+                    <h3>Leaderboards</h3>
+                    <div class="leaderboard-tabs">
+                        <button class="tab-btn active" data-tab="daily">Today's Fastest</button>
+                        <button class="tab-btn" data-tab="streak">Longest Streaks</button>
+                    </div>
+                    <div class="leaderboard-content">
+                        <div id="daily-leaderboard" class="leaderboard active">
+                            <div class="leaderboard-list" id="daily-list">
+                                <div class="leaderboard-empty">No times recorded yet today</div>
+                            </div>
+                        </div>
+                        <div id="streak-leaderboard" class="leaderboard">
+                            <div class="leaderboard-list" id="streak-list">
+                                <div class="leaderboard-empty">No streaks recorded yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="share-section">
+                    <button id="share-btn" class="share-btn">Share</button>
+                    <div class="countdown">
+                        <span>Next puzzle (12:00 PM): </span>
+                        <span id="countdown-timer">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-title">Hard Mode</div>
+                        <div class="setting-description">Any revealed hints must be used in subsequent guesses</div>
+                    </div>
+                    <div class="setting-toggle">
+                        <input type="checkbox" id="hard-mode-toggle">
+                        <label for="hard-mode-toggle" class="toggle-label"></label>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-title">Dark Theme</div>
+                        <div class="setting-description">Switch to dark mode</div>
+                    </div>
+                    <div class="setting-toggle">
+                        <input type="checkbox" id="dark-theme-toggle">
+                        <label for="dark-theme-toggle" class="toggle-label"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testing Modal -->
+    <div id="test-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Testing Panel</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="test-section">
+                    <h3>Game Testing</h3>
+                    <div class="test-buttons">
+                        <button id="test-win" class="test-btn">Simulate Win (Current Row)</button>
+                        <button id="test-lose" class="test-btn">Simulate Loss</button>
+                        <button id="test-reset" class="test-btn">Reset Game</button>
+                        <button id="test-reveal" class="test-btn">Reveal Today's Word</button>
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>Stats Testing</h3>
+                    <div class="test-buttons">
+                        <button id="test-add-win" class="test-btn">Add Random Win</button>
+                        <button id="test-add-loss" class="test-btn">Add Loss</button>
+                        <button id="test-clear-stats" class="test-btn">Clear All Stats</button>
+                        <button id="test-perfect-stats" class="test-btn">Generate Perfect Stats</button>
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>Leaderboard Testing</h3>
+                    <div class="test-buttons">
+                        <button id="test-add-leaderboard" class="test-btn">Add Random Leaderboard Entry</button>
+                        <button id="test-clear-leaderboard" class="test-btn">Clear Leaderboards</button>
+                        <button id="test-populate-leaderboard" class="test-btn">Populate Sample Leaderboards</button>
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>Debug Info</h3>
+                    <div class="debug-info">
+                        <div class="debug-item">
+                            <strong>Today's Word:</strong> <span id="debug-word">Loading...</span>
+                        </div>
+                        <div class="debug-item">
+                            <strong>Valid Words Count:</strong> <span id="debug-words-count">Loading...</span>
+                        </div>
+                        <div class="debug-item">
+                            <strong>Game State:</strong> <span id="debug-game-state">Active</span>
+                        </div>
+                        <div class="debug-item">
+                            <strong>Current User:</strong> <span id="debug-current-user">Guest</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

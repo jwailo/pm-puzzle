@@ -1,0 +1,19 @@
+{
+  "name": "pm-puzzle",
+  "version": "1.0.0",
+  "description": "A Property Management themed Wordle game for Ailo",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8080"
+  },
+  "keywords": [
+    "wordle",
+    "property-management",
+    "game",
+    "puzzle",
+    "ailo"
+  ],
+  "author": "Ailo",
+  "license": "MIT"
+}
