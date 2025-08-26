@@ -1,4 +1,5 @@
 // Supabase configuration
+// Note: anon keys are safe to expose in frontend applications
 const SUPABASE_CONFIG = {
     url: 'https://taeetzxhrdohdijwgous.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0'
