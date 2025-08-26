@@ -1139,7 +1139,7 @@ class PMWordle {
             shareText += rowText + '\n';
         }
 
-        shareText += '\nPlay PM Puzzle: https://www.ailo.io';
+        shareText += '\nPlay PM Puzzle: https://pm-puzzle.vercel.app';
 
         if (navigator.share) {
             navigator.share({
