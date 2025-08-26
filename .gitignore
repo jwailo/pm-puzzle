@@ -11,6 +11,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Supabase config (contains keys)
+# config.js
+
 # IDE/Editor files
 .vscode/
 .idea/

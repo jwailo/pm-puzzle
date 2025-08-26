@@ -1,6 +1,164 @@
+// Database service for Supabase integration
+class DatabaseService {
+    constructor() {
+        this.supabase = window.supabaseClient;
+        this.currentUser = null;
+    }
+
+    // Authentication methods
+    async signUp(email, password, firstName, marketingConsent = false) {
+        try {
+            const { data, error } = await this.supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+
+            // Create user profile
+            const { error: profileError } = await this.supabase
+                .from('user_profiles')
+                .insert([
+                    {
+                        id: data.user.id,
+                        first_name: firstName,
+                        email: email,
+                        marketing_consent: marketingConsent
+                    }
+                ]);
+
+            if (profileError) throw profileError;
+
+            return { user: data.user, error: null };
+        } catch (error) {
+            return { user: null, error: error.message };
+        }
+    }
+
+    async signIn(email, password) {
+        try {
+            const { data, error } = await this.supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+            this.currentUser = data.user;
+            return { user: data.user, error: null };
+        } catch (error) {
+            return { user: null, error: error.message };
+        }
+    }
+
+    async signOut() {
+        try {
+            const { error } = await this.supabase.auth.signOut();
+            if (error) throw error;
+            this.currentUser = null;
+            return { error: null };
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
+
+    async getCurrentUser() {
+        const { data: { user } } = await this.supabase.auth.getUser();
+        this.currentUser = user;
+        return user;
+    }
+
+    async getUserProfile(userId) {
+        const { data, error } = await this.supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        return { data, error };
+    }
+
+    // Stats methods
+    async getUserStats(userId) {
+        const { data, error } = await this.supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        return { data, error };
+    }
+
+    async updateUserStats(userId, stats) {
+        const { data, error } = await this.supabase
+            .from('user_stats')
+            .upsert({
+                user_id: userId,
+                ...stats,
+                updated_at: new Date().toISOString()
+            });
+
+        return { data, error };
+    }
+
+    // Leaderboard methods
+    async getDailyLeaderboard(date) {
+        const { data, error } = await this.supabase
+            .from('daily_leaderboard')
+            .select(`
+                *,
+                user_profiles(first_name)
+            `)
+            .eq('date', date)
+            .order('completion_time', { ascending: true })
+            .limit(5);
+
+        return { data, error };
+    }
+
+    async updateDailyLeaderboard(userId, date, completionTime, guesses, word) {
+        const { data, error } = await this.supabase
+            .from('daily_leaderboard')
+            .upsert({
+                user_id: userId,
+                date: date,
+                completion_time: completionTime,
+                guesses: guesses,
+                word: word
+            });
+
+        return { data, error };
+    }
+
+    // Game session methods
+    async saveGameSession(userId, sessionData) {
+        const { data, error } = await this.supabase
+            .from('game_sessions')
+            .upsert({
+                user_id: userId,
+                ...sessionData,
+                updated_at: new Date().toISOString()
+            });
+
+        return { data, error };
+    }
+
+    async getGameSession(userId, date) {
+        const { data, error } = await this.supabase
+            .from('game_sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('date', date)
+            .single();
+
+        return { data, error };
+    }
+}
+
 // Property Management Wordle Game
 class PMWordle {
     constructor() {
+        // Initialize database service
+        this.db = new DatabaseService();
         // Property Management Answer Bank (60 words) - these are the daily answers
         this.answerBank = [
             'LEASE', 'RENTS', 'TOWER', 'CONDO', 'AGENT', 'LOBBY', 'SUITE', 'OWNER', 'ASSET', 'UNITS',
@@ -36,6 +194,21 @@ class PMWordle {
             this.loadSettings();
             this.updateCountdown();
         });
+
+        // Check for existing user session
+        this.checkUserSession();
+    }
+
+    async checkUserSession() {
+        const user = await this.db.getCurrentUser();
+        if (user) {
+            console.log('Found existing user session:', user.id);
+            this.currentUser = user.id;
+            this.isGuest = false;
+            this.updateAuthUI();
+        } else {
+            console.log('No existing user session, staying in guest mode');
+        }
     }
 
     async init() {
@@ -695,7 +868,7 @@ class PMWordle {
     }
 
     // Authentication System
-    handleAuth() {
+    async handleAuth() {
         console.log('Handling auth');
         const firstname = document.getElementById('firstname').value.trim();
         const email = document.getElementById('email').value.trim();
@@ -710,69 +883,65 @@ class PMWordle {
                 this.showMessage('Please fill in all fields', 'error');
                 return;
             }
-            this.login(email, password);
+            await this.login(email, password);
         } else {
             // For registration, need all fields
             if (!firstname || !email || !password) {
                 this.showMessage('Please fill in all fields', 'error');
                 return;
             }
-            this.register(firstname, email, password);
+            await this.register(firstname, email, password);
         }
     }
 
-    login(email, password) {
+    async login(email, password) {
         console.log('Attempting login for:', email);
-        const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-        console.log('Available users:', Object.keys(users));
         
-        if (users[email] && users[email].password === password) {
-            console.log('Login successful');
-            this.currentUser = email;
-            this.isGuest = false;
-            this.saveUser();
-            this.updateAuthUI();
-            this.resetGameForNewUser();
-            this.showMessage(`Welcome back, ${users[email].firstName}!`, 'success');
-        } else {
-            console.log('Login failed - invalid credentials');
-            this.showMessage('Invalid email or password', 'error');
-        }
-    }
-
-    register(firstname, email, password) {
-        const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-        const marketingConsent = document.getElementById('marketing-checkbox').checked;
+        const { user, error } = await this.db.signIn(email, password);
         
-        if (users[email]) {
-            this.showMessage('Email already exists', 'error');
+        if (error) {
+            console.log('Login failed:', error);
+            this.showMessage(error, 'error');
             return;
         }
 
-        users[email] = {
-            password: password,
-            firstName: firstname,
-            email: email,
-            marketingConsent: marketingConsent,
-            stats: {
-                gamesPlayed: 0,
-                gamesWon: 0,
-                currentStreak: 0,
-                maxStreak: 0,
-                guessDistribution: [0, 0, 0, 0, 0, 0]
-            },
-            bestTimes: [],
-            createdAt: new Date().toISOString()
-        };
+        if (user) {
+            console.log('Login successful');
+            this.currentUser = user.id;
+            this.isGuest = false;
+            
+            // Get user profile for display name
+            const { data: profile } = await this.db.getUserProfile(user.id);
+            const displayName = profile?.first_name || 'User';
+            
+            this.updateAuthUI();
+            await this.resetGameForNewUser();
+            this.showMessage(`Welcome back, ${displayName}!`, 'success');
+        }
+    }
 
-        localStorage.setItem('pm-wordle-users', JSON.stringify(users));
+    async register(firstname, email, password) {
+        const marketingConsent = document.getElementById('marketing-checkbox').checked;
         
-        this.currentUser = email;
-        this.isGuest = false;
-        this.saveUser();
-        this.updateAuthUI();
-        this.resetGameForNewUser();
-        this.showMessage(`Account created! Welcome, ${firstname}!`, 'success');
+        console.log('Attempting registration for:', email);
+        
+        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
+        
+        if (error) {
+            console.log('Registration failed:', error);
+            this.showMessage(error, 'error');
+            return;
+        }
+
+        if (user) {
+            console.log('Registration successful');
+            this.currentUser = user.id;
+            this.isGuest = false;
+            
+            this.updateAuthUI();
+            await this.resetGameForNewUser();
+            this.showMessage(`Account created! Welcome, ${firstname}!`, 'success');
+        }
     }
     
     resetGameForNewUser() {
@@ -869,10 +1038,16 @@ class PMWordle {
         this.showMessage('Playing as guest', 'success');
     }
 
-    logout() {
+    async logout() {
+        const { error } = await this.db.signOut();
+        
+        if (error) {
+            this.showMessage('Error logging out: ' + error, 'error');
+            return;
+        }
+
         this.currentUser = null;
         this.isGuest = true;
-        localStorage.removeItem('pm-wordle-current-user');
         this.updateAuthUI();
         this.showMessage('Logged out successfully', 'success');
     }
