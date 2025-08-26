@@ -1052,7 +1052,7 @@ class PMWordle {
         this.showMessage('Logged out successfully', 'success');
     }
 
-    updateAuthUI() {
+    async updateAuthUI() {
         console.log('Updating auth UI, isGuest:', this.isGuest);
         const authForm = document.getElementById('auth-form');
         const userInfo = document.getElementById('user-info');
@@ -1072,10 +1072,12 @@ class PMWordle {
             authForm.classList.add('hidden');
             userInfo.classList.remove('hidden');
             
-            // Show first name instead of email
-            const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-            const displayName = users[this.currentUser]?.firstName || this.currentUser;
-            usernameDisplay.textContent = displayName;
+            // Get user profile for display name
+            if (this.currentUser) {
+                const { data: profile } = await this.db.getUserProfile(this.currentUser);
+                const displayName = profile?.first_name || 'User';
+                usernameDisplay.textContent = displayName;
+            }
             
             leaderboardsSection.style.display = 'block';
         }
