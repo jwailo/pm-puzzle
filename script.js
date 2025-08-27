@@ -532,41 +532,69 @@ class PMWordle {
         const authForm = document.getElementById('login-form');
         const authToggle = document.getElementById('auth-toggle');
         const skipAuth = document.getElementById('skip-auth');
-        const logoutBtn = document.getElementById('logout-btn');
+        const userBtn = document.getElementById('user-btn');
+        const userMenu = document.getElementById('user-menu');
+        const userLogoutBtn = document.getElementById('user-logout-btn');
 
-        console.log('Found auth elements:', {authForm, authToggle, skipAuth, logoutBtn});
+        console.log('Found auth elements:', {authForm, authToggle, skipAuth, userBtn});
 
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            console.log('Auth form submitted');
-            console.log('Form validity:', authForm.checkValidity());
-            console.log('Form elements validity:', {
-                email: document.getElementById('email').checkValidity(),
-                password: document.getElementById('password').checkValidity(),
-                firstname: document.getElementById('firstname').checkValidity()
+        if (authForm) {
+            authForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Auth form submitted');
+                console.log('Form validity:', authForm.checkValidity());
+                console.log('Form elements validity:', {
+                    email: document.getElementById('email').checkValidity(),
+                    password: document.getElementById('password').checkValidity(),
+                    firstname: document.getElementById('firstname').checkValidity()
+                });
+                this.handleAuth();
             });
-            this.handleAuth();
-        });
+        }
         
         // Also add direct button click listener as fallback
         const submitBtn = document.getElementById('auth-submit');
-        submitBtn.addEventListener('click', (e) => {
-            console.log('Submit button clicked');
-            // Don't prevent default here - let form submission handle it
-        });
+        if (submitBtn) {
+            submitBtn.addEventListener('click', (e) => {
+                console.log('Submit button clicked');
+                // Don't prevent default here - let form submission handle it
+            });
+        }
 
-        authToggle.addEventListener('click', () => {
-            console.log('Auth toggle clicked');
-            this.toggleAuthMode();
-        });
+        if (authToggle) {
+            authToggle.addEventListener('click', () => {
+                console.log('Auth toggle clicked');
+                this.toggleAuthMode();
+            });
+        }
 
-        skipAuth.addEventListener('click', () => {
-            console.log('Skip auth button clicked');
-            this.skipAuth();
-        });
+        if (skipAuth) {
+            skipAuth.addEventListener('click', () => {
+                console.log('Skip auth button clicked');
+                this.skipAuth();
+            });
+        }
 
-        logoutBtn.addEventListener('click', () => {
-            this.logout();
+        // User dropdown handlers
+        if (userBtn) {
+            userBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenu.classList.toggle('show');
+            });
+        }
+        
+        if (userLogoutBtn) {
+            userLogoutBtn.addEventListener('click', () => {
+                userMenu.classList.remove('show');
+                this.logout();
+            });
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            if (userMenu) {
+                userMenu.classList.remove('show');
+            }
         });
 
         // Check if user is already logged in
@@ -609,7 +637,7 @@ class PMWordle {
         });
     }
 
-    handleKeyPress(key) {
+    async handleKeyPress(key) {
         console.log('Key pressed:', key, 'Game over:', this.gameOver, 'Current row/col:', this.currentRow, this.currentCol);
         
         // Prevent processing if game is over
@@ -619,7 +647,7 @@ class PMWordle {
         }
         
         if (key === 'Enter') {
-            this.submitGuess();
+            await this.submitGuess();
         } else if (key === 'Backspace') {
             this.deleteLetter();
         } else if (/^[A-Za-z]$/.test(key)) {
@@ -659,7 +687,7 @@ class PMWordle {
         }
     }
 
-    submitGuess() {
+    async submitGuess() {
         if (this.currentCol !== 5) {
             this.showMessage('Not enough letters', 'error');
             this.shakeRow();
@@ -688,20 +716,20 @@ class PMWordle {
             this.endTime = new Date();
             this.gameWon = true;
             this.gameOver = true;
-            this.celebrateWin();
-            this.updateStats();
-            this.saveGameState();
+            await this.celebrateWin();
+            await this.updateStats();
+            await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else if (this.currentRow === 5) {
             this.gameOver = true;
             this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
-            this.updateStats();
-            this.saveGameState();
+            await this.updateStats();
+            await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else {
             this.currentRow++;
             this.currentCol = 0;
-            this.saveGameState();
+            await this.saveGameState();
         }
     }
 
@@ -800,7 +828,7 @@ class PMWordle {
         }
     }
 
-    celebrateWin() {
+    async celebrateWin() {
         for (let i = 0; i < 5; i++) {
             const tile = this.getTile(this.currentRow, i);
             setTimeout(() => {
@@ -812,7 +840,7 @@ class PMWordle {
         
         // Update leaderboards if user is logged in
         if (!this.isGuest) {
-            this.updateLeaderboards();
+            await this.updateLeaderboards();
         }
     }
 
@@ -843,13 +871,13 @@ class PMWordle {
         }, duration);
     }
 
-    showModal(type) {
+    async showModal(type) {
         const modal = document.getElementById(`${type}-modal`);
         modal.classList.add('show');
         
         if (type === 'stats') {
-            this.updateStats();
-            this.updateLeaderboards();
+            await this.updateStats();
+            await this.updateLeaderboards();
         } else if (type === 'test') {
             this.updateTestingPanel();
         }
@@ -1054,32 +1082,45 @@ class PMWordle {
 
     async updateAuthUI() {
         console.log('Updating auth UI, isGuest:', this.isGuest);
+        const authSection = document.getElementById('auth-section');
         const authForm = document.getElementById('auth-form');
-        const userInfo = document.getElementById('user-info');
-        const usernameDisplay = document.getElementById('username-display');
+        const userDropdown = document.getElementById('user-dropdown');
+        const userInitial = document.getElementById('user-initial');
+        const userMenuName = document.getElementById('user-menu-name');
+        const userMenuEmail = document.getElementById('user-menu-email');
         const leaderboardsSection = document.getElementById('leaderboards-section');
 
         if (this.isGuest) {
+            authSection.classList.remove('logged-in');
             authForm.classList.remove('hidden');
-            userInfo.classList.add('hidden');
-            leaderboardsSection.style.display = 'none';
+            userDropdown.classList.add('hidden');
+            if (leaderboardsSection) leaderboardsSection.style.display = 'none';
             
             // Ensure auth form elements are interactive
             authForm.style.pointerEvents = 'auto';
             const authInputs = authForm.querySelectorAll('input, button');
             authInputs.forEach(input => input.style.pointerEvents = 'auto');
         } else {
+            authSection.classList.add('logged-in');
             authForm.classList.add('hidden');
-            userInfo.classList.remove('hidden');
+            userDropdown.classList.remove('hidden');
             
             // Get user profile for display name
             if (this.currentUser) {
+                const user = await this.db.getCurrentUser();
                 const { data: profile } = await this.db.getUserProfile(this.currentUser);
                 const displayName = profile?.first_name || 'User';
-                usernameDisplay.textContent = displayName;
+                const email = user?.email || '';
+                
+                // Set user initial (first letter of name)
+                userInitial.textContent = displayName.charAt(0).toUpperCase();
+                
+                // Set dropdown menu info
+                userMenuName.textContent = displayName;
+                userMenuEmail.textContent = email;
             }
             
-            leaderboardsSection.style.display = 'block';
+            if (leaderboardsSection) leaderboardsSection.style.display = 'block';
         }
     }
 
@@ -1099,8 +1140,8 @@ class PMWordle {
     }
 
     // Statistics System
-    updateStats() {
-        const stats = this.getStats();
+    async updateStats() {
+        const stats = await this.getStats();
         
         document.getElementById('games-played').textContent = stats.gamesPlayed;
         document.getElementById('win-percentage').textContent = stats.winPercentage;
@@ -1120,7 +1161,7 @@ class PMWordle {
         }
     }
 
-    getStats() {
+    async getStats() {
         if (this.isGuest) {
             const guestStats = JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0,"guessDistribution":[0,0,0,0,0,0]}');
             return {
@@ -1128,22 +1169,39 @@ class PMWordle {
                 winPercentage: guestStats.gamesPlayed > 0 ? Math.round((guestStats.gamesWon / guestStats.gamesPlayed) * 100) : 0
             };
         } else {
-            const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-            const userStats = users[this.currentUser]?.stats || {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0]};
+            // Get current user from Supabase
+            const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+            if (!user) {
+                console.error('No authenticated user found');
+                return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
+            }
+
+            const { data, error } = await this.databaseService.getUserStats(user.id);
+            if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+                console.error('Error getting user stats:', error);
+                return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
+            }
+
+            const userStats = data || {games_played:0,games_won:0,current_streak:0,max_streak:0,guess_distribution:[0,0,0,0,0,0]};
             return {
-                ...userStats,
-                winPercentage: userStats.gamesPlayed > 0 ? Math.round((userStats.gamesWon / userStats.gamesPlayed) * 100) : 0
+                gamesPlayed: userStats.games_played || 0,
+                gamesWon: userStats.games_won || 0,
+                currentStreak: userStats.current_streak || 0,
+                maxStreak: userStats.max_streak || 0,
+                guessDistribution: userStats.guess_distribution || [0,0,0,0,0,0],
+                winPercentage: userStats.games_played > 0 ? Math.round((userStats.games_won / userStats.games_played) * 100) : 0
             };
         }
     }
 
-    saveStats() {
+    async saveStats() {
+        const currentStats = await this.getStats();
         const newStats = {
-            gamesPlayed: this.getStats().gamesPlayed + 1,
-            gamesWon: this.getStats().gamesWon + (this.gameWon ? 1 : 0),
-            currentStreak: this.gameWon ? this.getStats().currentStreak + 1 : 0,
-            maxStreak: Math.max(this.getStats().maxStreak, this.gameWon ? this.getStats().currentStreak + 1 : 0),
-            guessDistribution: [...this.getStats().guessDistribution]
+            gamesPlayed: currentStats.gamesPlayed + 1,
+            gamesWon: currentStats.gamesWon + (this.gameWon ? 1 : 0),
+            currentStreak: this.gameWon ? currentStats.currentStreak + 1 : 0,
+            maxStreak: Math.max(currentStats.maxStreak, this.gameWon ? currentStats.currentStreak + 1 : 0),
+            guessDistribution: [...currentStats.guessDistribution]
         };
 
         if (this.gameWon) {
@@ -1153,77 +1211,82 @@ class PMWordle {
         if (this.isGuest) {
             localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
         } else {
-            const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-            if (users[this.currentUser]) {
-                users[this.currentUser].stats = newStats;
-                localStorage.setItem('pm-wordle-users', JSON.stringify(users));
+            // Get current user from Supabase
+            const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+            if (!user) {
+                console.error('No authenticated user found for saving stats');
+                return;
+            }
+
+            // Convert to database format
+            const dbStats = {
+                user_id: user.id,
+                games_played: newStats.gamesPlayed,
+                games_won: newStats.gamesWon,
+                current_streak: newStats.currentStreak,
+                max_streak: newStats.maxStreak,
+                guess_distribution: newStats.guessDistribution
+            };
+
+            const { error } = await this.databaseService.updateUserStats(user.id, dbStats);
+            if (error) {
+                console.error('Error saving user stats:', error);
             }
         }
     }
 
     // Leaderboard System
-    updateLeaderboards() {
+    async updateLeaderboards() {
         if (this.isGuest) return;
 
-        this.updateDailyLeaderboard();
+        await this.updateDailyLeaderboard();
         this.updateStreakLeaderboard();
     }
 
-    updateDailyLeaderboard() {
+    async updateDailyLeaderboard() {
         if (!this.gameWon) return;
+
+        // Get current user from Supabase
+        const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+        if (!user) {
+            console.error('No authenticated user found for leaderboard update');
+            return;
+        }
 
         const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
         const today = new Date().toDateString();
         
-        let dailyLeaderboard = JSON.parse(localStorage.getItem('pm-wordle-daily-leaderboard') || '{}');
-        
-        if (!dailyLeaderboard[today]) {
-            dailyLeaderboard[today] = [];
+        // Update leaderboard in database
+        const { error } = await this.databaseService.updateDailyLeaderboard(
+            user.id, 
+            today, 
+            completionTime, 
+            this.currentRow + 1,
+            this.currentWord
+        );
+
+        if (error) {
+            console.error('Error updating daily leaderboard:', error);
         }
 
-        // Get user's first name for display
-        const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-        const displayName = users[this.currentUser]?.firstName || this.currentUser;
-        
-        // Check if user already has an entry for today
-        const existingIndex = dailyLeaderboard[today].findIndex(entry => entry.email === this.currentUser);
-        
-        if (existingIndex === -1) {
-            // First completion today
-            dailyLeaderboard[today].push({
-                email: this.currentUser,
-                name: displayName,
-                time: completionTime,
-                guesses: this.currentRow + 1
-            });
-        } else {
-            // Update if this is a better time
-            if (completionTime < dailyLeaderboard[today][existingIndex].time) {
-                dailyLeaderboard[today][existingIndex] = {
-                    email: this.currentUser,
-                    name: displayName,
-                    time: completionTime,
-                    guesses: this.currentRow + 1
-                };
-            }
-        }
-
-        // Sort by time (fastest first) and keep top 5
-        dailyLeaderboard[today].sort((a, b) => a.time - b.time);
-        dailyLeaderboard[today] = dailyLeaderboard[today].slice(0, 5);
-
-        localStorage.setItem('pm-wordle-daily-leaderboard', JSON.stringify(dailyLeaderboard));
-        this.renderDailyLeaderboard();
+        // Refresh the leaderboard display
+        await this.renderDailyLeaderboard();
     }
 
-    renderDailyLeaderboard() {
+    async renderDailyLeaderboard() {
         const today = new Date().toDateString();
-        const dailyLeaderboard = JSON.parse(localStorage.getItem('pm-wordle-daily-leaderboard') || '{}');
-        const todayEntries = dailyLeaderboard[today] || [];
-        
         const listElement = document.getElementById('daily-list');
         
-        if (todayEntries.length === 0) {
+        // Get leaderboard data from database
+        const { data: todayEntries, error } = await this.databaseService.getDailyLeaderboard(today);
+        
+        if (error) {
+            console.error('Error fetching daily leaderboard:', error);
+            listElement.innerHTML = '<div class="leaderboard-empty">Error loading leaderboard</div>';
+            return;
+        }
+        
+        if (!todayEntries || todayEntries.length === 0) {
             listElement.innerHTML = '<div class="leaderboard-empty">No times recorded yet today</div>';
             return;
         }
@@ -1231,8 +1294,8 @@ class PMWordle {
         listElement.innerHTML = todayEntries.map((entry, index) => `
             <div class="leaderboard-item">
                 <span class="leaderboard-rank">${index + 1}</span>
-                <span class="leaderboard-name">${entry.name || entry.username || 'Unknown'}</span>
-                <span class="leaderboard-value">${this.formatTime(entry.time)}</span>
+                <span class="leaderboard-name">${entry.user_profiles?.first_name || 'Unknown'}</span>
+                <span class="leaderboard-value">${this.formatTime(entry.completion_time)}</span>
             </div>
         `).join('');
     }
@@ -1339,7 +1402,7 @@ class PMWordle {
     }
 
     // Game state persistence
-    saveGameState() {
+    async saveGameState() {
         const gameState = {
             currentWord: this.currentWord,
             currentRow: this.currentRow,
@@ -1357,7 +1420,7 @@ class PMWordle {
         localStorage.setItem(stateKey, JSON.stringify(gameState));
         
         if (this.gameOver) {
-            this.saveStats();
+            await this.saveStats();
         }
     }
 
@@ -1502,25 +1565,25 @@ class PMWordle {
     }
 
     // Testing Methods
-    testWin() {
+    async testWin() {
         this.endTime = new Date();
         this.gameWon = true;
         this.gameOver = true;
         this.celebrateWin();
-        this.updateStats();
-        this.saveGameState();
+        await this.updateStats();
+        await this.saveGameState();
         this.hideModal('test');
         setTimeout(() => this.showGameCompletionModal(), 1000);
         this.showMessage('Test win applied!', 'success');
     }
 
-    testLose() {
+    async testLose() {
         this.gameOver = true;
         this.gameWon = false;
         this.currentRow = 5;
         this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
-        this.updateStats();
-        this.saveGameState();
+        await this.updateStats();
+        await this.saveGameState();
         this.hideModal('test');
         setTimeout(() => this.showModal('stats'), 2000);
     }
@@ -1554,9 +1617,9 @@ class PMWordle {
         this.showMessage(`Today's word is: ${this.currentWord}`, 'success', 3000);
     }
 
-    testAddWin() {
+    async testAddWin() {
         const guessNumber = Math.floor(Math.random() * 6) + 1;
-        let stats = this.getStats();
+        let stats = await this.getStats();
         
         stats.gamesPlayed += 1;
         stats.gamesWon += 1;
@@ -1569,8 +1632,8 @@ class PMWordle {
         this.updateTestingPanel();
     }
 
-    testAddLoss() {
-        let stats = this.getStats();
+    async testAddLoss() {
+        let stats = await this.getStats();
         stats.gamesPlayed += 1;
         stats.currentStreak = 0;
         this.saveTestStats(stats);
