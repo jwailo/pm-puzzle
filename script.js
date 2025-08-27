@@ -6,7 +6,7 @@ class DatabaseService {
     }
 
     // Authentication methods
-    async signUp(email, password, firstName, marketingConsent = false) {
+    async signUp(email, password, firstName, marketingConsent = false, reminderConsent = false) {
         try {
             const { data, error } = await this.supabase.auth.signUp({
                 email: email,
@@ -23,7 +23,8 @@ class DatabaseService {
                         id: data.user.id,
                         first_name: firstName,
                         email: email,
-                        marketing_consent: marketingConsent
+                        marketing_consent: marketingConsent,
+                        reminder_consent: reminderConsent
                     }
                 ]);
 
@@ -110,7 +111,7 @@ class DatabaseService {
             `)
             .eq('date', date)
             .order('completion_time', { ascending: true })
-            .limit(5);
+            .limit(10);
 
         return { data, error };
     }
@@ -499,6 +500,12 @@ class PMWordle {
             });
         });
 
+        // Hamburger menu button
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => this.showModal('settings'));
+        }
+
         // Share button
         document.getElementById('share-btn').addEventListener('click', () => {
             this.shareResults();
@@ -596,6 +603,14 @@ class PMWordle {
                 userMenu.classList.remove('show');
             }
         });
+
+        // Forgot password button
+        const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+        if (forgotPasswordBtn) {
+            forgotPasswordBtn.addEventListener('click', () => {
+                this.showForgotPasswordDialog();
+            });
+        }
 
         // Check if user is already logged in
         this.loadUser();
@@ -729,6 +744,7 @@ class PMWordle {
         } else {
             this.currentRow++;
             this.currentCol = 0;
+            console.log('Moving to next row:', this.currentRow, 'Column reset to:', this.currentCol);
             await this.saveGameState();
         }
     }
@@ -902,8 +918,9 @@ class PMWordle {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const isLogin = document.getElementById('auth-title').textContent === 'Sign In';
+        const marketingConsent = document.getElementById('marketing-checkbox').checked;
 
-        console.log('Auth data:', {firstname, email, password: password ? '***' : '', isLogin});
+        console.log('Auth data:', {firstname, email, password: password ? '***' : '', isLogin, marketingConsent});
 
         if (isLogin) {
             // For login, use email as username
@@ -918,7 +935,15 @@ class PMWordle {
                 this.showMessage('Please fill in all fields', 'error');
                 return;
             }
-            await this.register(firstname, email, password);
+            
+            // Check marketing consent is required
+            if (!marketingConsent) {
+                this.showMessage('Marketing consent is required to sign up', 'error');
+                return;
+            }
+            
+            const reminderConsent = document.getElementById('reminder-checkbox').checked;
+            await this.register(firstname, email, password, reminderConsent);
         }
     }
 
@@ -948,12 +973,12 @@ class PMWordle {
         }
     }
 
-    async register(firstname, email, password) {
+    async register(firstname, email, password, reminderConsent = false) {
         const marketingConsent = document.getElementById('marketing-checkbox').checked;
         
-        console.log('Attempting registration for:', email);
+        console.log('Attempting registration for:', email, 'with reminder consent:', reminderConsent);
         
-        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
+        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent, reminderConsent);
         
         if (error) {
             console.log('Registration failed:', error);
@@ -1033,6 +1058,9 @@ class PMWordle {
         const toggle = document.getElementById('auth-toggle');
         const switchText = document.getElementById('auth-switch-text');
         const marketingConsent = document.getElementById('marketing-consent');
+        const reminderConsent = document.getElementById('reminder-consent');
+        const termsAgreement = document.getElementById('terms-agreement');
+        const forgotPasswordSection = document.getElementById('forgot-password-section');
         const firstnameField = document.getElementById('firstname');
 
         if (title.textContent === 'Sign In') {
@@ -1042,6 +1070,9 @@ class PMWordle {
             toggle.textContent = 'Sign In';
             switchText.textContent = 'Already have an account?';
             marketingConsent.classList.remove('hidden');
+            reminderConsent.classList.remove('hidden');
+            termsAgreement.classList.remove('hidden');
+            forgotPasswordSection.style.display = 'none';
             firstnameField.style.display = 'block';
             firstnameField.required = true;
         } else {
@@ -1051,8 +1082,28 @@ class PMWordle {
             toggle.textContent = 'Sign Up';
             switchText.textContent = "Don't have an account?";
             marketingConsent.classList.add('hidden');
+            reminderConsent.classList.add('hidden');
+            termsAgreement.classList.add('hidden');
+            forgotPasswordSection.style.display = 'block';
             firstnameField.style.display = 'none';
             firstnameField.required = false;
+        }
+    }
+
+    showForgotPasswordDialog() {
+        const email = prompt('Please enter your email address for password reset:');
+        if (email) {
+            this.sendPasswordReset(email);
+        }
+    }
+
+    async sendPasswordReset(email) {
+        try {
+            const { error } = await this.db.supabase.auth.resetPasswordForEmail(email);
+            if (error) throw error;
+            this.showMessage('Password reset email sent!', 'success');
+        } catch (error) {
+            this.showMessage('Error sending reset email: ' + error.message, 'error');
         }
     }
 
@@ -1315,9 +1366,9 @@ class PMWordle {
             }
         });
 
-        // Sort by current streak (highest first) and keep top 5
+        // Sort by current streak (highest first) and keep top 10
         streakData.sort((a, b) => b.streak - a.streak);
-        const topStreaks = streakData.slice(0, 5);
+        const topStreaks = streakData.slice(0, 10);
 
         const listElement = document.getElementById('streak-list');
         

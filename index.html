@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PM Puzzle</title>
+    <title>The PM Puzzle</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,7 @@
             </div>
             <div class="title">
                 <div class="brand-text">Ailo presents</div>
-                <h1>PM Puzzle</h1>
+                <h1>The PM Puzzle</h1>
                 <div class="subtitle">...because PMs deserve a break</div>
             </div>
             <div class="menu-right">
@@ -66,16 +66,26 @@
         <div id="auth-section" class="auth-section">
             <div id="auth-form" class="auth-form">
                 <h2 id="auth-title">Sign In</h2>
-                <form id="login-form">
-                    <input type="text" id="firstname" placeholder="First Name">
-                    <input type="email" id="email" placeholder="Email Address" required>
-                    <input type="password" id="password" placeholder="Password" required>
+                <form id="login-form" autocomplete="off">
+                    <input type="text" id="firstname" placeholder="First Name" autocomplete="given-name">
+                    <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
+                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
                     <div id="marketing-consent" class="marketing-consent hidden">
                         <label class="checkbox-label">
-                            <input type="checkbox" id="marketing-checkbox">
+                            <input type="checkbox" id="marketing-checkbox" checked required>
                             <span class="checkmark"></span>
-                            I consent to receive marketing materials from Ailo
+                            I consent to receive marketing materials from Ailo (required)
                         </label>
+                    </div>
+                    <div id="reminder-consent" class="reminder-consent hidden">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="reminder-checkbox">
+                            <span class="checkmark"></span>
+                            Want a daily reminder each time a new word is available?
+                        </label>
+                    </div>
+                    <div id="terms-agreement" class="terms-agreement hidden">
+                        <small>By signing up, you agree to our <a href="terms.html" target="_blank">Competition Terms & Conditions</a></small>
                     </div>
                     <button type="submit" id="auth-submit">Sign In</button>
                 </form>
@@ -85,6 +95,9 @@
                 <div class="auth-switch">
                     <span id="auth-switch-text">Don't have an account?</span>
                     <button type="button" id="auth-toggle">Sign Up</button>
+                </div>
+                <div id="forgot-password-section" class="forgot-password-section">
+                    <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
                 </div>
                 <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
             </div>
