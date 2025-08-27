@@ -1140,8 +1140,15 @@ class PMWordle {
             submitBtn.textContent = 'Sending...';
             messageDiv.textContent = '';
             
+            // Use the deployed URL for reset redirect
+            const baseUrl = window.location.hostname === 'localhost' 
+                ? window.location.origin 
+                : 'https://pm-puzzle.vercel.app';
+            
+            console.log('Sending password reset to:', email, 'with redirect:', `${baseUrl}/reset-password.html`);
+            
             const { error } = await this.db.supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password.html`
+                redirectTo: `${baseUrl}/reset-password.html`
             });
             
             if (error) throw error;
