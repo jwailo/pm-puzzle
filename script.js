@@ -608,7 +608,36 @@ class PMWordle {
         const forgotPasswordBtn = document.getElementById('forgot-password-btn');
         if (forgotPasswordBtn) {
             forgotPasswordBtn.addEventListener('click', () => {
-                this.showForgotPasswordDialog();
+                this.showForgotPasswordModal();
+            });
+        }
+        
+        // Forgot password modal handlers
+        const forgotModal = document.getElementById('forgot-password-modal');
+        const forgotCloseBtn = document.getElementById('forgot-close-btn');
+        const forgotForm = document.getElementById('forgot-password-form');
+        
+        if (forgotCloseBtn) {
+            forgotCloseBtn.addEventListener('click', () => {
+                this.hideForgotPasswordModal();
+            });
+        }
+        
+        if (forgotModal) {
+            forgotModal.addEventListener('click', (e) => {
+                if (e.target === forgotModal) {
+                    this.hideForgotPasswordModal();
+                }
+            });
+        }
+        
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('forgot-email').value.trim();
+                if (email) {
+                    this.sendPasswordReset(email);
+                }
             });
         }
 
@@ -1090,20 +1119,47 @@ class PMWordle {
         }
     }
 
-    showForgotPasswordDialog() {
-        const email = prompt('Please enter your email address for password reset:');
-        if (email) {
-            this.sendPasswordReset(email);
-        }
+    showForgotPasswordModal() {
+        const modal = document.getElementById('forgot-password-modal');
+        modal.classList.add('show');
+        document.getElementById('forgot-email').value = '';
+        document.getElementById('forgot-message').textContent = '';
+    }
+    
+    hideForgotPasswordModal() {
+        const modal = document.getElementById('forgot-password-modal');
+        modal.classList.remove('show');
     }
 
     async sendPasswordReset(email) {
+        const messageDiv = document.getElementById('forgot-message');
+        const submitBtn = document.getElementById('forgot-submit');
+        
         try {
-            const { error } = await this.db.supabase.auth.resetPasswordForEmail(email);
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            messageDiv.textContent = '';
+            
+            const { error } = await this.db.supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password.html`
+            });
+            
             if (error) throw error;
-            this.showMessage('Password reset email sent!', 'success');
+            
+            messageDiv.style.color = 'var(--color-correct)';
+            messageDiv.textContent = 'Password reset email sent! Check your inbox.';
+            
+            setTimeout(() => {
+                this.hideForgotPasswordModal();
+            }, 3000);
+            
         } catch (error) {
-            this.showMessage('Error sending reset email: ' + error.message, 'error');
+            console.error('Password reset error:', error);
+            messageDiv.style.color = 'var(--color-error)';
+            messageDiv.textContent = 'Error: ' + error.message;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send Reset Link';
         }
     }
 
