@@ -65,10 +65,11 @@ body.dark-mode {
 .game-container {
     max-width: 500px;
     margin: 0 auto;
-    padding: 0 8px;
-    height: 100vh;
+    padding: 8px;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 /* Header */
@@ -76,9 +77,10 @@ body.dark-mode {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 0;
-    min-height: 60px;
+    padding: 12px 0;
+    min-height: 70px;
     position: relative;
+    margin-top: 8px;
 }
 
 .menu-left, .menu-right {
@@ -102,7 +104,9 @@ body.dark-mode {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     min-width: 0;
+    padding: 0 8px;
 }
 
 .brand-text {
@@ -116,12 +120,13 @@ body.dark-mode {
 }
 
 .title h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: 0.01em;
     color: var(--color-text);
     margin: 0;
     white-space: nowrap;
+    line-height: 1.1;
 }
 
 .subtitle {
@@ -1132,16 +1137,107 @@ input[type="checkbox"]:checked + .toggle-label::after {
 /* Mobile optimizations */
 @media (max-width: 480px) {
     .game-container {
-        padding: 0 4px;
+        padding: 4px;
+        min-height: 100vh;
+    }
+    
+    .header {
+        padding: 8px 0;
+        margin-top: 4px;
+        min-height: 65px;
     }
     
     .menu-left, .menu-right {
-        width: 80px;
+        width: 70px;
         gap: 2px;
+    }
+    
+    .title {
+        padding: 0 4px;
     }
     
     #test-btn {
         display: none;
+    }
+    
+    .title h1 {
+        font-size: 18px;
+    }
+    
+    .brand-text {
+        font-size: 8px;
+        margin-bottom: 1px;
+    }
+    
+    .subtitle {
+        display: none;
+    }
+    
+    .icon-btn {
+        width: 32px;
+        height: 32px;
+        padding: 4px;
+    }
+    
+    .icon-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .auth-form {
+        max-width: 100%;
+        padding: 0;
+        margin: 0 8px;
+    }
+    
+    .mecca-voucher {
+        font-size: 12px;
+        padding: 6px;
+        margin: 8px 0;
+    }
+    
+    .tile {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+    
+    .key {
+        min-width: 32px;
+        font-size: 11px;
+        padding: 10px 0;
+        margin: 0 2px;
+    }
+    
+    .key-large {
+        min-width: 48px;
+        font-size: 9px;
+    }
+    
+    .user-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .game-board {
+        padding: 4px 0;
+    }
+    
+    .keyboard {
+        padding: 4px 0 12px 0;
+    }
+}
+
+/* Small screens - show subtitle but prevent overlap */
+@media (min-width: 481px) and (max-width: 767px) {
+    .game-container {
+        padding: 6px;
+    }
+    
+    .header {
+        margin-top: 6px;
+        padding: 10px 0;
     }
     
     .title h1 {
@@ -1153,69 +1249,110 @@ input[type="checkbox"]:checked + .toggle-label::after {
     }
     
     .subtitle {
-        display: none;
-    }
-    
-    .icon-btn {
-        width: 36px;
-        height: 36px;
-        padding: 6px;
-    }
-    
-    .auth-form {
-        max-width: 280px;
-        padding: 0 8px;
-    }
-    
-    .mecca-voucher {
-        font-size: 12px;
-        padding: 6px;
-    }
-    
-    .tile {
-        width: 55px;
-        height: 55px;
-        font-size: 28px;
-    }
-    
-    .key {
-        min-width: 38px;
-        font-size: 12px;
-        padding: 12px 0;
-    }
-    
-    .key-large {
-        min-width: 55px;
-        font-size: 10px;
-    }
-}
-
-/* Small screens - show subtitle but prevent overlap */
-@media (min-width: 481px) and (max-width: 767px) {
-    .subtitle {
-        font-size: 9px;
+        font-size: 8px;
     }
     
     #test-btn {
         display: none;
+    }
+    
+    .menu-left, .menu-right {
+        width: 75px;
+    }
+    
+    .icon-btn {
+        width: 34px;
+        height: 34px;
+        padding: 5px;
+    }
+    
+    .tile {
+        width: 58px;
+        height: 58px;
+        font-size: 30px;
     }
 }
 
 /* Medium screens - hide testing to prevent overlap */
 @media (min-width: 768px) and (max-width: 1024px) {
+    .game-container {
+        padding: 8px;
+    }
+    
+    .header {
+        margin-top: 8px;
+    }
+    
     #test-btn {
         display: none;
     }
 }
 
-/* Responsive Design - Tablet */
+/* Responsive Design - Tablet and up */
 @media (min-width: 768px) {
     .game-container {
-        padding: 0 16px;
+        padding: 12px 16px;
+    }
+    
+    .header {
+        margin-top: 12px;
+        padding: 16px 0;
     }
     
     .auth-form {
         max-width: 350px;
+    }
+    
+    .tile {
+        width: 65px;
+        height: 65px;
+        font-size: 32px;
+    }
+    
+    .key {
+        min-width: 45px;
+        font-size: 14px;
+        padding: 14px 0;
+    }
+    
+    .key-large {
+        min-width: 70px;
+    }
+    
+    .title h1 {
+        font-size: 28px;
+    }
+    
+    .brand-text {
+        font-size: 11px;
+    }
+    
+    .subtitle {
+        font-size: 10px;
+    }
+}
+
+/* Responsive Design - Desktop */
+@media (min-width: 1025px) {
+    .game-container {
+        padding: 16px;
+    }
+    
+    .header {
+        margin-top: 16px;
+        padding: 20px 0;
+    }
+    
+    .title h1 {
+        font-size: 32px;
+    }
+    
+    .brand-text {
+        font-size: 12px;
+    }
+    
+    .subtitle {
+        font-size: 11px;
     }
     
     .tile {
@@ -1233,13 +1370,6 @@ input[type="checkbox"]:checked + .toggle-label::after {
         min-width: 80px;
     }
     
-    .title h1 {
-        font-size: 32px;
-    }
-}
-
-/* Responsive Design - Desktop */
-@media (min-width: 1024px) {
     .stats-grid {
         gap: 24px;
     }
