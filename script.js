@@ -166,9 +166,18 @@ class PMWordle {
             'TAXES', 'MAINT', 'YIELD', 'HOUSE', 'PROPS', 'SPACE', 'FLOOR', 'DOORS', 'WALLS', 'ROOFS',
             'POOLS', 'YARDS', 'FENCE', 'DECKS', 'PORCH', 'DRIVE', 'ROADS', 'PATHS', 'PIPES', 'WATER',
             'POWER', 'ELECT', 'HVACS', 'AUDIT', 'CLEAN', 'PAINT', 'FIXES', 'CALLS', 'TOURS', 'SHOWS',
-            'SIGNS', 'LISTS', 'SALES', 'BUYS', 'SELLS', 'LOANS', 'BANKS', 'FUNDS', 'COSTS', 'BILLS',
-            'FEES', 'RENTS', 'VALUE', 'PRICE', 'MONTH', 'YEARS', 'TERMS', 'DEALS', 'FORMS', 'CODES'
+            'SIGNS', 'LISTS', 'SALES', 'BUYER', 'SELLS', 'LOANS', 'BANKS', 'FUNDS', 'COSTS', 'BILLS',
+            'GROSS', 'RENTS', 'VALUE', 'PRICE', 'MONTH', 'YEARS', 'TERMS', 'DEALS', 'FORMS', 'CODES'
         ];
+        
+        // Validate all answer bank words are 5 letters
+        this.answerBank = this.answerBank.filter(word => {
+            if (word.length !== 5) {
+                console.error(`Removing invalid word from answer bank: ${word} (${word.length} letters)`);
+                return false;
+            }
+            return true;
+        });
 
         // Valid guess words - will be loaded from CSV file
         this.validWords = [];
@@ -346,7 +355,16 @@ class PMWordle {
         // Use the date as seed for consistent word selection
         const seed = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
         const wordIndex = seed % this.answerBank.length;
-        return this.answerBank[wordIndex];
+        const selectedWord = this.answerBank[wordIndex];
+        
+        // Validate that the word is exactly 5 letters (safety check)
+        if (selectedWord.length !== 5) {
+            console.error(`Invalid word length: ${selectedWord} (${selectedWord.length} letters)`);
+            // Fallback to a valid word
+            return 'LEASE';
+        }
+        
+        return selectedWord;
     }
 
     setupEventListeners() {
