@@ -74,6 +74,30 @@ class DatabaseService {
             .eq('id', userId)
             .single();
 
+        // If profile doesn't exist, create a basic one
+        if (error && error.code === 'PGRST116') { // No rows found
+            const user = await this.supabase.auth.getUser();
+            if (user.data.user && user.data.user.id === userId) {
+                const email = user.data.user.email;
+                const firstName = email ? email.split('@')[0] : 'User';
+                
+                const { data: newProfile, error: createError } = await this.supabase
+                    .from('user_profiles')
+                    .insert([{
+                        id: userId,
+                        first_name: firstName,
+                        email: email,
+                        marketing_consent: false
+                    }])
+                    .select()
+                    .single();
+                
+                if (!createError) {
+                    return { data: newProfile, error: null };
+                }
+            }
+        }
+
         return { data, error };
     }
 
@@ -95,6 +119,8 @@ class DatabaseService {
                 user_id: userId,
                 ...stats,
                 updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
             });
 
         return { data, error };
@@ -124,6 +150,8 @@ class DatabaseService {
                 completion_time: completionTime,
                 guesses: guesses,
                 word: word
+            }, {
+                onConflict: 'user_id,date'
             });
 
         return { data, error };
@@ -989,6 +1017,8 @@ class PMWordle {
         modal.classList.add('show');
         
         if (type === 'stats') {
+            // Force fresh stats load
+            delete this._cachedStats;
             await this.updateStats();
             await this.updateLeaderboards();
         } else if (type === 'test') {
@@ -1423,6 +1453,8 @@ class PMWordle {
                 console.error('Error saving user stats:', error);
             } else {
                 console.log('Successfully saved stats to database');
+                // Clear any cached stats to force refresh
+                delete this._cachedStats;
             }
         }
     }
