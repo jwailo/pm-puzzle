@@ -160,12 +160,12 @@ class PMWordle {
     constructor() {
         // Initialize database service
         this.db = new DatabaseService();
-        // Property Management Answer Bank (60 words) - these are the daily answers
+        // Property Management Answer Bank (59 words) - these are the daily answers
         this.answerBank = [
             'LEASE', 'RENTS', 'TOWER', 'CONDO', 'AGENT', 'LOBBY', 'SUITE', 'OWNER', 'ASSET', 'UNITS',
-            'TAXES', 'MAINT', 'YIELD', 'HOUSE', 'PROPS', 'SPACE', 'FLOOR', 'DOORS', 'WALLS', 'ROOFS',
+            'TAXES', 'TRUST', 'YIELD', 'HOUSE', 'PROPS', 'SPACE', 'FLOOR', 'DOORS', 'WALLS', 'ROOFS',
             'POOLS', 'YARDS', 'FENCE', 'DECKS', 'PORCH', 'DRIVE', 'ROADS', 'PATHS', 'PIPES', 'WATER',
-            'POWER', 'ELECT', 'HVACS', 'AUDIT', 'CLEAN', 'PAINT', 'FIXES', 'CALLS', 'TOURS', 'SHOWS',
+            'POWER', 'ELECT', 'AUDIT', 'CLEAN', 'PAINT', 'FIXES', 'CALLS', 'TOURS', 'SHOWS',
             'SIGNS', 'LISTS', 'SALES', 'BUYER', 'SELLS', 'LOANS', 'BANKS', 'FUNDS', 'COSTS', 'BILLS',
             'GROSS', 'RENTS', 'VALUE', 'PRICE', 'MONTH', 'YEARS', 'TERMS', 'DEALS', 'FORMS', 'CODES'
         ];
