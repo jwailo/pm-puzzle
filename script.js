@@ -1351,13 +1351,13 @@ class PMWordle {
             };
         } else {
             // Get current user from Supabase
-            const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+            const { data: { user } } = await this.db.supabase.auth.getUser();
             if (!user) {
                 console.error('No authenticated user found');
                 return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
             }
 
-            const { data, error } = await this.databaseService.getUserStats(user.id);
+            const { data, error } = await this.db.getUserStats(user.id);
             if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
                 console.error('Error getting user stats:', error);
                 return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
@@ -1386,14 +1386,16 @@ class PMWordle {
         };
 
         if (this.gameWon) {
+            console.log(`Adding guess distribution for row ${this.currentRow + 1}, array index ${this.currentRow}`);
             newStats.guessDistribution[this.currentRow] += 1;
+            console.log('Updated guess distribution:', newStats.guessDistribution);
         }
 
         if (this.isGuest) {
             localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
         } else {
             // Get current user from Supabase
-            const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+            const { data: { user } } = await this.db.supabase.auth.getUser();
             if (!user) {
                 console.error('No authenticated user found for saving stats');
                 return;
@@ -1409,7 +1411,7 @@ class PMWordle {
                 guess_distribution: newStats.guessDistribution
             };
 
-            const { error } = await this.databaseService.updateUserStats(user.id, dbStats);
+            const { error } = await this.db.updateUserStats(user.id, dbStats);
             if (error) {
                 console.error('Error saving user stats:', error);
             }
@@ -1432,7 +1434,7 @@ class PMWordle {
         if (!this.gameWon) return;
 
         // Get current user from Supabase
-        const { data: { user } } = await this.databaseService.supabase.auth.getUser();
+        const { data: { user } } = await this.db.supabase.auth.getUser();
         if (!user) {
             console.error('No authenticated user found for leaderboard update');
             return;
@@ -1442,7 +1444,7 @@ class PMWordle {
         const today = new Date().toDateString();
         
         // Update leaderboard in database
-        const { error } = await this.databaseService.updateDailyLeaderboard(
+        const { error } = await this.db.updateDailyLeaderboard(
             user.id, 
             today, 
             completionTime, 
