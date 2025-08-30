@@ -1283,10 +1283,10 @@ class PMWordle {
             userDropdown.classList.remove('hidden');
             
             // Get user profile for display name
-            if (this.currentUser) {
-                const user = await this.db.getCurrentUser();
-                const { data: profile } = await this.db.getUserProfile(this.currentUser);
-                const displayName = profile?.first_name || 'User';
+            const user = await this.db.getCurrentUser();
+            if (user) {
+                const { data: profile } = await this.db.getUserProfile(user.id);
+                const displayName = profile?.first_name || user.email?.split('@')[0] || 'User';
                 const email = user?.email || '';
                 
                 // Set user initial (first letter of name)
@@ -1323,6 +1323,8 @@ class PMWordle {
     // Statistics System
     async updateStats() {
         const stats = await this.getStats();
+        
+        console.log('Updating stats display with:', stats);
         
         document.getElementById('games-played').textContent = stats.gamesPlayed;
         document.getElementById('win-percentage').textContent = stats.winPercentage;
@@ -1464,6 +1466,8 @@ class PMWordle {
         const today = new Date().toDateString();
         const listElement = document.getElementById('daily-list');
         
+        console.log('Rendering daily leaderboard for date:', today);
+        
         if (!listElement) {
             console.log('Daily leaderboard element not found');
             return;
@@ -1472,6 +1476,8 @@ class PMWordle {
         // Get leaderboard data from database
         const { data: todayEntries, error } = await this.db.getDailyLeaderboard(today);
         
+        console.log('Daily leaderboard data:', todayEntries, 'Error:', error);
+        
         if (error) {
             console.error('Error fetching daily leaderboard:', error);
             listElement.innerHTML = '<div class="leaderboard-empty">Error loading leaderboard</div>';
@@ -1479,6 +1485,7 @@ class PMWordle {
         }
         
         if (!todayEntries || todayEntries.length === 0) {
+            console.log('No entries found for today');
             listElement.innerHTML = '<div class="leaderboard-empty">No times recorded yet today</div>';
             return;
         }
