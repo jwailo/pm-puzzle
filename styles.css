@@ -75,12 +75,21 @@ body.dark-mode {
 /* Header */
 .header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     padding: 12px 0;
-    min-height: 70px;
+    min-height: 90px;
     position: relative;
     margin-top: 8px;
+    overflow: visible;
+    width: 100%;
+}
+
+.header-icons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
 }
 
 .menu-left, .menu-right {
@@ -88,6 +97,8 @@ body.dark-mode {
     gap: 4px;
     flex: 0 0 auto;
     width: 120px;
+    overflow: hidden;
+    flex-wrap: nowrap;
 }
 
 .menu-left {
@@ -100,13 +111,13 @@ body.dark-mode {
 
 .title {
     text-align: center;
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 0;
-    padding: 0 8px;
+    width: 100%;
+    position: relative;
+    z-index: 5;
 }
 
 .brand-text {
@@ -1341,6 +1352,15 @@ input[type="checkbox"]:checked + .toggle-label::after {
     .header {
         margin-top: 16px;
         padding: 20px 0;
+        min-height: 110px;
+    }
+    
+    .header-icons {
+        margin-bottom: 12px;
+    }
+    
+    .menu-left, .menu-right {
+        width: 140px;
     }
     
     .title h1 {
@@ -1381,6 +1401,70 @@ input[type="checkbox"]:checked + .toggle-label::after {
     .leaderboard-tabs {
         max-width: 300px;
         margin: 0 auto 16px;
+    }
+}
+
+/* Large Desktop Screens - Extra spacing to prevent overlap */
+@media (min-width: 1440px) {
+    .header {
+        min-height: 120px;
+    }
+    
+    .header-icons {
+        margin-bottom: 16px;
+    }
+    
+    .menu-left, .menu-right {
+        width: 200px;
+        overflow: hidden;
+    }
+    
+    .title h1 {
+        font-size: 36px;
+    }
+    
+    .brand-text {
+        font-size: 13px;
+    }
+    
+    .subtitle {
+        font-size: 12px;
+    }
+}
+
+/* Ultra-wide Screens - Prevent icon duplication and ensure proper spacing */
+@media (min-width: 1920px) {
+    .header {
+        max-width: 1200px;
+        margin: 16px auto 0;
+        min-height: 130px;
+    }
+    
+    .header-icons {
+        margin-bottom: 20px;
+    }
+    
+    .menu-left, .menu-right {
+        width: 240px;
+    }
+    
+    .title h1 {
+        font-size: 40px;
+    }
+    
+    .brand-text {
+        font-size: 14px;
+    }
+    
+    .subtitle {
+        font-size: 13px;
+    }
+    
+    /* Ensure no icons are duplicated or positioned behind title */
+    .icon-btn {
+        position: relative;
+        z-index: 10;
+        flex-shrink: 0;
     }
 }
 

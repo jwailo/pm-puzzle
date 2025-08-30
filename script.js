@@ -1206,7 +1206,8 @@ class PMWordle {
             authSection.classList.remove('logged-in');
             authForm.classList.remove('hidden');
             userDropdown.classList.add('hidden');
-            if (leaderboardsSection) leaderboardsSection.style.display = 'none';
+            // Show leaderboards for everyone to see competition results
+            if (leaderboardsSection) leaderboardsSection.style.display = 'block';
             
             // Ensure auth form elements are interactive
             authForm.style.pointerEvents = 'auto';
@@ -1234,6 +1235,10 @@ class PMWordle {
             
             if (leaderboardsSection) leaderboardsSection.style.display = 'block';
         }
+        
+        // Always render leaderboards so everyone can see results
+        await this.renderDailyLeaderboard();
+        this.updateStreakLeaderboard();
     }
 
     loadUser() {
@@ -1349,10 +1354,14 @@ class PMWordle {
 
     // Leaderboard System
     async updateLeaderboards() {
-        if (this.isGuest) return;
-
-        await this.updateDailyLeaderboard();
+        // Always render leaderboards for everyone to see
+        await this.renderDailyLeaderboard();
         this.updateStreakLeaderboard();
+        
+        // Only update user's own score if logged in and won
+        if (!this.isGuest && this.gameWon) {
+            await this.updateDailyLeaderboard();
+        }
     }
 
     async updateDailyLeaderboard() {
@@ -1389,8 +1398,13 @@ class PMWordle {
         const today = new Date().toDateString();
         const listElement = document.getElementById('daily-list');
         
+        if (!listElement) {
+            console.log('Daily leaderboard element not found');
+            return;
+        }
+        
         // Get leaderboard data from database
-        const { data: todayEntries, error } = await this.databaseService.getDailyLeaderboard(today);
+        const { data: todayEntries, error } = await this.db.getDailyLeaderboard(today);
         
         if (error) {
             console.error('Error fetching daily leaderboard:', error);
