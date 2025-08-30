@@ -1468,6 +1468,67 @@ input[type="checkbox"]:checked + .toggle-label::after {
     }
 }
 
+/* Share Modal Styles */
+.share-modal-content {
+    max-width: 400px;
+}
+
+.share-modal-body {
+    text-align: center;
+    padding: 24px;
+}
+
+.share-icon {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px;
+    height: 80px;
+    background: rgba(238, 11, 79, 0.1);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+}
+
+.share-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.share-instructions {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+.share-hashtag {
+    font-size: 14px;
+    color: var(--color-ailo-pink);
+    font-weight: 600;
+    margin-bottom: 24px;
+    padding: 8px 16px;
+    background: rgba(238, 11, 79, 0.05);
+    border-radius: 20px;
+    display: inline-block;
+}
+
+#share-got-it {
+    background: var(--color-ailo-pink);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#share-got-it:hover {
+    background: var(--color-ailo-pink-dark);
+}
+
 /* Menu Modal Styles */
 .menu-options {
     display: flex;

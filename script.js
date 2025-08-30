@@ -493,12 +493,36 @@ class PMWordle {
             const modal = document.getElementById(`${modalType}-modal`);
             const closeBtn = modal.querySelector('.close-btn');
             
-            btn.addEventListener('click', () => this.showModal(modalType));
-            closeBtn.addEventListener('click', () => this.hideModal(modalType));
-            modal.addEventListener('click', (e) => {
+            if (btn) btn.addEventListener('click', () => this.showModal(modalType));
+            if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal(modalType));
+            if (modal) modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.hideModal(modalType);
             });
         });
+        
+        // Setup share instructions modal separately (no button, just close)
+        const shareModal = document.getElementById('share-instructions-modal');
+        if (shareModal) {
+            const closeBtn = shareModal.querySelector('.close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal('share-instructions'));
+            
+            const gotItBtn = document.getElementById('share-got-it');
+            if (gotItBtn) gotItBtn.addEventListener('click', () => this.hideModal('share-instructions'));
+            
+            shareModal.addEventListener('click', (e) => {
+                if (e.target === shareModal) this.hideModal('share-instructions');
+            });
+        }
+        
+        // Setup menu modal separately
+        const menuModal = document.getElementById('menu-modal');
+        if (menuModal) {
+            const closeBtn = menuModal.querySelector('.close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal('menu'));
+            menuModal.addEventListener('click', (e) => {
+                if (e.target === menuModal) this.hideModal('menu');
+            });
+        }
 
         // Hamburger menu button
         const menuBtn = document.getElementById('menu-btn');
