@@ -1360,13 +1360,15 @@ class PMWordle {
             }
 
             const { data, error } = await this.db.getUserStats(user.id);
+            console.log('Retrieved user stats from database:', data, 'Error:', error);
+            
             if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
                 console.error('Error getting user stats:', error);
                 return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
             }
 
             const userStats = data || {games_played:0,games_won:0,current_streak:0,max_streak:0,guess_distribution:[0,0,0,0,0,0]};
-            return {
+            const formattedStats = {
                 gamesPlayed: userStats.games_played || 0,
                 gamesWon: userStats.games_won || 0,
                 currentStreak: userStats.current_streak || 0,
@@ -1374,6 +1376,8 @@ class PMWordle {
                 guessDistribution: userStats.guess_distribution || [0,0,0,0,0,0],
                 winPercentage: userStats.games_played > 0 ? Math.round((userStats.games_won / userStats.games_played) * 100) : 0
             };
+            console.log('Formatted stats:', formattedStats);
+            return formattedStats;
         }
     }
 
@@ -1413,9 +1417,12 @@ class PMWordle {
                 guess_distribution: newStats.guessDistribution
             };
 
+            console.log('Saving stats to database:', dbStats);
             const { error } = await this.db.updateUserStats(user.id, dbStats);
             if (error) {
                 console.error('Error saving user stats:', error);
+            } else {
+                console.log('Successfully saved stats to database');
             }
         }
     }
@@ -1490,13 +1497,19 @@ class PMWordle {
             return;
         }
 
-        listElement.innerHTML = todayEntries.map((entry, index) => `
-            <div class="leaderboard-item">
-                <span class="leaderboard-rank">${index + 1}</span>
-                <span class="leaderboard-name">${entry.user_profiles?.first_name || 'Unknown'}</span>
-                <span class="leaderboard-value">${this.formatTime(entry.completion_time)}</span>
-            </div>
-        `).join('');
+        console.log('Today entries with user profiles:', todayEntries);
+        
+        listElement.innerHTML = todayEntries.map((entry, index) => {
+            console.log(`Entry ${index}:`, entry, 'User profile:', entry.user_profiles);
+            const displayName = entry.user_profiles?.first_name || 'Unknown';
+            return `
+                <div class="leaderboard-item">
+                    <span class="leaderboard-rank">${index + 1}</span>
+                    <span class="leaderboard-name">${displayName}</span>
+                    <span class="leaderboard-value">${this.formatTime(entry.completion_time)}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     async updateStreakLeaderboard() {
