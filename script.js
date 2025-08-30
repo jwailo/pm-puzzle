@@ -237,15 +237,39 @@ class PMWordle {
     }
 
     async checkUserSession() {
-        const user = await this.db.getCurrentUser();
-        if (user) {
-            console.log('Found existing user session:', user.id);
-            this.currentUser = user.id;
-            this.isGuest = false;
+        try {
+            // Check Supabase session first (this is the ONLY source of truth)
+            const { data: { session }, error } = await this.db.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('Error checking session:', error);
+                this.clearUserSession();
+                return;
+            }
+            
+            if (session?.user) {
+                console.log('Found valid Supabase session:', session.user.id);
+                this.currentUser = session.user.id;
+                this.isGuest = false;
+                this.saveUser(); // Sync with localStorage for convenience
+                this.updateAuthUI();
+            } else {
+                console.log('No valid Supabase session found - clearing any stale data');
+                this.clearUserSession();
+                this.updateAuthUI();
+            }
+        } catch (error) {
+            console.error('Session check failed:', error);
+            this.clearUserSession();
             this.updateAuthUI();
-        } else {
-            console.log('No existing user session, staying in guest mode');
         }
+    }
+    
+    clearUserSession() {
+        this.currentUser = null;
+        this.isGuest = true;
+        // Clear localStorage
+        localStorage.removeItem('pm-wordle-current-user');
     }
 
     async init() {
@@ -735,8 +759,7 @@ class PMWordle {
             });
         }
 
-        // Check if user is already logged in
-        this.loadUser();
+        // Session check is handled by checkUserSession() in constructor
         
         // Initialize auth mode properly
         this.initializeAuthMode();
@@ -1280,8 +1303,8 @@ class PMWordle {
             return;
         }
 
-        this.currentUser = null;
-        this.isGuest = true;
+        // Use clearUserSession to properly clear everything
+        this.clearUserSession();
         this.updateAuthUI();
         this.showMessage('Logged out successfully', 'success');
     }
@@ -1532,8 +1555,15 @@ class PMWordle {
         console.log('Today entries with user profiles:', todayEntries);
         
         listElement.innerHTML = todayEntries.map((entry, index) => {
-            console.log(`Entry ${index}:`, entry, 'User profile:', entry.user_profiles);
-            const displayName = entry.user_profiles?.first_name || 'Unknown';
+            let displayName = 'Anonymous';
+            
+            if (entry.user_profiles?.first_name) {
+                displayName = entry.user_profiles.first_name;
+            } else {
+                // For users without profiles, show as "Player N" based on their ranking
+                displayName = `Player ${index + 1}`;
+            }
+            
             return `
                 <div class="leaderboard-item">
                     <span class="leaderboard-rank">${index + 1}</span>
