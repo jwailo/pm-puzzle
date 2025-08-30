@@ -6,7 +6,7 @@ class DatabaseService {
     }
 
     // Authentication methods
-    async signUp(email, password, firstName, marketingConsent = false, reminderConsent = false) {
+    async signUp(email, password, firstName, marketingConsent = false) {
         try {
             const { data, error } = await this.supabase.auth.signUp({
                 email: email,
@@ -23,8 +23,7 @@ class DatabaseService {
                         id: data.user.id,
                         first_name: firstName,
                         email: email,
-                        marketing_consent: marketingConsent,
-                        reminder_consent: reminderConsent
+                        marketing_consent: marketingConsent
                     }
                 ]);
 
@@ -1040,8 +1039,7 @@ class PMWordle {
                 return;
             }
             
-            const reminderConsent = document.getElementById('reminder-checkbox').checked;
-            await this.register(firstname, email, password, reminderConsent);
+            await this.register(firstname, email, password);
         }
     }
 
@@ -1071,12 +1069,12 @@ class PMWordle {
         }
     }
 
-    async register(firstname, email, password, reminderConsent = false) {
+    async register(firstname, email, password) {
         const marketingConsent = document.getElementById('marketing-checkbox').checked;
         
-        console.log('Attempting registration for:', email, 'with reminder consent:', reminderConsent);
+        console.log('Attempting registration for:', email);
         
-        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent, reminderConsent);
+        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
         
         if (error) {
             console.log('Registration failed:', error);
@@ -1156,7 +1154,6 @@ class PMWordle {
         const toggle = document.getElementById('auth-toggle');
         const switchText = document.getElementById('auth-switch-text');
         const marketingConsent = document.getElementById('marketing-consent');
-        const reminderConsent = document.getElementById('reminder-consent');
         const termsAgreement = document.getElementById('terms-agreement');
         const forgotPasswordSection = document.getElementById('forgot-password-section');
         const firstnameField = document.getElementById('firstname');
@@ -1168,7 +1165,6 @@ class PMWordle {
             toggle.textContent = 'Sign In';
             switchText.textContent = 'Already have an account?';
             marketingConsent.classList.remove('hidden');
-            reminderConsent.classList.remove('hidden');
             termsAgreement.classList.remove('hidden');
             forgotPasswordSection.style.display = 'none';
             firstnameField.style.display = 'block';
@@ -1180,7 +1176,6 @@ class PMWordle {
             toggle.textContent = 'Sign Up';
             switchText.textContent = "Don't have an account?";
             marketingConsent.classList.add('hidden');
-            reminderConsent.classList.add('hidden');
             termsAgreement.classList.add('hidden');
             forgotPasswordSection.style.display = 'block';
             firstnameField.style.display = 'none';
