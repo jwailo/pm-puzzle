@@ -503,12 +503,37 @@ class PMWordle {
         // Hamburger menu button
         const menuBtn = document.getElementById('menu-btn');
         if (menuBtn) {
-            menuBtn.addEventListener('click', () => this.showModal('settings'));
+            menuBtn.addEventListener('click', () => this.showModal('menu'));
+        }
+        
+        // Menu modal options
+        const menuLogout = document.getElementById('menu-logout');
+        if (menuLogout) {
+            menuLogout.addEventListener('click', async () => {
+                await this.db.signOut();
+                this.updateAuthUI();
+                this.hideModal('menu');
+                window.location.reload();
+            });
+        }
+        
+        const menuShare = document.getElementById('menu-share');
+        if (menuShare) {
+            menuShare.addEventListener('click', () => {
+                this.hideModal('menu');
+                // Copy game URL to clipboard
+                const gameUrl = 'https://pm-puzzle.vercel.app';
+                navigator.clipboard.writeText(gameUrl).then(() => {
+                    alert('Game link copied to clipboard! Share it on social media.');
+                }).catch(() => {
+                    alert(`Share this link: ${gameUrl}`);
+                });
+            });
         }
 
         // Share button
         document.getElementById('share-btn').addEventListener('click', () => {
-            this.shareResults();
+            this.showModal('share-instructions');
         });
         
         // Testing buttons
@@ -761,12 +786,14 @@ class PMWordle {
             this.gameWon = true;
             this.gameOver = true;
             await this.celebrateWin();
+            await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else if (this.currentRow === 5) {
             this.gameOver = true;
             this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
+            await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
@@ -1426,39 +1453,48 @@ class PMWordle {
         `).join('');
     }
 
-    updateStreakLeaderboard() {
-        const users = JSON.parse(localStorage.getItem('pm-wordle-users') || '{}');
-        const streakData = [];
-
-        Object.keys(users).forEach(email => {
-            const user = users[email];
-            const stats = user.stats;
-            if (stats.currentStreak > 0) {
-                streakData.push({
-                    username: user.firstName || email.split('@')[0], // Use firstName or email prefix
-                    streak: stats.currentStreak
-                });
-            }
-        });
-
-        // Sort by current streak (highest first) and keep top 10
-        streakData.sort((a, b) => b.streak - a.streak);
-        const topStreaks = streakData.slice(0, 10);
-
+    async updateStreakLeaderboard() {
         const listElement = document.getElementById('streak-list');
         
-        if (topStreaks.length === 0) {
-            listElement.innerHTML = '<div class="leaderboard-empty">No streaks recorded yet</div>';
+        if (!listElement) {
+            console.log('Streak leaderboard element not found');
             return;
         }
-
-        listElement.innerHTML = topStreaks.map((entry, index) => `
-            <div class="leaderboard-item">
-                <span class="leaderboard-rank">${index + 1}</span>
-                <span class="leaderboard-name">${entry.username}</span>
-                <span class="leaderboard-value">${entry.streak} days</span>
-            </div>
-        `).join('');
+        
+        try {
+            // Get all user stats from database
+            const { data: streakData, error } = await this.db.supabase
+                .from('user_stats')
+                .select(`
+                    current_streak,
+                    user_profiles(first_name)
+                `)
+                .gt('current_streak', 0)
+                .order('current_streak', { ascending: false })
+                .limit(10);
+            
+            if (error) {
+                console.error('Error fetching streak leaderboard:', error);
+                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
+                return;
+            }
+            
+            if (!streakData || streakData.length === 0) {
+                listElement.innerHTML = '<div class="leaderboard-empty">No streaks recorded yet</div>';
+                return;
+            }
+            
+            listElement.innerHTML = streakData.map((entry, index) => `
+                <div class="leaderboard-item">
+                    <span class="leaderboard-rank">${index + 1}</span>
+                    <span class="leaderboard-name">${entry.user_profiles?.first_name || 'Unknown'}</span>
+                    <span class="leaderboard-value">${entry.current_streak} days</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error updating streak leaderboard:', error);
+            listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
+        }
     }
 
     switchLeaderboardTab(tab) {
@@ -1663,19 +1699,17 @@ class PMWordle {
     updateCountdown() {
         const updateTimer = () => {
             const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(12, 0, 0, 0);
+            let nextPuzzle = new Date(now);
             
-            // If it's past 12pm today, next word is tomorrow at 12pm
-            // If it's before 12pm today, next word is today at 12pm
-            if (now.getHours() >= 12) {
-                tomorrow.setDate(tomorrow.getDate());
-            } else {
-                tomorrow.setDate(now.getDate());
+            // Set to today at 12 PM
+            nextPuzzle.setHours(12, 0, 0, 0);
+            
+            // If it's past 12 PM today, set to tomorrow at 12 PM
+            if (now >= nextPuzzle) {
+                nextPuzzle.setDate(nextPuzzle.getDate() + 1);
             }
 
-            const diff = tomorrow - now;
+            const diff = nextPuzzle - now;
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
