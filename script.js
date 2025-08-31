@@ -1,4 +1,5 @@
 // Database service for Supabase integration
+// Updated: Fix incognito session issue v1.1
 class DatabaseService {
     constructor() {
         this.supabase = window.supabaseClient;
