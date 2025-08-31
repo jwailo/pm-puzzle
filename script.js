@@ -310,6 +310,7 @@ class PMWordle {
             this.validWords = words.filter(word => word.length === 5);
             
             console.log(`Loaded ${this.validWords.length} words from file`);
+            console.log('First 10 words:', this.validWords.slice(0, 10));
             
             // Also include our answer bank in the valid words
             this.answerBank.forEach(word => {
@@ -320,6 +321,7 @@ class PMWordle {
             
         } catch (error) {
             console.error('Error loading words from file:', error);
+            console.log('Using fallback word list');
             // Fallback to a comprehensive word list if file loading fails
             this.validWords = [
                 ...this.answerBank,
@@ -864,6 +866,7 @@ class PMWordle {
         }
 
         // Check if word is valid (in our valid words list)
+        console.log('Validating guess:', guess, 'Valid words count:', this.validWords.length, 'Includes guess:', this.validWords.includes(guess));
         if (!this.validWords.includes(guess)) {
             this.showMessage('Not in word list', 'error');
             this.shakeRow();
