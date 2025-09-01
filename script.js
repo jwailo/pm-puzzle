@@ -254,23 +254,34 @@ class PMWordle {
                 return;
             }
             
-            // Check if we have a valid persisted login marker
+            // Check if we have a valid persisted login marker with timestamp
             const persistedLogin = localStorage.getItem('pm-wordle-persist-login');
+            const persistTimestamp = localStorage.getItem('pm-wordle-persist-timestamp');
+            const currentTime = Date.now();
             
-            if (session?.user && persistedLogin === 'true') {
-                // Only restore session if user explicitly chose to stay logged in
-                console.log('Found valid Supabase session with persistence flag:', session.user.id);
+            // Check if persistence is valid (set within last 7 days and matches current session)
+            const persistenceValid = persistedLogin === 'true' && 
+                                   persistTimestamp && 
+                                   (currentTime - parseInt(persistTimestamp)) < (7 * 24 * 60 * 60 * 1000) && // 7 days
+                                   session?.user;
+            
+            if (session?.user && persistenceValid) {
+                // Only restore session if user explicitly chose to stay logged in recently
+                console.log('Found valid Supabase session with valid persistence flag:', session.user.id);
                 this.currentUser = session.user.id;
                 this.isGuest = false;
                 this.saveUser();
                 this.updateAuthUI();
             } else {
-                // Default to guest mode
-                console.log('Starting in guest mode (no persistence flag or session)');
+                // Default to guest mode - clear any stale data
+                console.log('Starting in guest mode (no valid persistence flag or stale session)');
                 if (session) {
-                    // Sign out if there's a session but no persistence flag
+                    // Sign out if there's a session but no valid persistence
                     await this.db.supabase.auth.signOut();
                 }
+                // Clear stale persistence flags
+                localStorage.removeItem('pm-wordle-persist-login');
+                localStorage.removeItem('pm-wordle-persist-timestamp');
                 this.clearUserSession();
                 this.updateAuthUI();
             }
@@ -291,6 +302,7 @@ class PMWordle {
         // Clear localStorage
         localStorage.removeItem('pm-wordle-current-user');
         localStorage.removeItem('pm-wordle-persist-login');
+        localStorage.removeItem('pm-wordle-persist-timestamp');
     }
 
     async init() {
@@ -621,6 +633,11 @@ class PMWordle {
         const menuBtn = document.getElementById('menu-btn');
         if (menuBtn) {
             menuBtn.addEventListener('click', () => this.showModal('menu'));
+        }
+        
+        const testBtn = document.getElementById('test-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => this.showModal('test'));
         }
         
         // Menu modal options
@@ -1146,8 +1163,9 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
-            // Set persistence flag for this session
+            // Set persistence flag for this session with timestamp
             localStorage.setItem('pm-wordle-persist-login', 'true');
+            localStorage.setItem('pm-wordle-persist-timestamp', Date.now().toString());
             
             // Get user profile for display name
             const { data: profile } = await this.db.getUserProfile(user.id);
@@ -1177,8 +1195,9 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
-            // Set persistence flag for this session
+            // Set persistence flag for this session with timestamp
             localStorage.setItem('pm-wordle-persist-login', 'true');
+            localStorage.setItem('pm-wordle-persist-timestamp', Date.now().toString());
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
