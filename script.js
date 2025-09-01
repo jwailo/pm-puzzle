@@ -1383,15 +1383,23 @@ class PMWordle {
         
         console.log('Updating stats display with:', stats);
         
-        document.getElementById('games-played').textContent = stats.gamesPlayed;
-        document.getElementById('win-percentage').textContent = stats.winPercentage;
-        document.getElementById('current-streak').textContent = stats.currentStreak;
-        document.getElementById('max-streak').textContent = stats.maxStreak;
+        // Update summary stats
+        const gamesPlayedEl = document.getElementById('games-played');
+        const winPercentageEl = document.getElementById('win-percentage');
+        const currentStreakEl = document.getElementById('current-streak');
+        const maxStreakEl = document.getElementById('max-streak');
+        
+        if (gamesPlayedEl) gamesPlayedEl.textContent = stats.gamesPlayed;
+        if (winPercentageEl) winPercentageEl.textContent = stats.winPercentage;
+        if (currentStreakEl) currentStreakEl.textContent = stats.currentStreak;
+        if (maxStreakEl) maxStreakEl.textContent = stats.maxStreak;
 
         // Update guess distribution
-        const maxCount = Math.max(...stats.guessDistribution);
+        const maxCount = Math.max(...stats.guessDistribution, 1); // Ensure at least 1 to avoid division by zero
+        console.log('Updating guess distribution bars, max count:', maxCount);
+        
         for (let i = 1; i <= 6; i++) {
-            const count = stats.guessDistribution[i - 1];
+            const count = stats.guessDistribution[i - 1] || 0;
             const fill = document.getElementById(`dist-${i}`);
             const countSpan = document.getElementById(`count-${i}`);
             
@@ -1439,7 +1447,10 @@ class PMWordle {
     }
 
     async saveStats() {
+        console.log('saveStats called - gameWon:', this.gameWon, 'currentRow:', this.currentRow);
         const currentStats = await this.getStats();
+        console.log('Current stats before save:', currentStats);
+        
         const newStats = {
             gamesPlayed: currentStats.gamesPlayed + 1,
             gamesWon: currentStats.gamesWon + (this.gameWon ? 1 : 0),
@@ -1450,9 +1461,11 @@ class PMWordle {
 
         if (this.gameWon) {
             console.log(`Adding guess distribution for row ${this.currentRow + 1}, array index ${this.currentRow}`);
-            newStats.guessDistribution[this.currentRow] += 1;
+            newStats.guessDistribution[this.currentRow] = (newStats.guessDistribution[this.currentRow] || 0) + 1;
             console.log('Updated guess distribution:', newStats.guessDistribution);
         }
+        
+        console.log('New stats to save:', newStats);
 
         if (this.isGuest) {
             localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
@@ -1482,6 +1495,8 @@ class PMWordle {
                 console.log('Successfully saved stats to database');
                 // Clear any cached stats to force refresh
                 delete this._cachedStats;
+                // Force immediate UI update
+                await this.updateStats();
             }
         }
     }
@@ -1587,15 +1602,16 @@ class PMWordle {
         }
         
         try {
-            // Get all user stats from database
+            // Get all user stats from database - show MAX streaks (longest ever)
             const { data: streakData, error } = await this.db.supabase
                 .from('user_stats')
                 .select(`
+                    max_streak,
                     current_streak,
                     user_profiles(first_name)
                 `)
-                .gt('current_streak', 0)
-                .order('current_streak', { ascending: false })
+                .gt('max_streak', 0)
+                .order('max_streak', { ascending: false })
                 .limit(10);
             
             if (error) {
@@ -1609,13 +1625,16 @@ class PMWordle {
                 return;
             }
             
-            listElement.innerHTML = streakData.map((entry, index) => `
-                <div class="leaderboard-item">
-                    <span class="leaderboard-rank">${index + 1}</span>
-                    <span class="leaderboard-name">${entry.user_profiles?.first_name || 'Unknown'}</span>
-                    <span class="leaderboard-value">${entry.current_streak} days</span>
-                </div>
-            `).join('');
+            listElement.innerHTML = streakData.map((entry, index) => {
+                const displayName = entry.user_profiles?.first_name || `Player ${index + 1}`;
+                return `
+                    <div class="leaderboard-item">
+                        <span class="leaderboard-rank">${index + 1}</span>
+                        <span class="leaderboard-name">${displayName}</span>
+                        <span class="leaderboard-value">${entry.max_streak} days</span>
+                    </div>
+                `;
+            }).join('');
         } catch (error) {
             console.error('Error updating streak leaderboard:', error);
             listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
