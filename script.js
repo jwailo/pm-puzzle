@@ -222,6 +222,7 @@ class PMWordle {
         this.hardMode = false;
         this.isGuest = true;
         this.currentUser = null;
+        this.processingGuess = false;
 
         // Initialize game
         this.init().catch(error => {
@@ -804,9 +805,9 @@ class PMWordle {
     async handleKeyPress(key) {
         console.log('Key pressed:', key, 'Game over:', this.gameOver, 'Current row/col:', this.currentRow, this.currentCol);
         
-        // Prevent processing if game is over
-        if (this.gameOver) {
-            console.log('Game is over, ignoring key press');
+        // Prevent processing if game is over or processing a guess
+        if (this.gameOver || this.processingGuess) {
+            console.log('Game is over or processing guess, ignoring key press');
             return;
         }
         
@@ -873,6 +874,9 @@ class PMWordle {
             return;
         }
 
+        // Set processing flag to prevent input during animation
+        this.processingGuess = true;
+        
         this.guesses.push(guess);
         this.checkGuess(guess);
         this.updateKeyboard(guess);
@@ -881,6 +885,7 @@ class PMWordle {
             this.endTime = new Date();
             this.gameWon = true;
             this.gameOver = true;
+            this.processingGuess = false;  // Clear flag when game ends
             await this.celebrateWin();
             await this.saveStats();
             await this.updateStats();
@@ -888,15 +893,20 @@ class PMWordle {
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else if (this.currentRow === 5) {
             this.gameOver = true;
+            this.processingGuess = false;  // Clear flag when game ends
             this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
             await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else {
-            this.currentRow++;
-            this.currentCol = 0;
-            console.log('Moving to next row:', this.currentRow, 'Column reset to:', this.currentCol);
+            // Wait for animation to complete before allowing new input
+            setTimeout(() => {
+                this.currentRow++;
+                this.currentCol = 0;
+                console.log('Moving to next row:', this.currentRow, 'Column reset to:', this.currentCol);
+                this.processingGuess = false;  // Clear flag after moving to next row
+            }, 500);  // Wait for tile animations to complete
             await this.saveGameState();
         }
     }
@@ -1197,6 +1207,7 @@ class PMWordle {
         this.guesses = [];
         this.startTime = new Date();
         this.endTime = null;
+        this.processingGuess = false;
         
         // Clear the board
         this.renderBoard();
@@ -1900,6 +1911,7 @@ class PMWordle {
         this.guesses = [];
         this.startTime = new Date();
         this.endTime = null;
+        this.processingGuess = false;
         this.renderBoard();
         
         // Reset keyboard
