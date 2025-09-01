@@ -1456,20 +1456,41 @@ class PMWordle {
         } else {
             // Get current user from Supabase
             const { data: { user } } = await this.db.supabase.auth.getUser();
+            console.log('Getting stats for user:', user ? user.id : 'No user', 'isGuest:', this.isGuest);
+            
             if (!user) {
-                console.error('No authenticated user found');
-                return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
+                console.error('No authenticated user found for stats - falling back to guest stats');
+                // Fall back to guest stats if no user is found
+                this.isGuest = true;
+                return this.getStats();
             }
 
             const { data, error } = await this.db.getUserStats(user.id);
-            console.log('Retrieved user stats from database:', data, 'Error:', error);
+            console.log('Database query result - Data:', data, 'Error:', error, 'Error code:', error?.code);
             
-            if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
-                console.error('Error getting user stats:', error);
-                return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    // No rows found - this is normal for new users
+                    console.log('No stats found for user - returning default stats');
+                    const defaultStats = {
+                        gamesPlayed: 0,
+                        gamesWon: 0,
+                        currentStreak: 0,
+                        maxStreak: 0,
+                        guessDistribution: [0,0,0,0,0,0],
+                        winPercentage: 0
+                    };
+                    return defaultStats;
+                } else {
+                    // Other database error
+                    console.error('Database error getting user stats:', error);
+                    return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
+                }
             }
 
             const userStats = data || {games_played:0,games_won:0,current_streak:0,max_streak:0,guess_distribution:[0,0,0,0,0,0]};
+            console.log('Raw user stats from DB:', userStats);
+            
             const formattedStats = {
                 gamesPlayed: userStats.games_played || 0,
                 gamesWon: userStats.games_won || 0,
@@ -1478,7 +1499,7 @@ class PMWordle {
                 guessDistribution: userStats.guess_distribution || [0,0,0,0,0,0],
                 winPercentage: userStats.games_played > 0 ? Math.round((userStats.games_won / userStats.games_played) * 100) : 0
             };
-            console.log('Formatted stats:', formattedStats);
+            console.log('Final formatted stats:', formattedStats);
             return formattedStats;
         }
     }
@@ -1639,7 +1660,15 @@ class PMWordle {
         }
         
         try {
-            // Get all user stats from database - show MAX streaks (longest ever)
+            console.log('Fetching streak leaderboard data...');
+            
+            // First, get a count of all user_stats records
+            const { count } = await this.db.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact', head: true });
+            console.log('Total user_stats records:', count);
+            
+            // Get all user stats from database - show MAX streaks (longest ever)  
             const { data: streakData, error } = await this.db.supabase
                 .from('user_stats')
                 .select(`
@@ -1651,6 +1680,8 @@ class PMWordle {
                 .order('max_streak', { ascending: false })
                 .limit(10);
             
+            console.log('Streak leaderboard query result:', streakData, 'Error:', error);
+            
             if (error) {
                 console.error('Error fetching streak leaderboard:', error);
                 listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
@@ -1658,6 +1689,14 @@ class PMWordle {
             }
             
             if (!streakData || streakData.length === 0) {
+                console.log('No streak data found - checking for any stats records...');
+                // Try to get any stats records to see what's in the database
+                const { data: anyStats } = await this.db.supabase
+                    .from('user_stats')
+                    .select('max_streak, current_streak')
+                    .limit(5);
+                console.log('Sample stats records:', anyStats);
+                
                 listElement.innerHTML = '<div class="leaderboard-empty">No streaks recorded yet</div>';
                 return;
             }
@@ -1960,17 +1999,34 @@ class PMWordle {
     }
 
     async testAddWin() {
-        const guessNumber = Math.floor(Math.random() * 6) + 1;
-        let stats = await this.getStats();
+        console.log('Test add win - creating a real game win...');
         
-        stats.gamesPlayed += 1;
-        stats.gamesWon += 1;
-        stats.currentStreak += 1;
-        stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
-        stats.guessDistribution[guessNumber - 1] += 1;
+        // Simulate a real game completion
+        this.gameWon = true;
+        this.gameOver = true;
+        this.currentRow = Math.floor(Math.random() * 6); // Random guess count
+        this.startTime = new Date(Date.now() - 60000); // 1 minute ago
+        this.endTime = new Date();
         
-        this.saveTestStats(stats);
-        this.showMessage(`Added win in ${guessNumber} guesses!`, 'success');
+        console.log('Simulated game state:', {
+            gameWon: this.gameWon,
+            gameOver: this.gameOver,
+            currentRow: this.currentRow,
+            isGuest: this.isGuest
+        });
+        
+        // Save stats like a real game would
+        await this.saveStats();
+        await this.updateStats();
+        await this.updateLeaderboards();
+        
+        this.showMessage(`Added real win in ${this.currentRow + 1} guesses!`, 'success');
+        
+        // Reset game state
+        this.gameWon = false;
+        this.gameOver = false;
+        this.currentRow = 0;
+        
         this.updateTestingPanel();
     }
 
