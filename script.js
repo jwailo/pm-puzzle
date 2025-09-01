@@ -240,28 +240,46 @@ class PMWordle {
 
     async checkUserSession() {
         try {
-            // Check Supabase session first (this is the ONLY source of truth)
+            // Check if this is a fresh page load (no navigation from same origin)
+            const isFreshLoad = !document.referrer || !document.referrer.includes(window.location.origin);
+            
+            // Get current Supabase session
             const { data: { session }, error } = await this.db.supabase.auth.getSession();
             
             if (error) {
                 console.error('Error checking session:', error);
+                await this.db.supabase.auth.signOut(); // Ensure clean state
                 this.clearUserSession();
+                this.updateAuthUI();
                 return;
             }
             
-            if (session?.user) {
-                console.log('Found valid Supabase session:', session.user.id);
+            // Check if we have a valid persisted login marker
+            const persistedLogin = localStorage.getItem('pm-wordle-persist-login');
+            
+            if (session?.user && persistedLogin === 'true') {
+                // Only restore session if user explicitly chose to stay logged in
+                console.log('Found valid Supabase session with persistence flag:', session.user.id);
                 this.currentUser = session.user.id;
                 this.isGuest = false;
-                this.saveUser(); // Sync with localStorage for convenience
+                this.saveUser();
                 this.updateAuthUI();
             } else {
-                console.log('No valid Supabase session found - clearing any stale data');
+                // Default to guest mode
+                console.log('Starting in guest mode (no persistence flag or session)');
+                if (session) {
+                    // Sign out if there's a session but no persistence flag
+                    await this.db.supabase.auth.signOut();
+                }
                 this.clearUserSession();
                 this.updateAuthUI();
             }
         } catch (error) {
             console.error('Session check failed:', error);
+            // On any error, default to guest mode
+            try {
+                await this.db.supabase.auth.signOut();
+            } catch {}
             this.clearUserSession();
             this.updateAuthUI();
         }
@@ -272,6 +290,7 @@ class PMWordle {
         this.isGuest = true;
         // Clear localStorage
         localStorage.removeItem('pm-wordle-current-user');
+        localStorage.removeItem('pm-wordle-persist-login');
     }
 
     async init() {
@@ -1126,6 +1145,9 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
+            // Set persistence flag for this session
+            localStorage.setItem('pm-wordle-persist-login', 'true');
+            
             // Get user profile for display name
             const { data: profile } = await this.db.getUserProfile(user.id);
             const displayName = profile?.first_name || 'User';
@@ -1153,6 +1175,9 @@ class PMWordle {
             console.log('Registration successful');
             this.currentUser = user.id;
             this.isGuest = false;
+            
+            // Set persistence flag for this session
+            localStorage.setItem('pm-wordle-persist-login', 'true');
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
