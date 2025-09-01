@@ -240,69 +240,77 @@ class PMWordle {
 
     async checkUserSession() {
         try {
-            // Check if this is a fresh page load (no navigation from same origin)
-            const isFreshLoad = !document.referrer || !document.referrer.includes(window.location.origin);
+            console.log('Checking user session...');
+            console.log('User agent:', navigator.userAgent);
+            console.log('Storage type:', this.detectStorageType());
             
-            // Get current Supabase session
-            const { data: { session }, error } = await this.db.supabase.auth.getSession();
+            // ALWAYS start in guest mode by default
+            console.log('Starting in guest mode - user must explicitly log in');
             
-            if (error) {
-                console.error('Error checking session:', error);
-                await this.db.supabase.auth.signOut(); // Ensure clean state
-                this.clearUserSession();
-                this.updateAuthUI();
-                return;
+            // Clear any existing session to ensure fresh start
+            try {
+                await this.db.supabase.auth.signOut({ scope: 'local' });
+            } catch (signOutError) {
+                console.log('Sign out error (expected):', signOutError);
             }
             
-            // Check if we have a valid persisted login marker with timestamp
-            const persistedLogin = localStorage.getItem('pm-wordle-persist-login');
-            const persistTimestamp = localStorage.getItem('pm-wordle-persist-timestamp');
-            const currentTime = Date.now();
+            // Clear all authentication-related localStorage
+            this.clearUserSession();
             
-            // Check if persistence is valid (set within last 7 days and matches current session)
-            const persistenceValid = persistedLogin === 'true' && 
-                                   persistTimestamp && 
-                                   (currentTime - parseInt(persistTimestamp)) < (7 * 24 * 60 * 60 * 1000) && // 7 days
-                                   session?.user;
+            // Force guest mode
+            this.isGuest = true;
+            this.currentUser = null;
             
-            if (session?.user && persistenceValid) {
-                // Only restore session if user explicitly chose to stay logged in recently
-                console.log('Found valid Supabase session with valid persistence flag:', session.user.id);
-                this.currentUser = session.user.id;
-                this.isGuest = false;
-                this.saveUser();
-                this.updateAuthUI();
-            } else {
-                // Default to guest mode - clear any stale data
-                console.log('Starting in guest mode (no valid persistence flag or stale session)');
-                if (session) {
-                    // Sign out if there's a session but no valid persistence
-                    await this.db.supabase.auth.signOut();
-                }
-                // Clear stale persistence flags
-                localStorage.removeItem('pm-wordle-persist-login');
-                localStorage.removeItem('pm-wordle-persist-timestamp');
-                this.clearUserSession();
-                this.updateAuthUI();
-            }
+            this.updateAuthUI();
+            
         } catch (error) {
             console.error('Session check failed:', error);
-            // On any error, default to guest mode
-            try {
-                await this.db.supabase.auth.signOut();
-            } catch {}
+            // On any error, ensure guest mode
+            this.isGuest = true;
+            this.currentUser = null;
             this.clearUserSession();
             this.updateAuthUI();
+        }
+    }
+    
+    detectStorageType() {
+        try {
+            // Try to determine if we're in incognito/private mode
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+                navigator.storage.estimate().then(estimate => {
+                    console.log('Storage quota:', estimate.quota);
+                    console.log('Storage usage:', estimate.usage);
+                });
+            }
+            return 'localStorage available';
+        } catch (e) {
+            return 'localStorage unavailable';
         }
     }
     
     clearUserSession() {
         this.currentUser = null;
         this.isGuest = true;
-        // Clear localStorage
-        localStorage.removeItem('pm-wordle-current-user');
-        localStorage.removeItem('pm-wordle-persist-login');
-        localStorage.removeItem('pm-wordle-persist-timestamp');
+        
+        // Clear ALL authentication-related localStorage keys
+        const keysToRemove = [
+            'pm-wordle-current-user',
+            'pm-wordle-persist-login', 
+            'pm-wordle-persist-timestamp',
+            'supabase.auth.token',
+            'sb-taeetzxhrdohdijwgous-auth-token'  // Supabase auth key
+        ];
+        
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+        });
+        
+        // Also try to clear any Supabase-specific keys that might exist
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('supabase') || key.startsWith('sb-')) {
+                localStorage.removeItem(key);
+            }
+        });
     }
 
     async init() {
@@ -1163,9 +1171,7 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
-            // Set persistence flag for this session with timestamp
-            localStorage.setItem('pm-wordle-persist-login', 'true');
-            localStorage.setItem('pm-wordle-persist-timestamp', Date.now().toString());
+            // User is now logged in for this session only
             
             // Get user profile for display name
             const { data: profile } = await this.db.getUserProfile(user.id);
@@ -1195,9 +1201,7 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
-            // Set persistence flag for this session with timestamp
-            localStorage.setItem('pm-wordle-persist-login', 'true');
-            localStorage.setItem('pm-wordle-persist-timestamp', Date.now().toString());
+            // User is now logged in for this session only
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
