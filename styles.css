@@ -1167,9 +1167,7 @@ input[type="checkbox"]:checked + .toggle-label::after {
         padding: 0 4px;
     }
     
-    #test-btn {
-        display: none;
-    }
+    /* Keep test-btn visible for debugging */
     
     .title h1 {
         font-size: 18px;
@@ -1263,9 +1261,7 @@ input[type="checkbox"]:checked + .toggle-label::after {
         font-size: 8px;
     }
     
-    #test-btn {
-        display: none;
-    }
+    /* Keep test-btn visible for debugging */
     
     .menu-left, .menu-right {
         width: 75px;
@@ -1294,9 +1290,7 @@ input[type="checkbox"]:checked + .toggle-label::after {
         margin-top: 8px;
     }
     
-    #test-btn {
-        display: none;
-    }
+    /* Keep test-btn visible for debugging */
 }
 
 /* Responsive Design - Tablet and up */
