@@ -1,9 +1,23 @@
 /* Property Management Wordle - Mobile-First Responsive Design */
+/* Optimized for mobile devices with perfect centering */
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+input, textarea {
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
 }
 
 :root {
@@ -41,6 +55,13 @@
     --color-empty-dark: #3a3a3c;
 }
 
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 body {
     font-family: 'Clear Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: var(--color-bg);
@@ -48,8 +69,13 @@ body {
     font-size: 14px;
     line-height: 1.5;
     min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100); /* Dynamic viewport height */
+    min-height: 100svh; /* Safe area for mobile */
     display: flex;
     flex-direction: column;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
 }
 
 body.dark-mode {
@@ -65,23 +91,30 @@ body.dark-mode {
 .game-container {
     max-width: 500px;
     margin: 0 auto;
-    padding: 8px;
+    padding: 12px;
     min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
     position: relative;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
 }
 
-/* Header */
+/* Header - Mobile First */
 .header {
     display: flex;
     flex-direction: column;
-    padding: 12px 0;
-    min-height: 90px;
+    padding: 16px 0;
+    min-height: 80px;
     position: relative;
     margin-top: 8px;
     overflow: visible;
     width: 100%;
+    max-width: 500px;
+    align-items: center;
 }
 
 .header-icons {
@@ -89,16 +122,18 @@ body.dark-mode {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    padding: 0 4px;
 }
 
 .menu-left, .menu-right {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     flex: 0 0 auto;
-    width: 120px;
+    width: 140px;
     overflow: hidden;
     flex-wrap: nowrap;
+    align-items: center;
 }
 
 .menu-left {
@@ -155,15 +190,18 @@ body.dark-mode {
     border: none;
     font-size: 20px;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 4px;
+    padding: 12px;
+    border-radius: 8px;
     color: var(--color-text);
-    transition: background-color 0.1s;
-    width: 40px;
-    height: 40px;
+    transition: all 0.2s ease;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
 }
 
 .icon-btn:hover {
@@ -204,13 +242,16 @@ body.dark-mode .icon-btn:hover {
 
 .auth-form input {
     width: 100%;
-    padding: 12px;
+    padding: 16px 12px;
     margin-bottom: 12px;
     border: 2px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 8px;
+    font-size: 16px; /* Prevents zoom on iOS */
     background-color: var(--color-bg);
     color: var(--color-text);
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
 }
 
 .auth-form input:focus {
@@ -224,14 +265,17 @@ body.dark-mode .icon-btn:hover {
 
 .auth-form button {
     width: 100%;
-    padding: 12px;
+    padding: 16px 12px;
     margin-bottom: 12px;
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.1s;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px;
 }
 
 #auth-submit {
@@ -373,47 +417,55 @@ body.dark-mode .icon-btn:hover {
     font-size: 12px;
 }
 
-/* Game Board */
+/* Game Board - Perfect Mobile Centering */
 .game-board {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px 0;
+    padding: 20px 0;
     pointer-events: auto;
+    width: 100%;
+    min-height: 0;
 }
 
 .board-container {
     display: flex;
     justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 .board {
     display: grid;
     grid-template-rows: repeat(6, 1fr);
-    grid-gap: 5px;
+    grid-gap: 6px;
     width: fit-content;
+    margin: 0 auto;
+    touch-action: none;
 }
 
 .row {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-gap: 5px;
+    grid-gap: 6px;
 }
 
 .tile {
-    width: 62px;
-    height: 62px;
+    width: 56px;
+    height: 56px;
     border: 2px solid var(--color-empty);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: bold;
     color: var(--color-text);
     text-transform: uppercase;
     user-select: none;
-    transition: all 0.1s ease-in-out;
+    transition: all 0.15s ease-in-out;
+    border-radius: 3px;
+    touch-action: none;
 }
 
 .tile.filled {
@@ -440,57 +492,77 @@ body.dark-mode .icon-btn:hover {
 
 .tile.invalid {
     border-color: var(--color-error);
-    animation: shake 0.6s ease-in-out;
+    animation: shake 0.5s ease-in-out;
+    animation-fill-mode: both;
 }
 
 .tile.flip {
-    animation: flip 0.5s ease-in-out;
+    animation: flip 0.4s ease-in-out;
+    animation-fill-mode: both;
 }
 
 .tile.win {
-    animation: bounce 0.6s ease-in-out;
+    animation: bounce 0.5s ease-in-out;
+    animation-fill-mode: both;
 }
 
-/* Keyboard */
+/* Keyboard - Mobile Optimized */
 .keyboard {
-    padding: 16px 0;
+    padding: 20px 8px 16px 8px;
     margin-top: auto;
     pointer-events: auto;
+    width: 100%;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .keyboard-row {
     display: flex;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    gap: 4px;
+    width: 100%;
 }
 
 .key {
     background-color: var(--color-key-bg);
     color: var(--color-key-text);
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 16px;
     font-weight: bold;
-    padding: 14px 0;
-    margin: 0 3px;
+    padding: 16px 8px;
     cursor: pointer;
     user-select: none;
-    min-width: 43px;
-    transition: all 0.1s ease-in-out;
+    min-width: 36px;
+    flex: 1;
+    max-width: 48px;
+    transition: all 0.15s ease-in-out;
     text-transform: uppercase;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .key:hover {
-    opacity: 0.8;
+    opacity: 0.9;
+    transform: scale(1.05);
 }
 
 .key:active {
-    transform: scale(0.95);
+    transform: scale(0.92);
+    transition: transform 0.05s ease;
 }
 
 .key-large {
-    min-width: 65px;
-    font-size: 12px;
+    min-width: 60px;
+    max-width: 80px;
+    font-size: 13px;
+    flex: 1.5;
 }
 
 .key.correct {
@@ -508,24 +580,37 @@ body.dark-mode .icon-btn:hover {
     color: white;
 }
 
-/* Messages */
+/* Messages - Mobile Centered */
 .message-container {
     position: fixed;
-    top: 80px;
+    top: 100px;
+    top: calc(80px + env(safe-area-inset-top, 0px));
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
+    width: calc(100% - 32px);
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .message {
     background-color: var(--color-text);
     color: var(--color-bg);
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 15px;
     font-weight: 600;
     margin-bottom: 8px;
     animation: slideIn 0.3s ease-out;
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
 }
 
 .message.error {
@@ -538,7 +623,7 @@ body.dark-mode .icon-btn:hover {
     color: white;
 }
 
-/* Modals */
+/* Modals - Mobile Optimized */
 .modal {
     display: none;
     position: fixed;
@@ -547,25 +632,33 @@ body.dark-mode .icon-btn:hover {
     top: 0;
     width: 100%;
     height: 100%;
+    height: 100vh;
+    height: 100svh;
     background-color: var(--color-modal-overlay);
     animation: fadeIn 0.3s ease-out;
+    overscroll-behavior: contain;
 }
 
 .modal.show {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 16px;
+    padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
 }
 
 .modal-content {
     background-color: var(--color-modal-bg);
-    border-radius: 8px;
+    border-radius: 12px;
     width: 100%;
     max-width: 500px;
     max-height: 90vh;
+    max-height: calc(100svh - 32px);
     overflow-y: auto;
     animation: slideUp 0.3s ease-out;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
 }
 
 .modal-header {
@@ -589,13 +682,15 @@ body.dark-mode .icon-btn:hover {
     cursor: pointer;
     color: var(--color-text);
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background-color 0.1s;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .close-btn:hover {
@@ -1128,53 +1223,132 @@ input[type="checkbox"]:checked + .toggle-label::after {
 
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
 }
 
 @keyframes flip {
-    0% { transform: rotateY(0); }
-    50% { transform: rotateY(90deg); }
-    100% { transform: rotateY(0); }
+    0% { 
+        transform: rotateY(0); 
+        background-color: var(--color-bg);
+    }
+    50% { 
+        transform: rotateY(90deg); 
+        background-color: var(--color-bg);
+    }
+    100% { 
+        transform: rotateY(0); 
+    }
 }
 
 @keyframes bounce {
-    0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
-    40%, 43% { transform: translateY(-8px); }
-    70% { transform: translateY(-4px); }
-    90% { transform: translateY(-2px); }
+    0%, 20%, 53%, 80%, 100% { 
+        transform: translateY(0) scale(1); 
+    }
+    40%, 43% { 
+        transform: translateY(-6px) scale(1.05); 
+    }
+    70% { 
+        transform: translateY(-3px) scale(1.02); 
+    }
+    90% { 
+        transform: translateY(-1px) scale(1.01); 
+    }
 }
 
-/* Mobile optimizations */
-@media (max-width: 480px) {
+/* Prevent zoom on form inputs and improve mobile performance */
+@media screen and (max-width: 767px) {
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    textarea,
+    select {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    
+    /* Improve scrolling performance */
+    * {
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
+    }
+    
+    /* Prevent horizontal scrolling */
+    body {
+        overflow-x: hidden;
+    }
+    
+    /* Optimize tap targets */
+    button,
+    .key,
+    .icon-btn,
+    .user-btn {
+        min-height: 44px;
+        min-width: 44px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Improve focus visibility on mobile */
+    .key:focus,
+    .icon-btn:focus,
+    button:focus {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/* High-DPI and Retina Display Support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .tile, .key, .icon-btn {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .board {
+        transform: translateZ(0); /* Force hardware acceleration */
+    }
+}
+
+/* Mobile First - Ultra Small Screens (320px and up) */
+@media (max-width: 374px) {
     .game-container {
-        padding: 4px;
+        padding: 8px 4px;
         min-height: 100vh;
+        min-height: 100svh;
+        /* Prevent bounce scrolling on iOS */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
     }
     
     .header {
-        padding: 8px 0;
-        margin-top: 4px;
-        min-height: 65px;
+        padding: 12px 0;
+        margin-top: 8px;
+        min-height: 70px;
+    }
+    
+    .header-icons {
+        padding: 0 2px;
+        margin-bottom: 8px;
     }
     
     .menu-left, .menu-right {
-        width: 70px;
-        gap: 2px;
+        width: 100px;
+        gap: 3px;
     }
     
     .title {
-        padding: 0 4px;
+        padding: 0 2px;
     }
     
-    /* Keep test-btn visible for debugging */
-    
     .title h1 {
-        font-size: 18px;
+        font-size: 16px;
+        line-height: 1.1;
     }
     
     .brand-text {
-        font-size: 8px;
+        font-size: 7px;
         margin-bottom: 1px;
     }
     
@@ -1183,9 +1357,9 @@ input[type="checkbox"]:checked + .toggle-label::after {
     }
     
     .icon-btn {
-        width: 32px;
-        height: 32px;
-        padding: 4px;
+        width: 36px;
+        height: 36px;
+        padding: 8px;
     }
     
     .icon-btn svg {
@@ -1196,57 +1370,154 @@ input[type="checkbox"]:checked + .toggle-label::after {
     .auth-form {
         max-width: 100%;
         padding: 0;
-        margin: 0 8px;
+        margin: 0 4px;
     }
     
     .mecca-voucher {
-        font-size: 12px;
-        padding: 6px;
-        margin: 8px 0;
+        font-size: 11px;
+        padding: 4px;
+        margin: 6px 0;
     }
     
     .tile {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+    }
+    
+    .board {
+        grid-gap: 4px;
+    }
+    
+    .row {
+        grid-gap: 4px;
     }
     
     .key {
-        min-width: 32px;
-        font-size: 11px;
-        padding: 10px 0;
-        margin: 0 2px;
+        min-width: 28px;
+        max-width: 40px;
+        font-size: 14px;
+        padding: 14px 4px;
     }
     
     .key-large {
-        min-width: 48px;
-        font-size: 9px;
+        min-width: 50px;
+        max-width: 70px;
+        font-size: 11px;
     }
     
     .user-btn {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         font-size: 12px;
     }
     
     .game-board {
-        padding: 4px 0;
+        padding: 16px 0;
     }
     
     .keyboard {
-        padding: 4px 0 12px 0;
+        padding: 16px 4px 12px 4px;
+    }
+    
+    .keyboard-row {
+        gap: 2px;
+        margin-bottom: 8px;
     }
 }
 
-/* Small screens - show subtitle but prevent overlap */
-@media (min-width: 481px) and (max-width: 767px) {
+/* Mobile Standard - iPhone SE, Galaxy S */
+@media (min-width: 375px) and (max-width: 414px) {
     .game-container {
-        padding: 6px;
+        padding: 10px 6px;
     }
     
     .header {
-        margin-top: 6px;
-        padding: 10px 0;
+        padding: 14px 0;
+        min-height: 75px;
+    }
+    
+    .menu-left, .menu-right {
+        width: 120px;
+        gap: 4px;
+    }
+    
+    .title h1 {
+        font-size: 18px;
+    }
+    
+    .brand-text {
+        font-size: 8px;
+    }
+    
+    .subtitle {
+        font-size: 8px;
+        display: block;
+    }
+    
+    .icon-btn {
+        width: 40px;
+        height: 40px;
+        padding: 10px;
+    }
+    
+    .icon-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .tile {
+        width: 52px;
+        height: 52px;
+        font-size: 26px;
+    }
+    
+    .key {
+        min-width: 32px;
+        max-width: 44px;
+        font-size: 15px;
+        padding: 15px 6px;
+    }
+    
+    .key-large {
+        min-width: 55px;
+        max-width: 75px;
+        font-size: 12px;
+    }
+    
+    .game-board {
+        padding: 18px 0;
+    }
+    
+    .keyboard {
+        padding: 18px 6px 14px 6px;
+    }
+    
+    .keyboard-row {
+        gap: 3px;
+    }
+}
+
+/* Mobile Large - iPhone Plus, Pixel, Galaxy */
+@media (min-width: 415px) and (max-width: 767px) {
+    .game-container {
+        padding: 12px 8px;
+    }
+    
+    .header {
+        padding: 16px 0;
+        margin-top: 8px;
+        min-height: 80px;
+    }
+    
+    .header-icons {
+        padding: 0 4px;
+        margin-bottom: 10px;
+    }
+    
+    .menu-left, .menu-right {
+        width: 130px;
+        gap: 5px;
     }
     
     .title h1 {
@@ -1259,24 +1530,49 @@ input[type="checkbox"]:checked + .toggle-label::after {
     
     .subtitle {
         font-size: 8px;
-    }
-    
-    /* Keep test-btn visible for debugging */
-    
-    .menu-left, .menu-right {
-        width: 75px;
+        display: block;
     }
     
     .icon-btn {
-        width: 34px;
-        height: 34px;
-        padding: 5px;
+        width: 42px;
+        height: 42px;
+        padding: 11px;
+    }
+    
+    .icon-btn svg {
+        width: 20px;
+        height: 20px;
     }
     
     .tile {
-        width: 58px;
-        height: 58px;
-        font-size: 30px;
+        width: 56px;
+        height: 56px;
+        font-size: 28px;
+    }
+    
+    .key {
+        min-width: 34px;
+        max-width: 46px;
+        font-size: 16px;
+        padding: 16px 8px;
+    }
+    
+    .key-large {
+        min-width: 58px;
+        max-width: 78px;
+        font-size: 13px;
+    }
+    
+    .game-board {
+        padding: 20px 0;
+    }
+    
+    .keyboard {
+        padding: 20px 8px 16px 8px;
+    }
+    
+    .keyboard-row {
+        gap: 4px;
     }
 }
 
@@ -1296,44 +1592,74 @@ input[type="checkbox"]:checked + .toggle-label::after {
 /* Responsive Design - Tablet and up */
 @media (min-width: 768px) {
     .game-container {
-        padding: 12px 16px;
+        padding: 16px 20px;
+        max-width: 500px;
+        margin: 0 auto;
     }
     
     .header {
-        margin-top: 12px;
-        padding: 16px 0;
+        margin-top: 16px;
+        padding: 20px 0;
+        max-width: 500px;
+        align-self: center;
     }
     
     .auth-form {
-        max-width: 350px;
+        max-width: 380px;
+        margin: 0 auto;
+    }
+    
+    .game-board {
+        align-self: center;
+        justify-self: center;
+    }
+    
+    .board-container {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .board {
+        margin: 0 auto;
+        justify-self: center;
+        align-self: center;
     }
     
     .tile {
-        width: 65px;
-        height: 65px;
-        font-size: 32px;
+        width: 64px;
+        height: 64px;
+        font-size: 30px;
+    }
+    
+    .keyboard {
+        max-width: 500px;
+        margin: 0 auto;
+        align-self: center;
     }
     
     .key {
-        min-width: 45px;
-        font-size: 14px;
-        padding: 14px 0;
+        min-width: 40px;
+        max-width: 50px;
+        font-size: 15px;
+        padding: 16px 8px;
     }
     
     .key-large {
-        min-width: 70px;
+        min-width: 65px;
+        max-width: 85px;
+        font-size: 13px;
     }
     
     .title h1 {
-        font-size: 28px;
+        font-size: 26px;
     }
     
     .brand-text {
-        font-size: 11px;
+        font-size: 10px;
     }
     
     .subtitle {
-        font-size: 10px;
+        font-size: 9px;
     }
 }
 

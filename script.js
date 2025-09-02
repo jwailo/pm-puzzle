@@ -465,6 +465,9 @@ class PMWordle {
     setupEventListeners() {
         console.log('Setting up event listeners');
         
+        // Mobile viewport and centering adjustments
+        this.setupMobileOptimizations();
+        
         // Physical keyboard
         document.addEventListener('keydown', (e) => {
             console.log('Keydown event:', e.key);
@@ -479,16 +482,40 @@ class PMWordle {
             this.handleKeyPress(e.key);
         });
 
-        // On-screen keyboard
+        // On-screen keyboard - Enhanced mobile support
         const keyElements = document.querySelectorAll('.key');
         console.log('Found', keyElements.length, 'key elements');
         keyElements.forEach(key => {
-            key.addEventListener('click', () => {
-                console.log('Key clicked:', key.getAttribute('data-key'));
+            // Add both click and touch events for mobile
+            const handleKeyInput = (e) => {
+                e.preventDefault(); // Prevent zoom on double-tap
+                console.log('Key activated:', key.getAttribute('data-key'));
                 if (this.gameOver) return;
                 const keyValue = key.getAttribute('data-key');
+                
+                // Add visual feedback for touch
+                key.style.transform = 'scale(0.92)';
+                key.style.opacity = '0.8';
+                setTimeout(() => {
+                    key.style.transform = '';
+                    key.style.opacity = '';
+                }, 100);
+                
                 this.handleKeyPress(keyValue);
-            });
+            };
+            
+            // Use touchstart for faster response on mobile
+            if ('ontouchstart' in window) {
+                key.addEventListener('touchstart', handleKeyInput, { passive: false });
+                // Prevent click event to avoid double triggers
+                key.addEventListener('click', (e) => e.preventDefault());
+            } else {
+                key.addEventListener('click', handleKeyInput);
+            }
+            
+            // Prevent text selection and context menu
+            key.addEventListener('contextmenu', (e) => e.preventDefault());
+            key.addEventListener('selectstart', (e) => e.preventDefault());
         });
 
         // Modal controls
@@ -2149,6 +2176,138 @@ class PMWordle {
 
         localStorage.setItem('pm-wordle-daily-leaderboard', JSON.stringify(dailyLeaderboard));
         this.showMessage('Sample leaderboard populated!', 'success');
+    }
+
+    setupMobileOptimizations() {
+        console.log('Setting up mobile optimizations');
+        
+        // Dynamic viewport height adjustment for mobile browsers
+        const updateViewportHeight = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        
+        // Initial call and update on resize/orientation change
+        updateViewportHeight();
+        window.addEventListener('resize', updateViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateViewportHeight, 100);
+        });
+        
+        // Perfect game board centering
+        this.centerGameBoard();
+        window.addEventListener('resize', () => {
+            setTimeout(() => this.centerGameBoard(), 100);
+        });
+        
+        // Prevent zoom on double tap for game elements
+        const preventZoom = (e) => {
+            if (e.detail > 1) {
+                e.preventDefault();
+            }
+        };
+        
+        document.querySelectorAll('.tile, .key, .icon-btn').forEach(element => {
+            element.addEventListener('click', preventZoom);
+        });
+        
+        // Handle virtual keyboard on mobile
+        if ('visualViewport' in window) {
+            window.visualViewport.addEventListener('resize', () => {
+                const gameContainer = document.querySelector('.game-container');
+                if (window.visualViewport.height < window.innerHeight * 0.75) {
+                    // Virtual keyboard is open
+                    gameContainer.style.height = `${window.visualViewport.height}px`;
+                    gameContainer.style.paddingBottom = '0px';
+                } else {
+                    // Virtual keyboard is closed
+                    gameContainer.style.height = '';
+                    gameContainer.style.paddingBottom = '';
+                }
+            });
+        }
+        
+        // Smooth scrolling and focus management
+        document.addEventListener('focusin', (e) => {
+            if (e.target.tagName === 'INPUT') {
+                setTimeout(() => {
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+        
+        // Prevent body scroll when modal is open
+        const modals = document.querySelectorAll('.modal');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.classList.contains('show')) {
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.position = 'fixed';
+                    document.body.style.width = '100%';
+                } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const anyModalOpen = Array.from(modals).some(modal => modal.classList.contains('show'));
+                    if (!anyModalOpen) {
+                        document.body.style.overflow = '';
+                        document.body.style.position = '';
+                        document.body.style.width = '';
+                    }
+                }
+            });
+        });
+        
+        modals.forEach(modal => {
+            observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+        });
+    }
+    
+    centerGameBoard() {
+        const gameBoard = document.querySelector('.game-board');
+        const boardContainer = document.querySelector('.board-container');
+        const board = document.querySelector('.board');
+        
+        if (gameBoard && boardContainer && board) {
+            // Calculate optimal positioning
+            const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
+            
+            // Reset any existing transforms
+            gameBoard.style.transform = '';
+            boardContainer.style.transform = '';
+            
+            // Measure board dimensions
+            const boardRect = board.getBoundingClientRect();
+            const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+            const keyboardHeight = document.querySelector('.keyboard')?.offsetHeight || 0;
+            const authSectionHeight = document.querySelector('.auth-section:not(.logged-in)')?.offsetHeight || 0;
+            
+            // Calculate available space for the game board
+            const availableHeight = windowHeight - headerHeight - keyboardHeight - authSectionHeight - 40; // 40px buffer
+            
+            // Only apply centering if we have enough space
+            if (availableHeight > boardRect.height) {
+                const extraSpace = availableHeight - boardRect.height;
+                const topOffset = Math.max(0, extraSpace / 2);
+                
+                gameBoard.style.paddingTop = `${topOffset}px`;
+                gameBoard.style.paddingBottom = `${topOffset}px`;
+            }
+            
+            // Ensure horizontal centering
+            if (windowWidth > boardRect.width) {
+                boardContainer.style.justifyContent = 'center';
+                board.style.margin = '0 auto';
+            }
+            
+            console.log('Game board centered:', {
+                windowHeight,
+                windowWidth,
+                boardHeight: boardRect.height,
+                boardWidth: boardRect.width,
+                availableHeight,
+                headerHeight,
+                keyboardHeight
+            });
+        }
     }
 }
 
