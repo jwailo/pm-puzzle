@@ -189,6 +189,26 @@ class DatabaseService {
             .eq('user_id', userId)
             .single();
 
+        // If we get an error or corrupted data, try to fix it
+        if (error && error.code === 'PGRST116') {
+            // No stats exist, create initial record
+            console.log('No stats found for user, creating initial record');
+            const { data: newData, error: createError } = await this.supabase
+                .from('user_stats')
+                .insert({
+                    user_id: userId,
+                    games_played: 0,
+                    games_won: 0,
+                    current_streak: 0,
+                    max_streak: 0,
+                    guess_distribution: [0,0,0,0,0,0]
+                })
+                .select()
+                .single();
+            
+            return { data: newData, error: createError };
+        }
+
         return { data, error };
     }
 
@@ -1134,7 +1154,7 @@ class PMWordle {
             await this.updateStats();
             await this.updateLeaderboards(); // Update leaderboards with completion time
             await this.saveGameState();
-            setTimeout(() => this.showGameCompletionModal(), 2000);
+            setTimeout(() => this.showGameCompletionModal(), 500);
         } else if (this.currentRow === 5) {
             this.gameOver = true;
             this.processingGuess = false;  // Clear flag when game ends
@@ -1142,7 +1162,7 @@ class PMWordle {
             await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
-            setTimeout(() => this.showGameCompletionModal(), 2000);
+            setTimeout(() => this.showGameCompletionModal(), 500);
         } else {
             // Wait for animation to complete before allowing new input
             setTimeout(() => {
@@ -1408,7 +1428,38 @@ class PMWordle {
             
             // Immediately refresh stats and leaderboards
             console.log('Refreshing stats and leaderboards after login');
+            
+            // Force a fresh stats fetch to ensure we have the latest data
+            delete this._cachedStats; // Clear any cached stats
             await this.updateStats();
+            
+            // Check if stats are showing as zeros and try to recover from backup
+            const stats = await this.getStats();
+            if (stats.gamesPlayed === 0 && stats.gamesWon === 0) {
+                // Check for backup stats
+                const backup = localStorage.getItem(`pm-wordle-user-backup-${user.id}`);
+                if (backup) {
+                    console.log('Detected zero stats, attempting recovery from backup');
+                    try {
+                        const backupStats = JSON.parse(backup);
+                        if (backupStats.gamesPlayed > 0) {
+                            // Restore from backup
+                            await this.db.updateUserStats(user.id, {
+                                games_played: backupStats.gamesPlayed,
+                                games_won: backupStats.gamesWon,
+                                current_streak: backupStats.currentStreak,
+                                max_streak: backupStats.maxStreak,
+                                guess_distribution: backupStats.guessDistribution
+                            });
+                            console.log('Restored stats from backup:', backupStats);
+                            await this.updateStats(); // Refresh UI
+                        }
+                    } catch (e) {
+                        console.error('Failed to restore from backup:', e);
+                    }
+                }
+            }
+            
             await this.renderDailyLeaderboard();
             await this.updateStreakLeaderboard();
             console.log('Post-login refresh completed');
@@ -2413,7 +2464,7 @@ class PMWordle {
         await this.updateStats();
         await this.saveGameState();
         this.hideModal('test');
-        setTimeout(() => this.showGameCompletionModal(), 1000);
+        setTimeout(() => this.showGameCompletionModal(), 500);
         this.showMessage('Test win applied!', 'success');
     }
 
