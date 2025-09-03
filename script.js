@@ -4,6 +4,85 @@ class DatabaseService {
     constructor() {
         this.supabase = window.supabaseClient;
         this.currentUser = null;
+        // Store the public client for leaderboard queries
+        this.publicClient = window.supabaseClient;
+    }
+    
+    // Temporary method to create mock leaderboard data for testing
+    async createMockLeaderboardData(date) {
+        console.log('Creating mock leaderboard data due to RLS restrictions');
+        
+        // This is a temporary solution to demonstrate the leaderboard functionality
+        // until database RLS policies are adjusted
+        const mockData = [
+            {
+                user_id: 'mock-user-1',
+                completion_time: 45,
+                guesses: 3,
+                word: 'LEASE',
+                date: date,
+                user_profiles: { first_name: 'justin1' }
+            },
+            {
+                user_id: 'mock-user-2', 
+                completion_time: 67,
+                guesses: 4,
+                word: 'LEASE',
+                date: date,
+                user_profiles: { first_name: 'justin6' }
+            },
+            {
+                user_id: 'mock-user-3',
+                completion_time: 89,
+                guesses: 4, 
+                word: 'LEASE',
+                date: date,
+                user_profiles: { first_name: 'Alice' }
+            },
+            {
+                user_id: 'mock-user-4',
+                completion_time: 123,
+                guesses: 5,
+                word: 'LEASE', 
+                date: date,
+                user_profiles: { first_name: 'Bob' }
+            }
+        ];
+        
+        return { data: mockData, error: null };
+    }
+    
+    async createMockStreakData() {
+        console.log('Creating mock streak data due to RLS restrictions');
+        
+        const mockStreaks = [
+            {
+                user_id: 'mock-user-1',
+                max_streak: 15,
+                current_streak: 8,
+                user_profiles: { first_name: 'justin1' }
+            },
+            {
+                user_id: 'mock-user-2',
+                max_streak: 12,
+                current_streak: 12,
+                user_profiles: { first_name: 'justin6' }
+            },
+            {
+                user_id: 'mock-user-3',
+                max_streak: 9,
+                current_streak: 3,
+                user_profiles: { first_name: 'Alice' }
+            },
+            {
+                user_id: 'mock-user-4',
+                max_streak: 7,
+                current_streak: 0,
+                user_profiles: { first_name: 'Bob' }
+            }
+        ];
+        
+        return { data: mockStreaks, error: null };
     }
 
     // Authentication methods
@@ -129,17 +208,39 @@ class DatabaseService {
 
     // Leaderboard methods
     async getDailyLeaderboard(date) {
-        const { data, error } = await this.supabase
-            .from('daily_leaderboard')
-            .select(`
-                *,
-                user_profiles!inner(first_name)
-            `)
-            .eq('date', date)
-            .order('completion_time', { ascending: true })
-            .limit(10);
+        try {
+            // Use RPC function to bypass RLS for leaderboards
+            const { data, error } = await this.supabase.rpc('get_public_daily_leaderboard', {
+                target_date: date
+            });
+            
+            if (error) {
+                console.error('Error fetching daily leaderboard:', error);
+                return { data: [], error };
+            }
+            
+            return { data: data || [], error: null };
+        } catch (err) {
+            console.error('Daily leaderboard fetch failed:', err);
+            return { data: [], error: err };
+        }
+    }
 
-        return { data, error };
+    async getStreakLeaderboard() {
+        try {
+            // Use RPC function to bypass RLS for streak leaderboards
+            const { data, error } = await this.supabase.rpc('get_public_streak_leaderboard');
+            
+            if (error) {
+                console.error('Error fetching streak leaderboard:', error);
+                return { data: [], error };
+            }
+            
+            return { data: data || [], error: null };
+        } catch (err) {
+            console.error('Streak leaderboard fetch failed:', err);
+            return { data: [], error: err };
+        }
     }
 
     async updateDailyLeaderboard(userId, date, completionTime, guesses, word) {
@@ -1278,15 +1379,20 @@ class PMWordle {
             const { data: profile } = await this.db.getUserProfile(user.id);
             const displayName = profile?.first_name || 'User';
             
-            this.updateAuthUI();
+            // Update UI to show logged in state
+            await this.updateAuthUI();
+            
+            // Reset game state for new user
             await this.resetGameForNewUser();
             
-            // Refresh leaderboards to show user's transferred stats and updated data
+            // Refresh stats and leaderboards with proper delay
             setTimeout(async () => {
+                console.log('Refreshing stats and leaderboards after signup');
                 await this.updateStats();
                 await this.renderDailyLeaderboard();
                 await this.updateStreakLeaderboard();
-            }, 1000);
+                console.log('Post-signup refresh completed');
+            }, 2000); // Increased delay to ensure profile is created
             
             this.showMessage(`Welcome back, ${displayName}!`, 'success');
         }
@@ -1336,15 +1442,20 @@ class PMWordle {
                 }
             }
             
-            this.updateAuthUI();
+            // Update UI to show logged in state
+            await this.updateAuthUI();
+            
+            // Reset game state for new user
             await this.resetGameForNewUser();
             
             // Refresh leaderboards to show user's transferred stats
             setTimeout(async () => {
+                console.log('Refreshing stats and leaderboards after registration');
                 await this.updateStats();
                 await this.renderDailyLeaderboard();
                 await this.updateStreakLeaderboard();
-            }, 1000);
+                console.log('Post-registration refresh completed');
+            }, 2000); // Increased delay to ensure profile is created
             
             // Show success message with delay to ensure visibility
             setTimeout(() => {
@@ -1613,9 +1724,9 @@ class PMWordle {
             if (leaderboardsSection) leaderboardsSection.style.display = 'block';
         }
         
-        // Always render leaderboards so everyone can see results
-        await this.renderDailyLeaderboard();
-        this.updateStreakLeaderboard();
+        // Don't automatically render leaderboards here to avoid conflicts
+        // Leaderboards will be rendered separately with proper timing
+        console.log('Auth UI updated successfully, isGuest:', this.isGuest);
     }
 
     loadUser() {
@@ -1873,20 +1984,43 @@ class PMWordle {
         }
         
         if (!todayEntries || todayEntries.length === 0) {
-            console.log('No entries found for today');
-            listElement.innerHTML = '<div class="leaderboard-empty">No times recorded yet today</div>';
+            console.log('No entries found for today - this might be an RLS issue');
+            
+            // Show a message that indicates potential RLS issue
+            listElement.innerHTML = `
+                <div class="leaderboard-empty">
+                    No times recorded yet today<br>
+                    <small style="color: #666; font-size: 10px;">
+                        If you've completed games, this may be a database permission issue.<br>
+                        Check console for details.
+                    </small>
+                </div>
+            `;
             return;
+        }
+        
+        console.log('Processing', todayEntries.length, 'leaderboard entries');
+        
+        // Check if we're only getting current user's data (RLS issue indicator)
+        const currentUser = await this.db.getCurrentUser();
+        const uniqueUsers = [...new Set(todayEntries.map(entry => entry.user_id))];
+        if (currentUser && uniqueUsers.length === 1 && uniqueUsers[0] === currentUser.id) {
+            console.warn('⚠️ WARNING: Only current user\'s data returned - this indicates Row Level Security is filtering results');
+            console.warn('Expected: Multiple users\' data | Got: Only current user\'s data');
+            console.warn('This means other users\' results are being filtered out by database permissions');
         }
 
         console.log('Today entries with user profiles:', todayEntries);
         
         listElement.innerHTML = todayEntries.map((entry, index) => {
-            let displayName = 'Anonymous';
+            let displayName = 'Unknown Player';
             
             if (entry.user_profiles?.first_name) {
                 displayName = entry.user_profiles.first_name;
+            } else if (entry.user_profiles && Array.isArray(entry.user_profiles) && entry.user_profiles[0]?.first_name) {
+                displayName = entry.user_profiles[0].first_name;
             } else {
-                // For users without profiles, show as "Player N" based on their ranking
+                console.warn('No user profile found for entry:', entry);
                 displayName = `Player ${index + 1}`;
             }
             
@@ -1909,51 +2043,32 @@ class PMWordle {
         }
         
         try {
-            console.log('Fetching streak leaderboard data...', 'isGuest:', this.isGuest, 'currentUser:', this.currentUser);
-            
-            // First, get a count of all user_stats records
-            const { count } = await this.db.supabase
-                .from('user_stats')
-                .select('*', { count: 'exact', head: true });
-            console.log('Total user_stats records:', count);
-            
-            // Get all user stats from database - show MAX streaks (longest ever)  
-            const { data: streakData, error } = await this.db.supabase
-                .from('user_stats')
-                .select(`
-                    user_id,
-                    max_streak,
-                    current_streak,
-                    user_profiles!inner(first_name)
-                `)
-                .gt('max_streak', 0)
-                .order('max_streak', { ascending: false })
-                .limit(10);
+            // Get streak leaderboard data using the new method
+            const { data: streakData, error } = await this.db.getStreakLeaderboard();
             
             console.log('Streak leaderboard query result:', streakData, 'Error:', error);
             
             if (error) {
                 console.error('Error fetching streak leaderboard:', error);
-                console.error('Full streak error details:', JSON.stringify(error));
-                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks - check console</div>';
+                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
                 return;
             }
             
             if (!streakData || streakData.length === 0) {
-                console.log('No streak data found - checking for any stats records...');
-                // Try to get any stats records to see what's in the database
-                const { data: anyStats } = await this.db.supabase
-                    .from('user_stats')
-                    .select('max_streak, current_streak')
-                    .limit(5);
-                console.log('Sample stats records:', anyStats);
-                
                 listElement.innerHTML = '<div class="leaderboard-empty">No streaks recorded yet</div>';
                 return;
             }
             
             listElement.innerHTML = streakData.map((entry, index) => {
-                const displayName = entry.user_profiles?.first_name || `Player ${index + 1}`;
+                let displayName = 'Unknown Player';
+                if (entry.user_profiles?.first_name) {
+                    displayName = entry.user_profiles.first_name;
+                } else if (entry.user_profiles && Array.isArray(entry.user_profiles) && entry.user_profiles[0]?.first_name) {
+                    displayName = entry.user_profiles[0].first_name;
+                } else {
+                    console.warn('No user profile found for streak entry:', entry);
+                    displayName = `Player ${index + 1}`;
+                }
                 return `
                     <div class="leaderboard-item">
                         <span class="leaderboard-rank">${index + 1}</span>
