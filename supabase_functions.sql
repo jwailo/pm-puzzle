@@ -38,7 +38,7 @@ RETURNS TABLE (
     user_id UUID,
     max_streak INTEGER,
     current_streak INTEGER,
-    total_games INTEGER,
+    games_played INTEGER,
     games_won INTEGER,
     user_profiles JSONB
 )
@@ -52,7 +52,7 @@ BEGIN
         us.user_id,
         us.max_streak,
         us.current_streak,
-        us.total_games,
+        us.games_played,
         us.games_won,
         to_jsonb(row_to_json(up.*)) as user_profiles
     FROM user_stats us
