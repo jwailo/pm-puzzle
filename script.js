@@ -1406,14 +1406,12 @@ class PMWordle {
             // Reset game state for new user
             await this.resetGameForNewUser();
             
-            // Refresh stats and leaderboards with proper delay
-            setTimeout(async () => {
-                console.log('Refreshing stats and leaderboards after signup');
-                await this.updateStats();
-                await this.renderDailyLeaderboard();
-                await this.updateStreakLeaderboard();
-                console.log('Post-signup refresh completed');
-            }, 2000); // Increased delay to ensure profile is created
+            // Immediately refresh stats and leaderboards
+            console.log('Refreshing stats and leaderboards after login');
+            await this.updateStats();
+            await this.renderDailyLeaderboard();
+            await this.updateStreakLeaderboard();
+            console.log('Post-login refresh completed');
             
             this.showMessage(`Welcome back, ${displayName}!`, 'success');
         }
@@ -1469,14 +1467,12 @@ class PMWordle {
             // Reset game state for new user
             await this.resetGameForNewUser();
             
-            // Refresh leaderboards to show user's transferred stats
-            setTimeout(async () => {
-                console.log('Refreshing stats and leaderboards after registration');
-                await this.updateStats();
-                await this.renderDailyLeaderboard();
-                await this.updateStreakLeaderboard();
-                console.log('Post-registration refresh completed');
-            }, 2000); // Increased delay to ensure profile is created
+            // Immediately refresh stats and leaderboards
+            console.log('Refreshing stats and leaderboards after registration');
+            await this.updateStats();
+            await this.renderDailyLeaderboard();
+            await this.updateStreakLeaderboard();
+            console.log('Post-registration refresh completed');
             
             // Show success message with delay to ensure visibility
             setTimeout(() => {
@@ -1486,40 +1482,51 @@ class PMWordle {
     }
     
     async transferGuestStatsToUser(userId) {
-        console.log('Transferring guest stats to user account:', userId);
+        console.log('Checking for guest stats to transfer to user account:', userId);
         
         // Get any existing guest stats
         const guestStatsJson = localStorage.getItem('pm-wordle-guest-stats');
-        let guestStats = {
-            gamesPlayed: 0,
-            gamesWon: 0,
-            currentStreak: 0,
-            maxStreak: 0,
-            guessDistribution: [0,0,0,0,0,0]
-        };
         
-        if (guestStatsJson) {
-            try {
-                guestStats = JSON.parse(guestStatsJson);
-                console.log('Found guest stats to transfer:', guestStats);
-            } catch (error) {
-                console.error('Error parsing guest stats:', error);
-            }
+        // Only transfer if there are actual guest stats
+        if (!guestStatsJson) {
+            console.log('No guest stats to transfer');
+            return;
         }
         
-        // Convert to database format (don't include user_id, updateUserStats adds it)
-        const dbStats = {
-            games_played: guestStats.gamesPlayed,
-            games_won: guestStats.gamesWon,
-            current_streak: guestStats.currentStreak,
-            max_streak: guestStats.maxStreak,
-            guess_distribution: guestStats.guessDistribution || [0,0,0,0,0,0]
-        };
+        let guestStats;
+        try {
+            guestStats = JSON.parse(guestStatsJson);
+            console.log('Found guest stats to transfer:', guestStats);
+        } catch (error) {
+            console.error('Error parsing guest stats:', error);
+            return;
+        }
+        
+        // Only transfer if guest has actually played games
+        if (!guestStats.gamesPlayed || guestStats.gamesPlayed === 0) {
+            console.log('Guest has no games played, skipping transfer');
+            localStorage.removeItem('pm-wordle-guest-stats');
+            return;
+        }
         
         try {
-            // Save transferred stats to database
-            await this.db.updateUserStats(userId, dbStats);
-            console.log('Successfully transferred guest stats to database:', dbStats);
+            // First, get the user's existing stats from database
+            const { data: existingStats } = await this.db.getUserStats(userId);
+            
+            // Merge guest stats with existing user stats
+            const mergedStats = {
+                games_played: (existingStats?.games_played || 0) + guestStats.gamesPlayed,
+                games_won: (existingStats?.games_won || 0) + guestStats.gamesWon,
+                current_streak: guestStats.currentStreak, // Use guest's current streak
+                max_streak: Math.max(existingStats?.max_streak || 0, guestStats.maxStreak),
+                guess_distribution: existingStats?.guess_distribution ? 
+                    existingStats.guess_distribution.map((val, i) => (val || 0) + (guestStats.guessDistribution[i] || 0)) :
+                    guestStats.guessDistribution
+            };
+            
+            // Save merged stats to database
+            await this.db.updateUserStats(userId, mergedStats);
+            console.log('Successfully transferred and merged guest stats:', mergedStats);
             
             // Clear guest stats since they've been transferred
             localStorage.removeItem('pm-wordle-guest-stats');
