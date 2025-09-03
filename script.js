@@ -1991,11 +1991,22 @@ class PMWordle {
                 localStorage.setItem(`pm-wordle-user-stats-${user.id}`, JSON.stringify(newStats));
             } else {
                 console.log('Successfully saved stats to database');
-                // Also backup to localStorage for reliability
-                localStorage.setItem(`pm-wordle-user-backup-${user.id}`, JSON.stringify({
-                    ...newStats,
-                    lastSaved: new Date().toISOString()
-                }));
+                
+                // Verify the save was successful by reading back
+                const { data: verifyData } = await this.db.getUserStats(user.id);
+                if (verifyData && verifyData.games_played === newStats.gamesPlayed) {
+                    console.log('Stats save verified successfully');
+                    
+                    // Also backup to localStorage for reliability
+                    localStorage.setItem(`pm-wordle-user-backup-${user.id}`, JSON.stringify({
+                        ...newStats,
+                        lastSaved: new Date().toISOString(),
+                        verified: true
+                    }));
+                } else {
+                    console.error('Stats save verification failed, keeping old backup');
+                }
+                
                 // Clear any cached stats to force refresh
                 delete this._cachedStats;
                 // Force immediate UI update
