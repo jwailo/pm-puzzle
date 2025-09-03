@@ -562,9 +562,20 @@ class PMWordle {
     initGame() {
         this.currentWord = this.getTodaysWord();
         this.startTime = new Date();
+        
+        // Reset keyboard to clean state before loading any saved state
+        this.resetKeyboard();
+        
         this.loadGameState();
         this.renderBoard();
         this.updateStats();
+    }
+    
+    resetKeyboard() {
+        // Reset all keyboard keys to default state
+        document.querySelectorAll('.key').forEach(key => {
+            key.classList.remove('correct', 'present', 'absent');
+        });
     }
 
     getTodaysWord() {
@@ -2318,6 +2329,16 @@ class PMWordle {
     }
 
     loadGameState() {
+        // Check if this is a fresh session (incognito/private browsing)
+        // In incognito, sessionStorage is empty at start
+        const isNewSession = !sessionStorage.getItem('pm-wordle-session-started');
+        if (isNewSession) {
+            sessionStorage.setItem('pm-wordle-session-started', 'true');
+            // Don't load any saved state for brand new sessions
+            console.log('New session detected (possibly incognito), starting fresh');
+            return;
+        }
+
         // Load game state with user-specific key
         const stateKey = this.isGuest ? 'pm-wordle-game-state-guest' : `pm-wordle-game-state-${this.currentUser}`;
         const savedState = localStorage.getItem(stateKey);
