@@ -53,20 +53,23 @@ SECURITY DEFINER
 AS $$
 DECLARE
     fixed_count INTEGER := 0;
+    temp_count INTEGER;
 BEGIN
     -- Fix impossible current_streak > max_streak
     UPDATE user_stats 
     SET max_streak = current_streak
     WHERE current_streak > max_streak;
     
-    GET DIAGNOSTICS fixed_count = ROW_COUNT;
+    GET DIAGNOSTICS temp_count = ROW_COUNT;
+    fixed_count := fixed_count + temp_count;
     
     -- Fix impossible games_won > games_played
     UPDATE user_stats 
     SET games_played = games_won
     WHERE games_won > games_played;
     
-    GET DIAGNOSTICS fixed_count = fixed_count + ROW_COUNT;
+    GET DIAGNOSTICS temp_count = ROW_COUNT;
+    fixed_count := fixed_count + temp_count;
     
     -- Cap suspiciously high streaks (likely double-counted)
     UPDATE user_stats 
@@ -74,7 +77,8 @@ BEGIN
         current_streak = GREATEST(0, LEAST(current_streak, max_streak / 2))
     WHERE max_streak > 50; -- Adjust threshold as needed
     
-    GET DIAGNOSTICS fixed_count = fixed_count + ROW_COUNT;
+    GET DIAGNOSTICS temp_count = ROW_COUNT;
+    fixed_count := fixed_count + temp_count;
     
     RETURN 'Fixed ' || fixed_count || ' corrupted stat records';
 END;
