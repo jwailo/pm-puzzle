@@ -519,6 +519,62 @@
         </div>
     </div>
 
+    <!-- Post-Game Statistics Modal -->
+    <div id="post-game-stats-modal" class="modal">
+        <div class="modal-content post-game-modal-content">
+            <div class="modal-header">
+                <h2 id="post-game-title">🎉 Congratulations!</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body post-game-modal-body">
+                <div class="completion-summary">
+                    <div class="completion-stats">
+                        <div class="completion-stat">
+                            <div class="completion-number" id="completion-guesses">3</div>
+                            <div class="completion-label">Guesses</div>
+                        </div>
+                        <div class="completion-stat">
+                            <div class="completion-number" id="completion-time">1m 23s</div>
+                            <div class="completion-label">Time</div>
+                        </div>
+                        <div class="completion-stat">
+                            <div class="completion-number" id="completion-streak">5</div>
+                            <div class="completion-label">Streak</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="personal-stats-preview">
+                    <h3>Your Overall Stats</h3>
+                    <div class="mini-stats-grid">
+                        <div class="mini-stat">
+                            <div class="mini-stat-number" id="mini-games-played">0</div>
+                            <div class="mini-stat-label">Played</div>
+                        </div>
+                        <div class="mini-stat">
+                            <div class="mini-stat-number" id="mini-win-percentage">0</div>
+                            <div class="mini-stat-label">Win %</div>
+                        </div>
+                        <div class="mini-stat">
+                            <div class="mini-stat-number" id="mini-current-streak">0</div>
+                            <div class="mini-stat-label">Streak</div>
+                        </div>
+                        <div class="mini-stat">
+                            <div class="mini-stat-number" id="mini-max-streak">0</div>
+                            <div class="mini-stat-label">Best</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="post-game-actions">
+                    <button id="post-game-share" class="post-game-btn primary">Share Results</button>
+                    <button id="post-game-stats" class="post-game-btn secondary">View Full Stats</button>
+                    <button id="post-game-continue" class="post-game-btn secondary">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>

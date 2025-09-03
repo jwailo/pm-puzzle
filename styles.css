@@ -124,6 +124,8 @@ body.dark-mode {
     width: 100%;
     margin-bottom: 12px;
     padding: 0 4px;
+    position: relative;
+    z-index: 100; /* Ensure icons stay above title */
 }
 
 .menu-left, .menu-right {
@@ -152,7 +154,8 @@ body.dark-mode {
     justify-content: center;
     width: 100%;
     position: relative;
-    z-index: 5;
+    z-index: 10; /* Lower than header-icons to prevent overlap */
+    margin-top: 4px; /* Add small gap */
 }
 
 .brand-text {
@@ -173,6 +176,8 @@ body.dark-mode {
     margin: 0;
     white-space: nowrap;
     line-height: 1.1;
+    position: relative;
+    z-index: 20; /* Ensure title stays above auth elements */
 }
 
 .subtitle {
@@ -181,8 +186,11 @@ body.dark-mode {
     font-family: 'Georgia', 'Times New Roman', serif;
     color: var(--color-ailo-pink);
     margin-top: 2px;
+    margin-bottom: 8px; /* Add bottom margin to create space */
     white-space: nowrap;
     opacity: 0.8;
+    position: relative;
+    z-index: 20; /* Ensure subtitle stays above auth elements */
 }
 
 .icon-btn {
@@ -220,11 +228,16 @@ body.dark-mode .icon-btn:hover {
 
 /* Auth Section */
 .auth-section {
-    padding: 16px 8px;
+    padding: 24px 8px;
+    margin-top: 16px; /* Add space between header and auth */
 }
 
 .auth-section.logged-in {
     display: none;
+}
+
+.auth-section:not(.logged-in) + .game-board {
+    margin-top: 8px; /* Reduce game board top margin when auth is visible */
 }
 
 .auth-form {
@@ -357,8 +370,9 @@ body.dark-mode .icon-btn:hover {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 200px;
-    z-index: 1100;
+    z-index: 1200; /* Higher than other elements */
     display: none;
+    max-width: calc(100vw - 32px); /* Prevent overflow on small screens */
 }
 
 .user-menu.show {
@@ -1847,6 +1861,161 @@ input[type="checkbox"]:checked + .toggle-label::after {
 
 #share-got-it:hover {
     background: var(--color-ailo-pink-dark);
+}
+
+/* Post-Game Statistics Modal */
+.post-game-modal-content {
+    max-width: 420px;
+    text-align: center;
+}
+
+.post-game-modal-body {
+    padding: 24px;
+}
+
+#post-game-title {
+    color: var(--color-ailo-pink);
+    font-size: 20px;
+    margin: 0;
+}
+
+.completion-summary {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(238, 11, 79, 0.1), rgba(74, 144, 226, 0.1));
+    border-radius: 12px;
+    border: 2px solid var(--color-ailo-pink);
+}
+
+.completion-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.completion-stat {
+    text-align: center;
+}
+
+.completion-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--color-ailo-pink);
+    margin-bottom: 4px;
+}
+
+.completion-label {
+    font-size: 12px;
+    color: var(--color-text);
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.personal-stats-preview {
+    margin-bottom: 24px;
+}
+
+.personal-stats-preview h3 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--color-text);
+}
+
+.mini-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    background: var(--color-empty);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.mini-stat {
+    text-align: center;
+}
+
+.mini-stat-number {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--color-text);
+    margin-bottom: 2px;
+}
+
+.mini-stat-label {
+    font-size: 10px;
+    color: var(--color-text);
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.post-game-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.post-game-btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+.post-game-btn.primary {
+    background: var(--color-ailo-pink);
+    color: white;
+}
+
+.post-game-btn.primary:hover {
+    background: var(--color-ailo-pink-dark);
+    transform: translateY(-2px);
+}
+
+.post-game-btn.secondary {
+    background: var(--color-empty);
+    color: var(--color-text);
+    border: 2px solid var(--color-border);
+}
+
+.post-game-btn.secondary:hover {
+    background: var(--color-ailo-blue);
+    color: white;
+    border-color: var(--color-ailo-blue);
+}
+
+@media (max-width: 480px) {
+    .post-game-modal-content {
+        max-width: calc(100vw - 24px);
+    }
+    
+    .completion-stats {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .completion-number {
+        font-size: 24px;
+    }
+    
+    .mini-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .post-game-actions {
+        gap: 8px;
+    }
+    
+    .post-game-btn {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
 }
 
 /* Menu Modal Styles */

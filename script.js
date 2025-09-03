@@ -331,6 +331,20 @@ class PMWordle {
         // Ensure game elements are interactive
         document.querySelector('.game-board').style.pointerEvents = 'auto';
         document.querySelector('.keyboard').style.pointerEvents = 'auto';
+        
+        // Initialize leaderboards to ensure they load properly
+        setTimeout(() => this.initializeLeaderboards(), 1000);
+    }
+    
+    async initializeLeaderboards() {
+        console.log('Initializing leaderboards...');
+        try {
+            await this.renderDailyLeaderboard();
+            await this.updateStreakLeaderboard();
+            console.log('Leaderboards initialized successfully');
+        } catch (error) {
+            console.error('Error initializing leaderboards:', error);
+        }
     }
 
     async loadWordsFromFile() {
@@ -564,8 +578,8 @@ class PMWordle {
         }
         
         const promptHTML = `
-            <div id="guest-signup-prompt" class="modal show">
-                <div class="modal-content" style="max-width: 400px;">
+            <div id="guest-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: flex; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.5);">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
                     <div class="modal-header">
                         <h2>🎉 Congratulations!</h2>
                         <button class="close-btn" onclick="document.getElementById('guest-signup-prompt').remove(); game.showModal('stats');">&times;</button>
@@ -704,6 +718,30 @@ class PMWordle {
         document.getElementById('share-btn').addEventListener('click', () => {
             this.showModal('share-instructions');
         });
+        
+        // Post-game modal buttons
+        const postGameShare = document.getElementById('post-game-share');
+        if (postGameShare) {
+            postGameShare.addEventListener('click', () => {
+                this.hideModal('post-game-stats');
+                this.shareResults();
+            });
+        }
+        
+        const postGameStats = document.getElementById('post-game-stats');
+        if (postGameStats) {
+            postGameStats.addEventListener('click', () => {
+                this.hideModal('post-game-stats');
+                this.showModal('stats');
+            });
+        }
+        
+        const postGameContinue = document.getElementById('post-game-continue');
+        if (postGameContinue) {
+            postGameContinue.addEventListener('click', () => {
+                this.hideModal('post-game-stats');
+            });
+        }
         
         // Testing buttons
         this.setupTestingListeners();
@@ -961,6 +999,7 @@ class PMWordle {
             await this.celebrateWin();
             await this.saveStats();
             await this.updateStats();
+            await this.updateLeaderboards(); // Update leaderboards with completion time
             await this.saveGameState();
             setTimeout(() => this.showGameCompletionModal(), 2000);
         } else if (this.currentRow === 5) {
@@ -1229,6 +1268,24 @@ class PMWordle {
             this.isGuest = false;
             
             // User is now logged in for this session only
+            console.log('User authenticated after signup:', this.currentUser, 'isGuest:', this.isGuest);
+            
+            // Initialize empty stats for new user in database
+            const initialStats = {
+                user_id: user.id,
+                games_played: 0,
+                games_won: 0,
+                current_streak: 0,
+                max_streak: 0,
+                guess_distribution: [0,0,0,0,0,0]
+            };
+            
+            try {
+                await this.db.updateUserStats(user.id, initialStats);
+                console.log('Initial stats created for new user');
+            } catch (error) {
+                console.error('Failed to create initial stats:', error);
+            }
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
@@ -1532,8 +1589,21 @@ class PMWordle {
                     };
                     return defaultStats;
                 } else {
-                    // Other database error
+                    // Other database error - try backup
                     console.error('Database error getting user stats:', error);
+                    const backup = localStorage.getItem(`pm-wordle-user-backup-${user.id}`);
+                    if (backup) {
+                        console.log('Using backup stats from localStorage');
+                        const backupStats = JSON.parse(backup);
+                        return {
+                            gamesPlayed: backupStats.gamesPlayed || 0,
+                            gamesWon: backupStats.gamesWon || 0,
+                            currentStreak: backupStats.currentStreak || 0,
+                            maxStreak: backupStats.maxStreak || 0,
+                            guessDistribution: backupStats.guessDistribution || [0,0,0,0,0,0],
+                            winPercentage: backupStats.gamesPlayed > 0 ? Math.round((backupStats.gamesWon / backupStats.gamesPlayed) * 100) : 0
+                        };
+                    }
                     return {gamesPlayed:0,gamesWon:0,currentStreak:0,maxStreak:0,guessDistribution:[0,0,0,0,0,0],winPercentage:0};
                 }
             }
@@ -1555,7 +1625,7 @@ class PMWordle {
     }
 
     async saveStats() {
-        console.log('saveStats called - gameWon:', this.gameWon, 'currentRow:', this.currentRow);
+        console.log('saveStats called - gameWon:', this.gameWon, 'currentRow:', this.currentRow, 'isGuest:', this.isGuest, 'currentUser:', this.currentUser);
         const currentStats = await this.getStats();
         console.log('Current stats before save:', currentStats);
         
@@ -1576,7 +1646,9 @@ class PMWordle {
         console.log('New stats to save:', newStats);
 
         if (this.isGuest) {
+            // Save guest stats to localStorage
             localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
+            console.log('Saved guest stats to localStorage:', newStats);
         } else {
             // Get current user from Supabase
             const { data: { user } } = await this.db.supabase.auth.getUser();
@@ -1599,26 +1671,40 @@ class PMWordle {
             const { error } = await this.db.updateUserStats(user.id, dbStats);
             if (error) {
                 console.error('Error saving user stats:', error);
+                // Fallback to local storage if database fails
+                console.log('Falling back to local storage');
+                localStorage.setItem(`pm-wordle-user-stats-${user.id}`, JSON.stringify(newStats));
             } else {
                 console.log('Successfully saved stats to database');
+                // Also backup to localStorage for reliability
+                localStorage.setItem(`pm-wordle-user-backup-${user.id}`, JSON.stringify({
+                    ...newStats,
+                    lastSaved: new Date().toISOString()
+                }));
                 // Clear any cached stats to force refresh
                 delete this._cachedStats;
                 // Force immediate UI update
                 await this.updateStats();
+                // Update streak leaderboard since max_streak might have changed
+                await this.updateStreakLeaderboard();
             }
         }
     }
 
     // Leaderboard System
     async updateLeaderboards() {
-        // Always render leaderboards for everyone to see
-        await this.renderDailyLeaderboard();
-        this.updateStreakLeaderboard();
+        console.log('Updating leaderboards - isGuest:', this.isGuest, 'gameWon:', this.gameWon);
         
         // Only update user's own score if logged in and won
         if (!this.isGuest && this.gameWon) {
+            console.log('Updating daily leaderboard for logged-in winner');
             await this.updateDailyLeaderboard();
         }
+        
+        // Always render leaderboards for everyone to see (with updated data)
+        console.log('Rendering updated leaderboards');
+        await this.renderDailyLeaderboard();
+        await this.updateStreakLeaderboard();
     }
 
     async updateDailyLeaderboard() {
@@ -1787,14 +1873,21 @@ class PMWordle {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    // Share functionality
+    // Share functionality - Enhanced with timing
     shareResults() {
         if (!this.gameOver) return;
 
         const gameNumber = this.getGameNumber();
         const score = this.gameWon ? `${this.currentRow + 1}/6` : 'X/6';
         
-        let shareText = `PM Puzzle #${gameNumber} ${score}\n\n`;
+        // Calculate completion time if available
+        let timeText = '';
+        if (this.gameWon && this.startTime && this.endTime) {
+            const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
+            timeText = ` ⏱️${this.formatTime(completionTime)}`;
+        }
+        
+        let shareText = `PM Puzzle #${gameNumber} ${score}${timeText}\n\n`;
         
         for (let i = 0; i <= this.currentRow && i < 6; i++) {
             let rowText = '';
@@ -1811,16 +1904,16 @@ class PMWordle {
             shareText += rowText + '\n';
         }
 
-        shareText += '\nPlay PM Puzzle: https://pm-puzzle.vercel.app';
+        shareText += '\n🏆 Play PM Puzzle: https://pm-puzzle.vercel.app';
 
         if (navigator.share) {
             navigator.share({
-                title: 'PM Puzzle',
+                title: 'PM Puzzle Results',
                 text: shareText
             });
         } else {
             navigator.clipboard.writeText(shareText).then(() => {
-                this.showMessage('Results copied to clipboard!', 'success');
+                this.showMessage('Results with time copied to clipboard!', 'success');
             });
         }
     }
@@ -1831,6 +1924,57 @@ class PMWordle {
         const diffTime = Math.abs(today - startDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
+    }
+    
+    formatTime(seconds) {
+        if (seconds < 60) {
+            return `${seconds}s`;
+        }
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+    
+    async showGameCompletionModal() {
+        console.log('Showing game completion modal - gameWon:', this.gameWon, 'isGuest:', this.isGuest);
+        
+        // Only show for logged-in users who won
+        if (this.isGuest || !this.gameWon) {
+            console.log('Skipping completion modal - user is guest or game not won');
+            return;
+        }
+        
+        // Get current stats
+        const stats = await this.getStats();
+        
+        // Calculate completion time
+        let completionTime = 'N/A';
+        if (this.startTime && this.endTime) {
+            const seconds = Math.floor((this.endTime - this.startTime) / 1000);
+            completionTime = this.formatTime(seconds);
+        }
+        
+        // Update modal content
+        document.getElementById('completion-guesses').textContent = this.currentRow + 1;
+        document.getElementById('completion-time').textContent = completionTime;
+        document.getElementById('completion-streak').textContent = stats.currentStreak;
+        
+        // Update personal stats preview
+        document.getElementById('mini-games-played').textContent = stats.gamesPlayed;
+        document.getElementById('mini-win-percentage').textContent = stats.winPercentage;
+        document.getElementById('mini-current-streak').textContent = stats.currentStreak;
+        document.getElementById('mini-max-streak').textContent = stats.maxStreak;
+        
+        // Show modal
+        this.showModal('post-game-stats');
+        
+        console.log('Post-game modal displayed with stats:', {
+            guesses: this.currentRow + 1,
+            time: completionTime,
+            streak: stats.currentStreak,
+            totalPlayed: stats.gamesPlayed,
+            winPercentage: stats.winPercentage
+        });
     }
 
     // Game state persistence
