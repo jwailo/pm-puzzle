@@ -133,7 +133,7 @@ class DatabaseService {
             .from('daily_leaderboard')
             .select(`
                 *,
-                user_profiles(first_name)
+                user_profiles!inner(first_name)
             `)
             .eq('date', date)
             .order('completion_time', { ascending: true })
@@ -1270,26 +1270,92 @@ class PMWordle {
             // User is now logged in for this session only
             console.log('User authenticated after signup:', this.currentUser, 'isGuest:', this.isGuest);
             
-            // Initialize empty stats for new user in database
-            const initialStats = {
-                user_id: user.id,
-                games_played: 0,
-                games_won: 0,
-                current_streak: 0,
-                max_streak: 0,
-                guess_distribution: [0,0,0,0,0,0]
-            };
+            // Transfer guest stats to new user account
+            await this.transferGuestStatsToUser(user.id);
             
-            try {
-                await this.db.updateUserStats(user.id, initialStats);
-                console.log('Initial stats created for new user');
-            } catch (error) {
-                console.error('Failed to create initial stats:', error);
+            // Also transfer any current game completion to leaderboard if they just finished
+            if (this.gameWon && this.startTime && this.endTime) {
+                console.log('Transferring completed game to user account');
+                const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
+                const today = new Date().toDateString();
+                
+                try {
+                    await this.db.updateDailyLeaderboard(
+                        user.id,
+                        today,
+                        completionTime,
+                        this.currentRow + 1,
+                        this.currentWord
+                    );
+                    console.log('Game completion transferred to user leaderboard');
+                } catch (error) {
+                    console.error('Failed to transfer game to leaderboard:', error);
+                }
             }
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
+            
+            // Refresh leaderboards to show user's transferred stats
+            setTimeout(async () => {
+                await this.updateStats();
+                await this.renderDailyLeaderboard();
+                await this.updateStreakLeaderboard();
+            }, 1000);
+            
             this.showMessage(`Account created! Welcome, ${firstname}!`, 'success');
+        }
+    }
+    
+    async transferGuestStatsToUser(userId) {
+        console.log('Transferring guest stats to user account:', userId);
+        
+        // Get any existing guest stats
+        const guestStatsJson = localStorage.getItem('pm-wordle-guest-stats');
+        let guestStats = {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            currentStreak: 0,
+            maxStreak: 0,
+            guessDistribution: [0,0,0,0,0,0]
+        };
+        
+        if (guestStatsJson) {
+            try {
+                guestStats = JSON.parse(guestStatsJson);
+                console.log('Found guest stats to transfer:', guestStats);
+            } catch (error) {
+                console.error('Error parsing guest stats:', error);
+            }
+        }
+        
+        // Convert to database format
+        const dbStats = {
+            user_id: userId,
+            games_played: guestStats.gamesPlayed,
+            games_won: guestStats.gamesWon,
+            current_streak: guestStats.currentStreak,
+            max_streak: guestStats.maxStreak,
+            guess_distribution: guestStats.guessDistribution || [0,0,0,0,0,0]
+        };
+        
+        try {
+            // Save transferred stats to database
+            await this.db.updateUserStats(userId, dbStats);
+            console.log('Successfully transferred guest stats to database:', dbStats);
+            
+            // Clear guest stats since they've been transferred
+            localStorage.removeItem('pm-wordle-guest-stats');
+            console.log('Cleared guest stats from localStorage');
+            
+            // Show success message
+            if (guestStats.gamesPlayed > 0) {
+                this.showMessage(`Your ${guestStats.gamesPlayed} previous game${guestStats.gamesPlayed > 1 ? 's' : ''} transferred to your account!`, 'success');
+            }
+            
+        } catch (error) {
+            console.error('Failed to transfer guest stats:', error);
+            // If database fails, keep guest stats for now
         }
     }
     
@@ -1808,9 +1874,10 @@ class PMWordle {
             const { data: streakData, error } = await this.db.supabase
                 .from('user_stats')
                 .select(`
+                    user_id,
                     max_streak,
                     current_streak,
-                    user_profiles(first_name)
+                    user_profiles!inner(first_name)
                 `)
                 .gt('max_streak', 0)
                 .order('max_streak', { ascending: false })
@@ -1938,7 +2005,14 @@ class PMWordle {
     async showGameCompletionModal() {
         console.log('Showing game completion modal - gameWon:', this.gameWon, 'isGuest:', this.isGuest);
         
-        // Only show for logged-in users who won
+        // If guest completed the game, show signup prompt immediately
+        if (this.isGuest && this.gameWon) {
+            console.log('Guest completed game - showing signup prompt');
+            this.showGuestSignupPrompt();
+            return;
+        }
+        
+        // Only show stats modal for logged-in users who won
         if (this.isGuest || !this.gameWon) {
             console.log('Skipping completion modal - user is guest or game not won');
             return;
