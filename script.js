@@ -1507,9 +1507,8 @@ class PMWordle {
             }
         }
         
-        // Convert to database format
+        // Convert to database format (don't include user_id, updateUserStats adds it)
         const dbStats = {
-            user_id: userId,
             games_played: guestStats.gamesPlayed,
             games_won: guestStats.gamesWon,
             current_streak: guestStats.currentStreak,
@@ -1901,9 +1900,8 @@ class PMWordle {
                 return;
             }
 
-            // Convert to database format
+            // Convert to database format (don't include user_id, updateUserStats adds it)
             const dbStats = {
-                user_id: user.id,
                 games_played: newStats.gamesPlayed,
                 games_won: newStats.gamesWon,
                 current_streak: newStats.currentStreak,
@@ -1911,7 +1909,7 @@ class PMWordle {
                 guess_distribution: newStats.guessDistribution
             };
 
-            console.log('Saving stats to database:', dbStats);
+            console.log('Saving stats to database for user:', user.id, 'Stats:', dbStats);
             const { error } = await this.db.updateUserStats(user.id, dbStats);
             if (error) {
                 console.error('Error saving user stats:', error);
