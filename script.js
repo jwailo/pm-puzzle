@@ -1409,10 +1409,6 @@ class PMWordle {
             const { data: profile } = await this.db.getUserProfile(user.id);
             const displayName = profile?.first_name || 'User';
             
-            // Immediately show success and hide auth modal
-            this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
-            this.hideModal('auth');
-            
             // User is now logged in for this session only
             console.log('User authenticated after login:', this.currentUser, 'isGuest:', this.isGuest);
             
@@ -1434,6 +1430,10 @@ class PMWordle {
                         this.currentWord
                     );
                     console.log('Game completion transferred to user leaderboard after login');
+                    
+                    // Force save the stats since we just completed a game
+                    await this.saveStats();
+                    console.log('Stats saved after game transfer');
                 } catch (error) {
                     console.error('Failed to transfer game to leaderboard after login:', error);
                 }
@@ -1445,7 +1445,7 @@ class PMWordle {
             // Reset game state for new user
             await this.resetGameForNewUser();
             
-            // Immediately refresh stats and leaderboards
+            // Refresh stats and leaderboards
             console.log('Refreshing stats and leaderboards after login');
             
             // Force a fresh stats fetch to ensure we have the latest data
@@ -1482,6 +1482,10 @@ class PMWordle {
             await this.renderDailyLeaderboard();
             await this.updateStreakLeaderboard();
             console.log('Post-login refresh completed');
+            
+            // Show success and hide auth modal after everything is complete
+            this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
+            this.hideModal('auth');
         }
     }
 
@@ -1502,10 +1506,6 @@ class PMWordle {
             console.log('Registration successful');
             this.currentUser = user.id;
             this.isGuest = false;
-            
-            // Immediately show success and hide auth modal
-            this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
-            this.hideModal('auth');
             
             // User is now logged in for this session only
             console.log('User authenticated after signup:', this.currentUser, 'isGuest:', this.isGuest);
@@ -1528,6 +1528,10 @@ class PMWordle {
                         this.currentWord
                     );
                     console.log('Game completion transferred to user leaderboard');
+                    
+                    // Force save the stats since we just completed a game
+                    await this.saveStats();
+                    console.log('Stats saved after game transfer');
                 } catch (error) {
                     console.error('Failed to transfer game to leaderboard:', error);
                 }
@@ -1539,12 +1543,16 @@ class PMWordle {
             // Reset game state for new user
             await this.resetGameForNewUser();
             
-            // Immediately refresh stats and leaderboards
+            // Refresh stats and leaderboards
             console.log('Refreshing stats and leaderboards after registration');
             await this.updateStats();
             await this.renderDailyLeaderboard();
             await this.updateStreakLeaderboard();
             console.log('Post-registration refresh completed');
+            
+            // Show success and hide auth modal after everything is complete
+            this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
+            this.hideModal('auth');
         }
     }
     
