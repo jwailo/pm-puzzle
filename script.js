@@ -1161,11 +1161,15 @@ class PMWordle {
             this.gameOver = true;
             this.processingGuess = false;  // Clear flag when game ends
             await this.celebrateWin();
-            await this.saveStats();
-            await this.updateStats();
-            await this.updateLeaderboards(); // Update leaderboards with completion time
-            await this.saveGameState();
+            
+            // Show popup immediately for better UX
             setTimeout(() => this.showGameCompletionModal(), 100);
+            
+            // Do database updates in background (don't await)
+            this.saveStats();
+            this.updateStats();
+            this.updateLeaderboards(); // Update leaderboards with completion time
+            this.saveGameState();
         } else if (this.currentRow === 5) {
             this.gameOver = true;
             this.processingGuess = false;  // Clear flag when game ends

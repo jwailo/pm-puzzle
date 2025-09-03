@@ -58,7 +58,7 @@ BEGIN
     FROM user_stats us
     LEFT JOIN user_profiles up ON us.user_id = up.id
     WHERE us.max_streak > 0
-    ORDER BY us.max_streak DESC, us.current_streak DESC
+    ORDER BY us.max_streak DESC, us.games_won DESC, us.id ASC
     LIMIT 10;
 END;
 $$;
