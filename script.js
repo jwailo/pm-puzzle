@@ -578,8 +578,8 @@ class PMWordle {
         }
         
         const promptHTML = `
-            <div id="guest-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: flex; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.5);">
-                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div id="guest-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                     <div class="modal-header">
                         <h2>🎉 Congratulations!</h2>
                         <button class="close-btn" onclick="document.getElementById('guest-signup-prompt').remove(); game.showModal('stats');">&times;</button>
@@ -616,6 +616,16 @@ class PMWordle {
         `;
         
         document.body.insertAdjacentHTML('beforeend', promptHTML);
+        
+        // Ensure the modal is visible and scroll to top if needed
+        setTimeout(() => {
+            const modal = document.getElementById('guest-signup-prompt');
+            if (modal) {
+                modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Also scroll the main window to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 100);
     }
     
     promptSignupFromGuest() {
@@ -632,6 +642,7 @@ class PMWordle {
         document.getElementById('auth-toggle').textContent = 'Sign In';
         document.getElementById('auth-switch-text').textContent = 'Already have an account?';
         document.getElementById('marketing-consent').classList.remove('hidden');
+        document.getElementById('terms-agreement').classList.remove('hidden');
         document.getElementById('firstname').style.display = 'block';
         document.getElementById('firstname').required = true;
         
@@ -1238,6 +1249,30 @@ class PMWordle {
             this.isGuest = false;
             
             // User is now logged in for this session only
+            console.log('User authenticated after login:', this.currentUser, 'isGuest:', this.isGuest);
+            
+            // Transfer any guest stats to this user account
+            await this.transferGuestStatsToUser(user.id);
+            
+            // Also transfer any current game completion to leaderboard if they just finished
+            if (this.gameWon && this.startTime && this.endTime) {
+                console.log('Transferring completed game to user account after login');
+                const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
+                const today = new Date().toDateString();
+                
+                try {
+                    await this.db.updateDailyLeaderboard(
+                        user.id,
+                        today,
+                        completionTime,
+                        this.currentRow + 1,
+                        this.currentWord
+                    );
+                    console.log('Game completion transferred to user leaderboard after login');
+                } catch (error) {
+                    console.error('Failed to transfer game to leaderboard after login:', error);
+                }
+            }
             
             // Get user profile for display name
             const { data: profile } = await this.db.getUserProfile(user.id);
@@ -1245,6 +1280,14 @@ class PMWordle {
             
             this.updateAuthUI();
             await this.resetGameForNewUser();
+            
+            // Refresh leaderboards to show user's transferred stats and updated data
+            setTimeout(async () => {
+                await this.updateStats();
+                await this.renderDailyLeaderboard();
+                await this.updateStreakLeaderboard();
+            }, 1000);
+            
             this.showMessage(`Welcome back, ${displayName}!`, 'success');
         }
     }
@@ -1303,7 +1346,10 @@ class PMWordle {
                 await this.updateStreakLeaderboard();
             }, 1000);
             
-            this.showMessage(`Account created! Welcome, ${firstname}!`, 'success');
+            // Show success message with delay to ensure visibility
+            setTimeout(() => {
+                this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
+            }, 500);
         }
     }
     
@@ -1807,7 +1853,7 @@ class PMWordle {
         const today = new Date().toDateString();
         const listElement = document.getElementById('daily-list');
         
-        console.log('Rendering daily leaderboard for date:', today);
+        console.log('Rendering daily leaderboard for date:', today, 'isGuest:', this.isGuest, 'currentUser:', this.currentUser);
         
         if (!listElement) {
             console.log('Daily leaderboard element not found');
@@ -1821,7 +1867,8 @@ class PMWordle {
         
         if (error) {
             console.error('Error fetching daily leaderboard:', error);
-            listElement.innerHTML = '<div class="leaderboard-empty">Error loading leaderboard</div>';
+            console.error('Full error details:', JSON.stringify(error));
+            listElement.innerHTML = '<div class="leaderboard-empty">Error loading leaderboard - check console</div>';
             return;
         }
         
@@ -1862,7 +1909,7 @@ class PMWordle {
         }
         
         try {
-            console.log('Fetching streak leaderboard data...');
+            console.log('Fetching streak leaderboard data...', 'isGuest:', this.isGuest, 'currentUser:', this.currentUser);
             
             // First, get a count of all user_stats records
             const { count } = await this.db.supabase
@@ -1887,7 +1934,8 @@ class PMWordle {
             
             if (error) {
                 console.error('Error fetching streak leaderboard:', error);
-                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
+                console.error('Full streak error details:', JSON.stringify(error));
+                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks - check console</div>';
                 return;
             }
             
