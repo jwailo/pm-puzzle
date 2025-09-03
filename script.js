@@ -696,6 +696,20 @@ class PMWordle {
         return false;
     }
     
+    showStatsModal() {
+        if (this.isGuest) {
+            // For guests: show stats briefly, then prompt signup
+            this.showModal('stats');
+            setTimeout(() => {
+                this.hideModal('stats');
+                this.showGuestStatsSignupPrompt();
+            }, 1000); // Show for 1 second
+        } else {
+            // For logged-in users: show normally
+            this.showModal('stats');
+        }
+    }
+    
     showGameCompletionModal() {
         if (this.isGuest && this.gameWon) {
             // Show signup prompt for guests who won
@@ -704,6 +718,46 @@ class PMWordle {
             // Show regular stats modal
             this.showModal('stats');
         }
+    }
+    
+    showGuestStatsSignupPrompt() {
+        // Create and show a stats-specific signup prompt
+        const existingPrompt = document.getElementById('guest-stats-signup-prompt');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+        
+        const promptHTML = `
+            <div id="guest-stats-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>📊 Sign Up for Full Stats</h2>
+                        <button class="close-btn" onclick="document.getElementById('guest-stats-signup-prompt').remove();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p><strong>Want to track your progress?</strong></p>
+                        <div class="mecca-voucher" style="margin: 16px 0; padding: 16px; background: linear-gradient(135deg, #ff6b6b, #4ecdc4); color: white; border-radius: 8px; font-weight: bold;">
+                            🎁 Sign up to record your streaks<br>
+                            and be in the running for a<br>
+                            <span style="font-size: 1.2em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">MECCA VOUCHER</span>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 12px 0;">
+                            Track your progress, compare with friends, and compete for prizes!
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                            <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
+                                Sign Up Now!
+                            </button>
+                            <button onclick="document.getElementById('guest-stats-signup-prompt').remove();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                                Maybe Later
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
     }
     
     showGuestSignupPrompt() {
@@ -794,7 +848,14 @@ class PMWordle {
             const modal = document.getElementById(`${modalType}-modal`);
             const closeBtn = modal.querySelector('.close-btn');
             
-            if (btn) btn.addEventListener('click', () => this.showModal(modalType));
+            if (btn) {
+                if (modalType === 'stats') {
+                    // Special handling for stats button - show briefly then prompt signup for guests
+                    btn.addEventListener('click', () => this.showStatsModal());
+                } else {
+                    btn.addEventListener('click', () => this.showModal(modalType));
+                }
+            }
             if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal(modalType));
             if (modal) modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.hideModal(modalType);
