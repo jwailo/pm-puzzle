@@ -1165,7 +1165,7 @@ class PMWordle {
             await this.updateStats();
             await this.updateLeaderboards(); // Update leaderboards with completion time
             await this.saveGameState();
-            setTimeout(() => this.showGameCompletionModal(), 500);
+            setTimeout(() => this.showGameCompletionModal(), 100);
         } else if (this.currentRow === 5) {
             this.gameOver = true;
             this.processingGuess = false;  // Clear flag when game ends
@@ -1173,7 +1173,7 @@ class PMWordle {
             await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
-            setTimeout(() => this.showGameCompletionModal(), 500);
+            setTimeout(() => this.showGameCompletionModal(), 100);
         } else {
             // Wait for animation to complete before allowing new input
             setTimeout(() => {
@@ -2323,9 +2323,7 @@ class PMWordle {
         const stateKey = this.isGuest ? 'pm-wordle-game-state-guest' : `pm-wordle-game-state-${this.currentUser}`;
         localStorage.setItem(stateKey, JSON.stringify(gameState));
         
-        if (this.gameOver) {
-            await this.saveStats();
-        }
+        // Don't save stats here - they are saved explicitly in the game flow
     }
 
     loadGameState() {
