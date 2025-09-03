@@ -1163,7 +1163,7 @@ class PMWordle {
             await this.celebrateWin();
             
             // Show popup immediately for better UX
-            setTimeout(() => this.showGameCompletionModal(), 100);
+            setTimeout(() => this.showGameCompletionModal(), 1000);
             
             // Do database updates in background (don't await)
             this.saveStats();
@@ -1177,7 +1177,7 @@ class PMWordle {
             await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
-            setTimeout(() => this.showGameCompletionModal(), 100);
+            setTimeout(() => this.showGameCompletionModal(), 1000);
         } else {
             // Wait for animation to complete before allowing new input
             setTimeout(() => {
@@ -1405,6 +1405,14 @@ class PMWordle {
             this.currentUser = user.id;
             this.isGuest = false;
             
+            // Get user profile for display name
+            const { data: profile } = await this.db.getUserProfile(user.id);
+            const displayName = profile?.first_name || 'User';
+            
+            // Immediately show success and hide auth modal
+            this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
+            this.hideModal('auth');
+            
             // User is now logged in for this session only
             console.log('User authenticated after login:', this.currentUser, 'isGuest:', this.isGuest);
             
@@ -1430,10 +1438,6 @@ class PMWordle {
                     console.error('Failed to transfer game to leaderboard after login:', error);
                 }
             }
-            
-            // Get user profile for display name
-            const { data: profile } = await this.db.getUserProfile(user.id);
-            const displayName = profile?.first_name || 'User';
             
             // Update UI to show logged in state
             await this.updateAuthUI();
@@ -1478,8 +1482,6 @@ class PMWordle {
             await this.renderDailyLeaderboard();
             await this.updateStreakLeaderboard();
             console.log('Post-login refresh completed');
-            
-            this.showMessage(`Welcome back, ${displayName}!`, 'success');
         }
     }
 
@@ -1500,6 +1502,10 @@ class PMWordle {
             console.log('Registration successful');
             this.currentUser = user.id;
             this.isGuest = false;
+            
+            // Immediately show success and hide auth modal
+            this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
+            this.hideModal('auth');
             
             // User is now logged in for this session only
             console.log('User authenticated after signup:', this.currentUser, 'isGuest:', this.isGuest);
@@ -1539,11 +1545,6 @@ class PMWordle {
             await this.renderDailyLeaderboard();
             await this.updateStreakLeaderboard();
             console.log('Post-registration refresh completed');
-            
-            // Show success message with delay to ensure visibility
-            setTimeout(() => {
-                this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
-            }, 500);
         }
     }
     
