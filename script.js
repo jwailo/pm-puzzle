@@ -229,16 +229,20 @@ class DatabaseService {
     async getStreakLeaderboard() {
         try {
             // Use RPC function to bypass RLS for streak leaderboards
+            console.log('Calling get_public_streak_leaderboard RPC function...');
             const { data, error } = await this.supabase.rpc('get_public_streak_leaderboard');
             
             if (error) {
-                console.error('Error fetching streak leaderboard:', error);
+                console.error('RPC Error fetching streak leaderboard:', error);
+                console.error('Error details:', JSON.stringify(error));
                 return { data: [], error };
             }
             
+            console.log('Streak leaderboard RPC returned:', data);
             return { data: data || [], error: null };
         } catch (err) {
-            console.error('Streak leaderboard fetch failed:', err);
+            console.error('Streak leaderboard fetch exception:', err);
+            console.error('Exception details:', JSON.stringify(err));
             return { data: [], error: err };
         }
     }
@@ -852,6 +856,23 @@ class PMWordle {
         if (postGameContinue) {
             postGameContinue.addEventListener('click', () => {
                 this.hideModal('post-game-stats');
+            });
+        }
+        
+        // Add close button for post-game modal
+        const postGameModal = document.getElementById('post-game-stats-modal');
+        if (postGameModal) {
+            const closeBtn = postGameModal.querySelector('.close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    this.hideModal('post-game-stats');
+                });
+            }
+            // Allow clicking outside to close
+            postGameModal.addEventListener('click', (e) => {
+                if (e.target === postGameModal) {
+                    this.hideModal('post-game-stats');
+                }
             });
         }
         
@@ -2050,7 +2071,10 @@ class PMWordle {
             
             if (error) {
                 console.error('Error fetching streak leaderboard:', error);
-                listElement.innerHTML = '<div class="leaderboard-empty">Error loading streaks</div>';
+                console.error('Full error object:', JSON.stringify(error));
+                // Show more specific error message
+                const errorMsg = error.message || error.details || 'Unknown error';
+                listElement.innerHTML = `<div class="leaderboard-empty">Error: ${errorMsg}</div>`;
                 return;
             }
             
