@@ -712,8 +712,12 @@ class PMWordle {
     
     showGameCompletionModal() {
         if (this.isGuest && this.gameWon) {
-            // Show signup prompt for guests who won
-            this.showGuestSignupPrompt();
+            // For guests who won: show stats briefly, then signup prompt
+            this.showModal('stats');
+            setTimeout(() => {
+                this.hideModal('stats');
+                this.showGuestSignupPrompt();
+            }, 1000); // Show for 1 second
         } else {
             // Show regular stats modal
             this.showModal('stats');
