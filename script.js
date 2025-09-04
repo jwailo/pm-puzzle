@@ -591,7 +591,8 @@ class PMWordle {
             puzzleDate.setDate(puzzleDate.getDate() - 1);
         }
         
-        return puzzleDate.toDateString();
+        // Return in YYYY-MM-DD format for database compatibility
+        return puzzleDate.toISOString().split('T')[0];
     }
 
     getTodaysWord() {
