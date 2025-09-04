@@ -525,21 +525,17 @@ class PMWordle {
 
     async loadWordsFromFile() {
         try {
-            const response = await fetch('./wordle-5-letter-words');
+            // Load comprehensive Wordle allowed guesses list (10,657 words)
+            const response = await fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt');
             const text = await response.text();
             
-            // Parse the CSV/text file - each line is a word
+            // Parse the text file - each line is a word
             const words = text.trim().split('\n').map(word => word.trim().toUpperCase());
-            
-            // Skip the header if it exists (first line might be "word")
-            if (words[0] === 'WORD') {
-                words.shift();
-            }
             
             // Filter out any empty lines and ensure 5-letter words
             this.validWords = words.filter(word => word.length === 5);
             
-            console.log(`Loaded ${this.validWords.length} words from file`);
+            console.log(`Loaded ${this.validWords.length} words from comprehensive Wordle list`);
             console.log('First 10 words:', this.validWords.slice(0, 10));
             
             // Also include our answer bank in the valid words
@@ -550,8 +546,8 @@ class PMWordle {
             });
             
         } catch (error) {
-            console.error('Error loading words from file:', error);
-            console.log('Using fallback word list');
+            console.error('Error loading words from comprehensive Wordle list:', error);
+            console.log('Using fallback word list due to network error');
             // Fallback to a comprehensive word list if file loading fails
             this.validWords = [
                 ...this.answerBank,
