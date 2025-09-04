@@ -545,13 +545,22 @@ class PMWordle {
                 }
             });
             
+            // Add custom words that should always be accepted
+            const customWords = ['BINGE'];
+            customWords.forEach(word => {
+                if (!this.validWords.includes(word)) {
+                    this.validWords.push(word);
+                    console.log(`Added custom word: ${word}`);
+                }
+            });
+            
         } catch (error) {
             console.error('Error loading words from comprehensive Wordle list:', error);
             console.log('Using fallback word list due to network error');
             // Fallback to a comprehensive word list if file loading fails
             this.validWords = [
                 ...this.answerBank,
-                'ACHES', 'CHATS', // Common words that were missing
+                'ACHES', 'CHATS', 'BINGE', // Common words that were missing
                 'ABOUT', 'ABOVE', 'ABUSE', 'ACTOR', 'ACUTE', 'ADMIT', 'ADOPT', 'ADULT', 'AFTER', 'AGAIN',
                 'AGENT', 'AGREE', 'AHEAD', 'ALARM', 'ALBUM', 'ALERT', 'ALIEN', 'ALIGN', 'ALIKE', 'ALIVE',
                 'ALLOW', 'ALONE', 'ALONG', 'ALTER', 'AMONG', 'ANGER', 'ANGLE', 'ANGRY', 'APART', 'APPLE',
