@@ -398,6 +398,25 @@ class PMWordle {
         }
     }
     
+    scrollToGame() {
+        // Scroll to the game board on mobile when guest mode is activated
+        const gameContainer = document.getElementById('game-board') || document.querySelector('.game-board');
+        if (gameContainer) {
+            gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    continueAsGuest() {
+        // Called when user explicitly chooses to skip auth and play as guest
+        this.isGuest = true;
+        this.currentUser = null;
+        
+        // On mobile, scroll to game area
+        if (window.innerWidth <= 768) {
+            setTimeout(() => this.scrollToGame(), 300);
+        }
+    }
+    
     detectStorageType() {
         try {
             // Try to determine if we're in incognito/private mode
@@ -459,6 +478,11 @@ class PMWordle {
         
         // Initialize leaderboards to ensure they load properly
         setTimeout(() => this.initializeLeaderboards(), 1000);
+        
+        // On mobile, scroll to game area after initialization
+        if (window.innerWidth <= 768) {
+            setTimeout(() => this.scrollToGame(), 500);
+        }
     }
     
     async initializeLeaderboards() {
