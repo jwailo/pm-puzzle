@@ -24,11 +24,6 @@
                     </button>
                 </div>
                 <div class="menu-right">
-                    <button id="test-btn" class="icon-btn" title="Testing Panel">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-                        </svg>
-                    </button>
                     <button id="help-btn" class="icon-btn">?</button>
                     <button id="stats-btn" class="icon-btn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -468,62 +463,6 @@
     </div>
 
     <!-- Testing Modal -->
-    <div id="test-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Testing Panel</h2>
-                <button class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="test-section">
-                    <h3>Game Testing</h3>
-                    <div class="test-buttons">
-                        <button id="test-win" class="test-btn">Simulate Win (Current Row)</button>
-                        <button id="test-lose" class="test-btn">Simulate Loss</button>
-                        <button id="test-reset" class="test-btn">Reset Game</button>
-                        <button id="test-reveal" class="test-btn">Reveal Today's Word</button>
-                    </div>
-                </div>
-                
-                <div class="test-section">
-                    <h3>Stats Testing</h3>
-                    <div class="test-buttons">
-                        <button id="test-add-win" class="test-btn">Add Random Win</button>
-                        <button id="test-add-loss" class="test-btn">Add Loss</button>
-                        <button id="test-clear-stats" class="test-btn">Clear All Stats</button>
-                        <button id="test-perfect-stats" class="test-btn">Generate Perfect Stats</button>
-                    </div>
-                </div>
-                
-                <div class="test-section">
-                    <h3>Leaderboard Testing</h3>
-                    <div class="test-buttons">
-                        <button id="test-add-leaderboard" class="test-btn">Add Random Leaderboard Entry</button>
-                        <button id="test-clear-leaderboard" class="test-btn">Clear Leaderboards</button>
-                        <button id="test-populate-leaderboard" class="test-btn">Populate Sample Leaderboards</button>
-                    </div>
-                </div>
-                
-                <div class="test-section">
-                    <h3>Debug Info</h3>
-                    <div class="debug-info">
-                        <div class="debug-item">
-                            <strong>Today's Word:</strong> <span id="debug-word">Loading...</span>
-                        </div>
-                        <div class="debug-item">
-                            <strong>Valid Words Count:</strong> <span id="debug-words-count">Loading...</span>
-                        </div>
-                        <div class="debug-item">
-                            <strong>Game State:</strong> <span id="debug-game-state">Active</span>
-                        </div>
-                        <div class="debug-item">
-                            <strong>Current User:</strong> <span id="debug-current-user">Guest</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Post-Game Statistics Modal -->
     <div id="post-game-stats-modal" class="modal">

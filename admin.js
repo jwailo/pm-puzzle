@@ -118,39 +118,37 @@ class AdminDashboard {
     }
 
     async getDailyActiveUsers() {
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        const { count, error } = await this.supabase
-            .from('user_stats')
-            .select('*', { count: 'exact', head: true })
-            .gte('updated_at', yesterday.toISOString());
-        
-        if (error) {
-            console.error('Error getting daily active users:', error);
+        try {
+            const { data, error } = await this.supabase
+                .rpc('get_admin_active_users', { days: 1 });
+            
+            if (error) {
+                console.error('Error getting daily active users:', error);
+                return 0;
+            }
+            
+            return data || 0;
+        } catch (error) {
+            console.error('Failed to get daily active users:', error);
             return 0;
         }
-        
-        return count || 0;
     }
 
     async getMonthlyActiveUsers() {
-        const today = new Date();
-        const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const { count, error } = await this.supabase
-            .from('user_stats')
-            .select('*', { count: 'exact', head: true })
-            .gte('updated_at', thirtyDaysAgo.toISOString());
-        
-        if (error) {
-            console.error('Error getting monthly active users:', error);
+        try {
+            const { data, error } = await this.supabase
+                .rpc('get_admin_active_users', { days: 30 });
+            
+            if (error) {
+                console.error('Error getting monthly active users:', error);
+                return 0;
+            }
+            
+            return data || 0;
+        } catch (error) {
+            console.error('Failed to get monthly active users:', error);
             return 0;
         }
-        
-        return count || 0;
     }
 
     async getTotalGames() {
@@ -184,36 +182,17 @@ class AdminDashboard {
 
     async getSignupPercentage() {
         try {
-            // Get the count of registered users
-            const { count: registeredUsers, error: usersError } = await this.supabase
-                .from('user_profiles')
-                .select('*', { count: 'exact', head: true });
+            const { data, error } = await this.supabase
+                .rpc('get_admin_signup_percentage');
             
-            if (usersError) {
-                console.error('Error getting registered users:', usersError);
+            if (error) {
+                console.error('Error getting signup percentage:', error);
                 return 'N/A';
             }
             
-            // Get total unique players (both guests and registered users)
-            // user_stats table tracks all players who have played at least one game
-            const { count: totalPlayers, error: totalError } = await this.supabase
-                .from('user_stats')
-                .select('*', { count: 'exact', head: true });
-            
-            if (totalError) {
-                console.error('Error getting total players:', totalError);
-                return 'N/A';
-            }
-            
-            console.log('Signup rate calculation:', { registeredUsers, totalPlayers });
-            
-            // Calculate percentage
-            if (totalPlayers === 0) return '0%';
-            
-            const percentage = Math.round((registeredUsers / totalPlayers) * 100);
-            return `${percentage}%`;
+            return data || '0%';
         } catch (error) {
-            console.error('Error in getSignupPercentage:', error);
+            console.error('Failed to get signup percentage:', error);
             return 'N/A';
         }
     }
@@ -222,40 +201,18 @@ class AdminDashboard {
         try {
             console.log('Loading users list...');
             
-            // First try to get user profiles
-            const { data: profiles, error: profilesError } = await this.supabase
-                .from('user_profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Use admin RPC function to bypass RLS
+            const { data: users, error } = await this.supabase
+                .rpc('get_admin_user_list');
 
-            if (profilesError) {
-                console.error('Error loading user profiles:', profilesError);
-                document.getElementById('loading').textContent = 'Error loading users: ' + profilesError.message;
+            if (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
                 return;
             }
 
-            console.log('Profiles loaded:', profiles);
-
-            // Then get stats separately to avoid join issues
-            const { data: stats, error: statsError } = await this.supabase
-                .from('user_stats')
-                .select('*');
-
-            if (statsError) {
-                console.error('Error loading user stats:', statsError);
-            }
-
-            console.log('Stats loaded:', stats);
-
-            // Merge the data
-            const users = profiles.map(profile => {
-                const userStats = stats ? stats.find(s => s.user_id === profile.id) : null;
-                return {
-                    ...profile,
-                    user_stats: userStats
-                };
-            });
-
+            console.log('Users loaded:', users);
+            
             this.usersData = users;
             this.renderUsersTable(users);
 
@@ -270,7 +227,6 @@ class AdminDashboard {
         tbody.innerHTML = '';
 
         users.forEach(user => {
-            const stats = user.user_stats || {};
             const row = document.createElement('tr');
             
             const formatDate = (dateString) => {
@@ -281,10 +237,10 @@ class AdminDashboard {
             row.innerHTML = `
                 <td>${user.first_name || 'N/A'}</td>
                 <td>${user.email || 'N/A'}</td>
-                <td>${stats.games_played || 0}</td>
-                <td>${stats.games_won || 0}</td>
-                <td>${stats.max_streak || 0}</td>
-                <td>${formatDate(stats.updated_at)}</td>
+                <td>${user.games_played || 0}</td>
+                <td>${user.games_won || 0}</td>
+                <td>${user.max_streak || 0}</td>
+                <td>${formatDate(user.updated_at)}</td>
                 <td>${formatDate(user.created_at)}</td>
             `;
             
@@ -305,7 +261,6 @@ class AdminDashboard {
         const csvHeader = 'Name,Email,Games Played,Games Won,Max Streak,Last Active,Signed Up\n';
         
         const csvRows = this.usersData.map(user => {
-            const stats = user.user_stats || {};
             const formatDate = (dateString) => {
                 if (!dateString) return 'Never';
                 return new Date(dateString).toLocaleDateString();
@@ -314,10 +269,10 @@ class AdminDashboard {
             return [
                 `"${user.first_name || 'N/A'}"`,
                 `"${user.email || 'N/A'}"`,
-                stats.games_played || 0,
-                stats.games_won || 0,
-                stats.max_streak || 0,
-                `"${formatDate(stats.updated_at)}"`,
+                user.games_played || 0,
+                user.games_won || 0,
+                user.max_streak || 0,
+                `"${formatDate(user.updated_at)}"`,
                 `"${formatDate(user.created_at)}"`
             ].join(',');
         }).join('\n');
