@@ -981,6 +981,250 @@ class PMWordle {
         }, 100);
     }
     
+    showShareAudienceModal() {
+        // Remove any existing share modal
+        const existingModal = document.getElementById('share-audience-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modalHTML = `
+            <div id="share-audience-modal" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>🚀 Share Your Results</h2>
+                        <button class="close-btn" onclick="document.getElementById('share-audience-modal').remove();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="padding: 20px;">
+                        <p style="text-align: center; margin-bottom: 20px; color: #666;">Who would you like to share your PM Wordle results with?</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                            <button onclick="game.shareWithAudience('colleague')" class="share-audience-btn" style="padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 8px;">👔</div>
+                                <div style="font-weight: bold; color: #333;">Colleague</div>
+                                <div style="font-size: 12px; color: #666;">Professional peers</div>
+                            </button>
+                            
+                            <button onclick="game.shareWithAudience('pms')" class="share-audience-btn" style="padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 8px;">🏢</div>
+                                <div style="font-weight: bold; color: #333;">Other PMs</div>
+                                <div style="font-size: 12px; color: #666;">Property managers you know</div>
+                            </button>
+                            
+                            <button onclick="game.shareWithAudience('tradies')" class="share-audience-btn" style="padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 8px;">🔧</div>
+                                <div style="font-weight: bold; color: #333;">Tradies</div>
+                                <div style="font-size: 12px; color: #666;">Contractors & workers</div>
+                            </button>
+                            
+                            <button onclick="game.shareWithAudience('mum')" class="share-audience-btn" style="padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 8px;">❤️</div>
+                                <div style="font-weight: bold; color: #333;">Your Mum</div>
+                                <div style="font-size: 12px; color: #666;">Family & friends</div>
+                            </button>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                            <h4 style="margin-bottom: 12px; color: #333;">Other:</h4>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="custom-audience" placeholder="e.g., My team, LinkedIn contacts..." style="flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px;" maxlength="50">
+                                <button onclick="game.shareWithCustomAudience()" style="padding: 10px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Share</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Add hover effects
+        const style = document.createElement('style');
+        style.textContent = `
+            .share-audience-btn:hover {
+                border-color: #667eea !important;
+                background: #f8faff !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    async shareWithAudience(audienceType) {
+        // Track the share in database
+        await this.trackShare(audienceType);
+        
+        // Get tailored message and copy to clipboard
+        const shareMessage = this.getShareMessageForAudience(audienceType);
+        
+        try {
+            await navigator.clipboard.writeText(shareMessage);
+            this.showShareSuccessMessage(audienceType);
+        } catch (err) {
+            // Fallback for older browsers
+            this.showShareFallback(shareMessage);
+        }
+
+        // Close the modal
+        document.getElementById('share-audience-modal').remove();
+    }
+
+    async shareWithCustomAudience() {
+        const customInput = document.getElementById('custom-audience');
+        const customAudience = customInput.value.trim();
+        
+        if (!customAudience) {
+            customInput.style.borderColor = '#ff6b6b';
+            customInput.placeholder = 'Please enter who you\'re sharing with...';
+            return;
+        }
+
+        // Track custom share
+        await this.trackShare('custom', customAudience);
+        
+        // Use generic professional message for custom audience
+        const shareMessage = this.getShareMessageForAudience('colleague');
+        
+        try {
+            await navigator.clipboard.writeText(shareMessage);
+            this.showShareSuccessMessage('custom', customAudience);
+        } catch (err) {
+            this.showShareFallback(shareMessage);
+        }
+
+        // Close the modal
+        document.getElementById('share-audience-modal').remove();
+    }
+
+    getShareMessageForAudience(audienceType) {
+        const gameUrl = 'https://pm-puzzle.vercel.app/';
+        const stats = this.isGuest ? 
+            JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0}') :
+            this.getCurrentUserStats();
+
+        const messages = {
+            colleague: `🏢 Just crushed today's PM Wordle! 
+
+My stats: ${stats.gamesPlayed} games played, ${stats.currentStreak} current streak 💪
+
+Think you can beat my property management word skills? Challenge accepted?
+
+Try it: ${gameUrl}
+
+#PMWordle #PropertyManagement #WordGame`,
+
+            pms: `🏠 Fellow PM! Just smashed today's PM Wordle puzzle 🧩
+
+Current streak: ${stats.currentStreak} | Win rate: ${stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0}%
+
+You know all the property lingo - this should be easy for you! 😏
+
+${gameUrl}
+
+Let's see who's the real PM word master! 🏆`,
+
+            tradies: `🔧 Oi! Just finished today's PM Wordle - all those property management terms finally paying off! 
+
+Got it in ${this.currentRow + 1} guesses 💪
+
+Reckon you tradies know enough PM lingo to beat me? 😂
+
+Give it a crack: ${gameUrl}
+
+Fair warning - it's harder than fixing a leaky tap! 🚰`,
+
+            mum: `❤️ Mum! You'll love this - it's like Wordle but with all those property management words I'm always talking about!
+
+I just got ${stats.currentStreak} in a row correct 🎉
+
+It's actually quite fun and might help you understand what I do for work!
+
+${gameUrl}
+
+Love you! Give it a try when you have a cuppa ☕ xx`
+        };
+
+        return messages[audienceType] || messages.colleague;
+    }
+
+    showShareSuccessMessage(audienceType, customText = '') {
+        const audienceNames = {
+            colleague: 'colleagues',
+            pms: 'fellow PMs',
+            tradies: 'the tradies',
+            mum: 'your mum',
+            custom: customText || 'your contacts'
+        };
+
+        const audienceName = audienceNames[audienceType] || 'your contacts';
+        const message = `📋 Message copied! Ready to share with ${audienceName} 🚀`;
+        
+        this.showMessage(message, 'success', 3000);
+    }
+
+    showShareFallback(shareMessage) {
+        // Show message in a modal for manual copying
+        const fallbackHTML = `
+            <div id="share-fallback-modal" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2600; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.7);">
+                <div class="modal-content" style="max-width: 500px; width: 90%; background: white; border-radius: 12px; padding: 20px;">
+                    <h3>Copy Your Share Message</h3>
+                    <textarea readonly style="width: 100%; height: 200px; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 14px;">${shareMessage}</textarea>
+                    <div style="text-align: right;">
+                        <button onclick="document.getElementById('share-fallback-modal').remove();" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', fallbackHTML);
+    }
+
+    getCurrentUserStats() {
+        // Return current user stats in the expected format
+        if (this.isGuest) {
+            return JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0}');
+        }
+        
+        // For logged-in users, we'll need to get from the last loaded stats
+        // This should be called after getStats() has been called
+        return {
+            gamesPlayed: 0,
+            gamesWon: 0, 
+            currentStreak: 0,
+            maxStreak: 0
+        };
+    }
+
+    async trackShare(audienceType, customText = '') {
+        // Only track for authenticated users to avoid spam
+        if (this.isGuest) return;
+        
+        try {
+            const { data: { user } } = await this.db.supabase.auth.getUser();
+            if (!user) return;
+
+            const shareData = {
+                user_id: user.id,
+                audience_type: audienceType,
+                custom_audience: customText,
+                shared_at: new Date().toISOString(),
+                game_date: this.getPuzzleDate()
+            };
+
+            const { error } = await this.db.supabase
+                .from('share_analytics')
+                .insert(shareData);
+
+            if (error) {
+                console.error('Error tracking share:', error);
+            } else {
+                console.log('Share tracked successfully:', shareData);
+            }
+        } catch (error) {
+            console.error('Failed to track share:', error);
+        }
+    }
+
     promptSignupFromGuest() {
         // Remove the guest prompt and show the signup form
         const guestPrompt = document.getElementById('guest-signup-prompt');
@@ -1087,7 +1331,7 @@ class PMWordle {
 
         // Share button
         document.getElementById('share-btn').addEventListener('click', () => {
-            this.showModal('share-instructions');
+            this.showShareAudienceModal();
         });
         
         // Post-game modal buttons

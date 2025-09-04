@@ -65,18 +65,23 @@ class AdminDashboard {
             const monthlyActive = await this.getMonthlyActiveUsers();
             const totalGames = await this.getTotalGames();
             const signupPercentage = await this.getSignupPercentage();
+            const totalShares = await this.getTotalShares();
 
-            console.log('Stats loaded:', { userStats, dailyActive, monthlyActive, totalGames, signupPercentage });
+            console.log('Stats loaded:', { userStats, dailyActive, monthlyActive, totalGames, signupPercentage, totalShares });
 
             // Update stats
             document.getElementById('total-users').textContent = userStats.count || 0;
             document.getElementById('daily-active').textContent = dailyActive || 0;
             document.getElementById('monthly-active').textContent = monthlyActive || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
-            document.getElementById('signup-percentage').textContent = signupPercentage + '%';
+            document.getElementById('signup-percentage').textContent = signupPercentage;
+            document.getElementById('total-shares').textContent = totalShares || 0;
 
             // Load and display users
             await this.loadUsersList();
+            
+            // Load sharing analytics
+            await this.loadSharingAnalytics();
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -331,6 +336,113 @@ class AdminDashboard {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    async getTotalShares() {
+        try {
+            const { data, error } = await this.supabase.rpc('get_admin_total_shares');
+            
+            if (error) {
+                console.error('Error getting total shares:', error);
+                return 0;
+            }
+            
+            return data || 0;
+        } catch (error) {
+            console.error('Failed to get total shares:', error);
+            return 0;
+        }
+    }
+
+    async loadSharingAnalytics() {
+        try {
+            // Load audience breakdown
+            const { data: audienceData, error: audienceError } = await this.supabase.rpc('get_admin_share_stats');
+            
+            if (audienceError) {
+                console.error('Error loading audience data:', audienceError);
+                document.getElementById('audience-breakdown').innerHTML = '<div style="color: #e53e3e;">Error loading data</div>';
+            } else {
+                this.renderAudienceBreakdown(audienceData || []);
+            }
+
+            // Load custom shares
+            const { data: customData, error: customError } = await this.supabase.rpc('get_admin_recent_custom_shares');
+            
+            if (customError) {
+                console.error('Error loading custom shares:', customError);
+                document.getElementById('custom-shares').innerHTML = '<div style="color: #e53e3e;">Error loading data</div>';
+            } else {
+                this.renderCustomShares(customData || []);
+            }
+
+        } catch (error) {
+            console.error('Error in loadSharingAnalytics:', error);
+        }
+    }
+
+    renderAudienceBreakdown(data) {
+        const container = document.getElementById('audience-breakdown');
+        
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="color: #666;">No shares recorded yet</div>';
+            return;
+        }
+
+        const audienceNames = {
+            colleague: '👔 Colleagues',
+            pms: '🏢 Other PMs', 
+            tradies: '🔧 Tradies',
+            mum: '❤️ Family/Friends',
+            custom: '✨ Custom'
+        };
+
+        let html = '';
+        data.forEach(item => {
+            const name = audienceNames[item.audience_type] || item.audience_type;
+            const percentage = data.length > 0 ? Math.round((item.share_count / data.reduce((sum, d) => sum + parseInt(d.share_count), 0)) * 100) : 0;
+            
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee;">
+                    <span>${name}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="background: #e2e8f0; border-radius: 4px; width: 60px; height: 8px; overflow: hidden;">
+                            <div style="background: #667eea; height: 100%; width: ${percentage}%;"></div>
+                        </div>
+                        <span style="font-weight: bold; min-width: 40px; text-align: right;">${item.share_count}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    renderCustomShares(data) {
+        const container = document.getElementById('custom-shares');
+        
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="color: #666;">No custom shares yet</div>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(item => {
+            const date = new Date(item.shared_at).toLocaleDateString();
+            const time = new Date(item.shared_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            html += `
+                <div style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: bold; color: #333;">"${item.custom_audience}"</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 2px;">
+                        ${date} at ${time} 
+                        ${item.share_count > 1 ? `(${item.share_count}x)` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
     }
 }
 

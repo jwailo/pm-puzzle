@@ -242,6 +242,35 @@
                 <div id="signup-percentage" class="stat-value">-</div>
                 <div class="stat-label">Signup Rate</div>
             </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #9f7aea, #805ad5);">
+                <div id="total-shares" class="stat-value">-</div>
+                <div class="stat-label">Total Shares</div>
+            </div>
+        </div>
+
+        <!-- Sharing Analytics Section -->
+        <div class="sharing-section" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h2>📊 Sharing Analytics</h2>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <!-- Share by Audience Type -->
+                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin-bottom: 1rem; color: #333;">Share by Audience</h3>
+                    <div id="audience-breakdown" style="font-size: 14px;">
+                        <div class="loading">Loading audience data...</div>
+                    </div>
+                </div>
+                
+                <!-- Recent Custom Shares -->
+                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin-bottom: 1rem; color: #333;">Recent Custom Shares</h3>
+                    <div id="custom-shares" style="font-size: 14px; max-height: 300px; overflow-y: auto;">
+                        <div class="loading">Loading custom shares...</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Users Section -->
