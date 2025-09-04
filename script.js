@@ -617,8 +617,9 @@ class PMWordle {
         // Reset keyboard to clean state before loading any saved state
         this.resetKeyboard();
         
-        this.loadGameState();
+        // Render clean board first, then load any saved state
         this.renderBoard();
+        this.loadGameState();
         this.updateStats();
     }
     
@@ -2851,9 +2852,6 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const gameState = JSON.parse(savedState);
         const today = this.getPuzzleDate();
 
-        console.log('Loaded game state:', gameState);
-        console.log('Today\'s date:', today);
-
         // Only load if it's the same day
         if (gameState.date === today) {
             // If the saved word differs from generated word, trust the saved word
@@ -2882,13 +2880,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     restoreBoard() {
-        console.log('Restoring board with guesses:', this.guesses);
-        console.log('Current row/col:', this.currentRow, this.currentCol);
-        
         // Restore completed guesses
         for (let row = 0; row < this.guesses.length; row++) {
             const guess = this.guesses[row];
-            console.log(`Restoring guess ${row}:`, guess);
             
             if (!guess || guess.length !== 5) {
                 console.warn(`Invalid guess at row ${row}:`, guess);
@@ -2904,7 +2898,6 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 
                 tile.textContent = guess[col];
                 tile.classList.add('filled');
-                console.log(`Set tile [${row},${col}] to "${guess[col]}"`);
             }
             
             // Re-evaluate the guess to apply colors
@@ -2914,7 +2907,6 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
         // Restore current partial row if exists
         if (!this.gameOver && this.currentCol > 0 && this.currentRow < 6 && this.savedCurrentRowLetters) {
-            console.log('Restoring partial row:', this.currentRow, 'up to column:', this.currentCol, 'letters:', this.savedCurrentRowLetters);
             // Restore letters in the current row up to currentCol
             for (let col = 0; col < this.currentCol; col++) {
                 const tile = this.getTile(this.currentRow, col);
@@ -2922,7 +2914,6 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 if (savedLetter) {
                     tile.textContent = savedLetter;
                     tile.classList.add('filled');
-                    console.log(`Restored letter ${savedLetter} at position ${col}`);
                 }
             }
             // Clear the saved data after use
