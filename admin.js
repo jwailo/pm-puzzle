@@ -3,7 +3,7 @@ class AdminDashboard {
     constructor() {
         // Use the same Supabase configuration as the main game
         this.supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
-        this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpand5b3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3OTU0MDMsImV4cCI6MjA1MTM3MTQwM30.wJQN9kfGKs0rUGQUkYoWPvLrCu7WOcGzGlvPQa_vvtc';
+        this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
         
         // Initialize Supabase client
         this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
