@@ -1513,9 +1513,7 @@ class PMWordle {
                     );
                     console.log('Game completion transferred to user leaderboard after login');
                     
-                    // Force save the stats since we just completed a game
-                    await this.saveStats();
-                    console.log('Stats saved after game transfer');
+                    // Note: Stats were already saved during transferGuestStatsToUser(), so no need to save again
                 } catch (error) {
                     console.error('Failed to transfer game to leaderboard after login:', error);
                 }
@@ -1611,9 +1609,7 @@ class PMWordle {
                     );
                     console.log('Game completion transferred to user leaderboard');
                     
-                    // Force save the stats since we just completed a game
-                    await this.saveStats();
-                    console.log('Stats saved after game transfer');
+                    // Note: Stats were already saved during transferGuestStatsToUser(), so no need to save again
                 } catch (error) {
                     console.error('Failed to transfer game to leaderboard:', error);
                 }
