@@ -59,19 +59,21 @@ class AdminDashboard {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('users-table').style.display = 'none';
 
-            // Load all data in parallel
-            const [userStats, dailyActive, monthlyActive, totalGames] = await Promise.all([
-                this.getTotalUsers(),
-                this.getDailyActiveUsers(),
-                this.getMonthlyActiveUsers(),
-                this.getTotalGames()
-            ]);
+            // Load all data
+            const userStats = await this.getTotalUsers();
+            const dailyActive = await this.getDailyActiveUsers();
+            const monthlyActive = await this.getMonthlyActiveUsers();
+            const totalGames = await this.getTotalGames();
+            const signupPercentage = await this.getSignupPercentage();
+
+            console.log('Stats loaded:', { userStats, dailyActive, monthlyActive, totalGames, signupPercentage });
 
             // Update stats
             document.getElementById('total-users').textContent = userStats.count || 0;
             document.getElementById('daily-active').textContent = dailyActive || 0;
             document.getElementById('monthly-active').textContent = monthlyActive || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
+            document.getElementById('signup-percentage').textContent = signupPercentage + '%';
 
             // Load and display users
             await this.loadUsersList();
@@ -141,36 +143,84 @@ class AdminDashboard {
             return 0;
         }
         
-        const totalGames = data.reduce((sum, user) => sum + (user.games_played || 0), 0);
+        const totalGames = data ? data.reduce((sum, user) => sum + (user.games_played || 0), 0) : 0;
         return totalGames;
+    }
+
+    async getSignupPercentage() {
+        try {
+            // Estimate total visitors based on daily_leaderboard entries (including guests)
+            const { count: totalPlayers, error: playersError } = await this.supabase
+                .from('daily_leaderboard')
+                .select('user_id', { count: 'exact', head: true });
+            
+            const { count: registeredUsers, error: usersError } = await this.supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact', head: true });
+            
+            if (playersError || usersError) {
+                console.error('Error calculating signup percentage:', playersError || usersError);
+                return 0;
+            }
+            
+            // Since we can't track true guest visitors, we'll use a rough estimate
+            // Assume 3x more people visit than actually play
+            const estimatedVisitors = (totalPlayers || 0) * 3;
+            
+            if (estimatedVisitors === 0) return 0;
+            
+            const percentage = Math.round((registeredUsers / estimatedVisitors) * 100);
+            return Math.min(percentage, 100); // Cap at 100%
+        } catch (error) {
+            console.error('Error in getSignupPercentage:', error);
+            return 0;
+        }
     }
 
     async loadUsersList() {
         try {
-            // Get all users with their stats
-            const { data: users, error } = await this.supabase
+            console.log('Loading users list...');
+            
+            // First try to get user profiles
+            const { data: profiles, error: profilesError } = await this.supabase
                 .from('user_profiles')
-                .select(`
-                    *,
-                    user_stats (
-                        games_played,
-                        games_won,
-                        max_streak,
-                        updated_at
-                    )
-                `)
+                .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error loading users:', error);
+            if (profilesError) {
+                console.error('Error loading user profiles:', profilesError);
+                document.getElementById('loading').textContent = 'Error loading users: ' + profilesError.message;
                 return;
             }
+
+            console.log('Profiles loaded:', profiles);
+
+            // Then get stats separately to avoid join issues
+            const { data: stats, error: statsError } = await this.supabase
+                .from('user_stats')
+                .select('*');
+
+            if (statsError) {
+                console.error('Error loading user stats:', statsError);
+            }
+
+            console.log('Stats loaded:', stats);
+
+            // Merge the data
+            const users = profiles.map(profile => {
+                const userStats = stats ? stats.find(s => s.user_id === profile.id) : null;
+                return {
+                    ...profile,
+                    user_stats: userStats
+                };
+            });
 
             this.usersData = users;
             this.renderUsersTable(users);
 
         } catch (error) {
             console.error('Error in loadUsersList:', error);
+            document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
         }
     }
 
