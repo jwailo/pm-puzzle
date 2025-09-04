@@ -85,6 +85,20 @@ class AdminDashboard {
     }
 
     async getTotalUsers() {
+        try {
+            // Try RPC function first (bypasses RLS)
+            const { data: rpcData, error: rpcError } = await this.supabase
+                .rpc('get_admin_total_users');
+            
+            if (!rpcError && rpcData !== null) {
+                console.log('Total users from RPC:', rpcData);
+                return { count: rpcData };
+            }
+        } catch (e) {
+            console.log('RPC function not available, trying direct query');
+        }
+        
+        // Fallback to direct query
         const { count, error } = await this.supabase
             .from('user_profiles')
             .select('*', { count: 'exact', head: true });
@@ -94,6 +108,7 @@ class AdminDashboard {
             return { count: 0 };
         }
         
+        console.log('Total users from direct query:', count);
         return { count };
     }
 
@@ -134,6 +149,20 @@ class AdminDashboard {
     }
 
     async getTotalGames() {
+        try {
+            // Try RPC function first (bypasses RLS)
+            const { data: rpcData, error: rpcError } = await this.supabase
+                .rpc('get_admin_total_games');
+            
+            if (!rpcError && rpcData !== null) {
+                console.log('Total games from RPC:', rpcData);
+                return rpcData;
+            }
+        } catch (e) {
+            console.log('RPC function not available, trying direct query');
+        }
+        
+        // Fallback to direct query
         const { data, error } = await this.supabase
             .from('user_stats')
             .select('games_played');
@@ -143,6 +172,7 @@ class AdminDashboard {
             return 0;
         }
         
+        console.log('Games data from direct query:', data);
         const totalGames = data ? data.reduce((sum, user) => sum + (user.games_played || 0), 0) : 0;
         return totalGames;
     }
