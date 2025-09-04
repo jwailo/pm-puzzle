@@ -417,6 +417,28 @@ class PMWordle {
         }
     }
     
+    dismissSignupPromptWithTease(promptId) {
+        // Remove the signup prompt
+        const prompt = document.getElementById(promptId);
+        if (prompt) {
+            prompt.remove();
+        }
+        
+        // Show stats briefly to tease them
+        this.showModal('stats');
+        
+        // After 1 second, hide stats and prompt signup again
+        setTimeout(() => {
+            this.hideModal('stats');
+            // Show the appropriate signup prompt again based on context
+            if (promptId === 'guest-stats-signup-prompt') {
+                this.showGuestStatsSignupPrompt();
+            } else {
+                this.showGuestSignupPrompt();
+            }
+        }, 1000);
+    }
+    
     detectStorageType() {
         try {
             // Try to determine if we're in incognito/private mode
@@ -777,7 +799,7 @@ class PMWordle {
                 <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                     <div class="modal-header">
                         <h2>📊 Sign Up for Full Stats</h2>
-                        <button class="close-btn" onclick="document.getElementById('guest-stats-signup-prompt').remove();">&times;</button>
+                        <button class="close-btn" onclick="game.dismissSignupPromptWithTease('guest-stats-signup-prompt');">&times;</button>
                     </div>
                     <div class="modal-body" style="text-align: center;">
                         <p><strong>Want to track your progress?</strong></p>
@@ -793,7 +815,7 @@ class PMWordle {
                             <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
                                 Sign Up Now!
                             </button>
-                            <button onclick="document.getElementById('guest-stats-signup-prompt').remove();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                            <button onclick="game.dismissSignupPromptWithTease('guest-stats-signup-prompt');" class="skip-btn" style="margin: 0; padding: 12px 16px;">
                                 Maybe Later
                             </button>
                         </div>
@@ -817,7 +839,7 @@ class PMWordle {
                 <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                     <div class="modal-header">
                         <h2>🎉 Congratulations!</h2>
-                        <button class="close-btn" onclick="document.getElementById('guest-signup-prompt').remove(); game.showModal('stats');">&times;</button>
+                        <button class="close-btn" onclick="game.dismissSignupPromptWithTease('guest-signup-prompt');">&times;</button>
                     </div>
                     <div class="modal-body" style="text-align: center;">
                         <p><strong>Great job solving today's puzzle!</strong></p>
@@ -841,7 +863,7 @@ class PMWordle {
                             <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
                                 Sign Up for Prizes!
                             </button>
-                            <button onclick="document.getElementById('guest-signup-prompt').remove(); game.showModal('stats');" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                            <button onclick="game.dismissSignupPromptWithTease('guest-signup-prompt');" class="skip-btn" style="margin: 0; padding: 12px 16px;">
                                 Maybe Later
                             </button>
                         </div>
