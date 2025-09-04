@@ -578,6 +578,22 @@ class PMWordle {
         });
     }
 
+    getPuzzleDate() {
+        // Get the current puzzle date based on 12pm reset time
+        const now = new Date();
+        const resetHour = 12; // 12pm reset
+        
+        // Create a date object for today at reset time
+        let puzzleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour);
+        
+        // If current time is before reset time, use yesterday's date
+        if (now.getHours() < resetHour) {
+            puzzleDate.setDate(puzzleDate.getDate() - 1);
+        }
+        
+        return puzzleDate.toDateString();
+    }
+
     getTodaysWord() {
         // Test mode: Use a fixed word for testing if set
         if (window.testWord) {
@@ -1484,7 +1500,7 @@ class PMWordle {
             if (this.gameWon && this.startTime && this.endTime) {
                 console.log('Transferring completed game to user account after login');
                 const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
-                const today = new Date().toDateString();
+                const today = this.getPuzzleDate();
                 
                 try {
                     await this.db.updateDailyLeaderboard(
@@ -1582,7 +1598,7 @@ class PMWordle {
             if (this.gameWon && this.startTime && this.endTime) {
                 console.log('Transferring completed game to user account');
                 const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
-                const today = new Date().toDateString();
+                const today = this.getPuzzleDate();
                 
                 try {
                     await this.db.updateDailyLeaderboard(
@@ -1715,7 +1731,7 @@ class PMWordle {
         // Check if the saved game state is from today and for the current word
         const stateKey = this.isGuest ? 'pm-wordle-game-state-guest' : `pm-wordle-game-state-${this.currentUser}`;
         const savedState = JSON.parse(localStorage.getItem(stateKey) || '{}');
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
         return savedState.date !== today || savedState.currentWord !== this.currentWord;
     }
     
@@ -2118,7 +2134,7 @@ class PMWordle {
         }
 
         const completionTime = Math.floor((this.endTime - this.startTime) / 1000);
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
         
         // Update leaderboard in database
         const { error } = await this.db.updateDailyLeaderboard(
@@ -2138,7 +2154,7 @@ class PMWordle {
     }
 
     async renderDailyLeaderboard() {
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
         const listElement = document.getElementById('daily-list');
         
         console.log('Rendering daily leaderboard for date:', today, 'isGuest:', this.isGuest, 'currentUser:', this.currentUser);
@@ -2405,7 +2421,7 @@ class PMWordle {
             guesses: this.guesses,
             startTime: this.startTime,
             endTime: this.endTime,
-            date: new Date().toDateString()
+            date: this.getPuzzleDate()
         };
 
         // Save game state with user-specific key
@@ -2432,7 +2448,7 @@ class PMWordle {
         if (!savedState) return;
 
         const gameState = JSON.parse(savedState);
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
 
         // Only load if it's the same day and same word
         if (gameState.date === today && gameState.currentWord === this.currentWord) {
@@ -2707,7 +2723,7 @@ class PMWordle {
         const time = Math.floor(Math.random() * 300) + 30; // 30-330 seconds
         const guesses = Math.floor(Math.random() * 6) + 1;
         
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
         let dailyLeaderboard = JSON.parse(localStorage.getItem('pm-wordle-daily-leaderboard') || '{}');
         
         if (!dailyLeaderboard[today]) {
@@ -2734,7 +2750,7 @@ class PMWordle {
 
     testPopulateLeaderboard() {
         const names = ['Alex', 'Sam', 'Jordan', 'Casey', 'Taylor'];
-        const today = new Date().toDateString();
+        const today = this.getPuzzleDate();
         let dailyLeaderboard = JSON.parse(localStorage.getItem('pm-wordle-daily-leaderboard') || '{}');
         
         dailyLeaderboard[today] = names.map((name, index) => ({
