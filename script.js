@@ -2851,6 +2851,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const gameState = JSON.parse(savedState);
         const today = this.getPuzzleDate();
 
+        console.log('Loaded game state:', gameState);
+        console.log('Today\'s date:', today);
+
         // Only load if it's the same day
         if (gameState.date === today) {
             // If the saved word differs from generated word, trust the saved word
@@ -2879,13 +2882,29 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     restoreBoard() {
+        console.log('Restoring board with guesses:', this.guesses);
+        console.log('Current row/col:', this.currentRow, this.currentCol);
+        
         // Restore completed guesses
         for (let row = 0; row < this.guesses.length; row++) {
             const guess = this.guesses[row];
+            console.log(`Restoring guess ${row}:`, guess);
+            
+            if (!guess || guess.length !== 5) {
+                console.warn(`Invalid guess at row ${row}:`, guess);
+                continue;
+            }
+            
             for (let col = 0; col < 5; col++) {
                 const tile = this.getTile(row, col);
+                if (!tile) {
+                    console.error(`Could not find tile at ${row},${col}`);
+                    continue;
+                }
+                
                 tile.textContent = guess[col];
                 tile.classList.add('filled');
+                console.log(`Set tile [${row},${col}] to "${guess[col]}"`);
             }
             
             // Re-evaluate the guess to apply colors
