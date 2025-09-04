@@ -1350,7 +1350,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         if (postGameShare) {
             postGameShare.addEventListener('click', () => {
                 this.hideModal('post-game-stats');
-                this.shareResults();
+                this.showShareAudienceModal();
             });
         }
         
@@ -2844,8 +2844,15 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const gameState = JSON.parse(savedState);
         const today = this.getPuzzleDate();
 
-        // Only load if it's the same day and same word
-        if (gameState.date === today && gameState.currentWord === this.currentWord) {
+        // Only load if it's the same day
+        if (gameState.date === today) {
+            // If the saved word differs from generated word, trust the saved word
+            // (This handles cases where word generation might have slight inconsistencies)
+            if (gameState.currentWord !== this.currentWord) {
+                console.log('Saved word differs from generated word, using saved word:', gameState.currentWord);
+                this.currentWord = gameState.currentWord;
+            }
+            
             this.currentRow = gameState.currentRow;
             this.currentCol = gameState.currentCol;
             this.gameOver = gameState.gameOver;
@@ -2856,6 +2863,10 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
             // Restore the board state
             this.restoreBoard();
+            
+            console.log('Game state loaded successfully for date:', today, 'word:', this.currentWord);
+        } else {
+            console.log('Saved game state is for a different date, starting fresh');
         }
     }
 
