@@ -179,31 +179,37 @@ class AdminDashboard {
 
     async getSignupPercentage() {
         try {
-            // Estimate total visitors based on daily_leaderboard entries (including guests)
-            const { count: totalPlayers, error: playersError } = await this.supabase
-                .from('daily_leaderboard')
-                .select('user_id', { count: 'exact', head: true });
-            
+            // Get the count of registered users
             const { count: registeredUsers, error: usersError } = await this.supabase
                 .from('user_profiles')
                 .select('*', { count: 'exact', head: true });
             
-            if (playersError || usersError) {
-                console.error('Error calculating signup percentage:', playersError || usersError);
-                return 0;
+            if (usersError) {
+                console.error('Error getting registered users:', usersError);
+                return 'N/A';
             }
             
-            // Since we can't track true guest visitors, we'll use a rough estimate
-            // Assume 3x more people visit than actually play
-            const estimatedVisitors = (totalPlayers || 0) * 3;
+            // Get total unique players (both guests and registered users)
+            // user_stats table tracks all players who have played at least one game
+            const { count: totalPlayers, error: totalError } = await this.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact', head: true });
             
-            if (estimatedVisitors === 0) return 0;
+            if (totalError) {
+                console.error('Error getting total players:', totalError);
+                return 'N/A';
+            }
             
-            const percentage = Math.round((registeredUsers / estimatedVisitors) * 100);
-            return Math.min(percentage, 100); // Cap at 100%
+            console.log('Signup rate calculation:', { registeredUsers, totalPlayers });
+            
+            // Calculate percentage
+            if (totalPlayers === 0) return '0%';
+            
+            const percentage = Math.round((registeredUsers / totalPlayers) * 100);
+            return `${percentage}%`;
         } catch (error) {
             console.error('Error in getSignupPercentage:', error);
-            return 0;
+            return 'N/A';
         }
     }
 
