@@ -1055,8 +1055,8 @@ class PMWordle {
         // Track the share in database
         await this.trackShare(audienceType);
         
-        // Get tailored message and copy to clipboard
-        const shareMessage = this.getShareMessageForAudience(audienceType);
+        // Get tailored message and copy to clipboard (now async)
+        const shareMessage = await this.getShareMessageForAudience(audienceType);
         
         try {
             await navigator.clipboard.writeText(shareMessage);
@@ -1084,7 +1084,7 @@ class PMWordle {
         await this.trackShare('custom', customAudience);
         
         // Use generic professional message for custom audience
-        const shareMessage = this.getShareMessageForAudience('colleague');
+        const shareMessage = await this.getShareMessageForAudience('colleague');
         
         try {
             await navigator.clipboard.writeText(shareMessage);
@@ -1097,16 +1097,18 @@ class PMWordle {
         document.getElementById('share-audience-modal').remove();
     }
 
-    getShareMessageForAudience(audienceType) {
+    async getShareMessageForAudience(audienceType) {
         const gameUrl = 'https://pm-puzzle.vercel.app/';
-        const stats = this.isGuest ? 
-            JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0}') :
-            this.getCurrentUserStats();
+        const stats = await this.getCurrentUserStats();
+        
+        // Get current game info if available
+        const currentGuesses = this.gameWon ? this.currentRow + 1 : null;
+        const winRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
 
         const messages = {
             colleague: `🏢 Just crushed today's PM Wordle! 
 
-My stats: ${stats.gamesPlayed} games played, ${stats.currentStreak} current streak 💪
+My stats: ${stats.gamesPlayed} games played, ${winRate}% win rate, ${stats.currentStreak} current streak 💪
 
 Think you can beat my property management word skills? Challenge accepted?
 
@@ -1114,9 +1116,9 @@ Try it: ${gameUrl}
 
 #PMWordle #PropertyManagement #WordGame`,
 
-            pms: `🏠 Fellow PM! Just smashed today's PM Wordle puzzle 🧩
+            pms: `🏠 Just smashed today's PM Wordle puzzle! 🧩
 
-Current streak: ${stats.currentStreak} | Win rate: ${stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0}%
+Current streak: ${stats.currentStreak} | Win rate: ${winRate}% | Max streak: ${stats.maxStreak}
 
 You know all the property lingo - this should be easy for you! 😏
 
@@ -1126,7 +1128,7 @@ Let's see who's the real PM word master! 🏆`,
 
             tradies: `🔧 Oi! Just finished today's PM Wordle - all those property management terms finally paying off! 
 
-Got it in ${this.currentRow + 1} guesses 💪
+${currentGuesses ? `Got it in ${currentGuesses} guesses` : `Current streak: ${stats.currentStreak}`} 💪
 
 Reckon you tradies know enough PM lingo to beat me? 😂
 
@@ -1136,7 +1138,7 @@ Fair warning - it's harder than fixing a leaky tap! 🚰`,
 
             mum: `❤️ Mum! You'll love this - it's like Wordle but with all those property management words I'm always talking about!
 
-I just got ${stats.currentStreak} in a row correct 🎉
+I've got a ${stats.currentStreak} game winning streak going! 🎉
 
 It's actually quite fun and might help you understand what I do for work!
 
@@ -1179,20 +1181,29 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         document.body.insertAdjacentHTML('beforeend', fallbackHTML);
     }
 
-    getCurrentUserStats() {
+    async getCurrentUserStats() {
         // Return current user stats in the expected format
-        if (this.isGuest) {
-            return JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0}');
+        try {
+            const stats = await this.getStats();
+            return {
+                gamesPlayed: stats.gamesPlayed || 0,
+                gamesWon: stats.gamesWon || 0,
+                currentStreak: stats.currentStreak || 0,
+                maxStreak: stats.maxStreak || 0,
+                winPercentage: stats.winPercentage || 0,
+                guessDistribution: stats.guessDistribution || [0,0,0,0,0,0]
+            };
+        } catch (error) {
+            console.error('Error getting current user stats:', error);
+            return {
+                gamesPlayed: 0,
+                gamesWon: 0,
+                currentStreak: 0,
+                maxStreak: 0,
+                winPercentage: 0,
+                guessDistribution: [0,0,0,0,0,0]
+            };
         }
-        
-        // For logged-in users, we'll need to get from the last loaded stats
-        // This should be called after getStats() has been called
-        return {
-            gamesPlayed: 0,
-            gamesWon: 0, 
-            currentStreak: 0,
-            maxStreak: 0
-        };
     }
 
     async trackShare(audienceType, customText = '') {
