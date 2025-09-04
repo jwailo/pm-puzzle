@@ -417,24 +417,29 @@ class PMWordle {
         }
     }
     
-    dismissSignupPromptWithTease(promptId) {
+    dismissSignupPromptWithTease(promptId, skipTease = false) {
         // Remove the signup prompt
         const prompt = document.getElementById(promptId);
         if (prompt) {
             prompt.remove();
         }
         
+        // If skipTease is true, just close without teasing (to prevent infinite loops)
+        if (skipTease) {
+            return;
+        }
+        
         // Show stats briefly to tease them
         this.showModal('stats');
         
-        // After 1 second, hide stats and prompt signup again
+        // After 1 second, hide stats and show prompt again (but with modified close behavior)
         setTimeout(() => {
             this.hideModal('stats');
-            // Show the appropriate signup prompt again based on context
+            // Show the appropriate signup prompt again, but modify it to close normally on second dismissal
             if (promptId === 'guest-stats-signup-prompt') {
-                this.showGuestStatsSignupPrompt();
+                this.showGuestStatsSignupPromptWithNormalClose();
             } else {
-                this.showGuestSignupPrompt();
+                this.showGuestSignupPromptWithNormalClose();
             }
         }, 1000);
     }
@@ -864,6 +869,97 @@ class PMWordle {
                                 Sign Up for Prizes!
                             </button>
                             <button onclick="game.dismissSignupPromptWithTease('guest-signup-prompt');" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                                Maybe Later
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
+        
+        // Ensure the modal is visible and scroll to top if needed
+        setTimeout(() => {
+            const modal = document.getElementById('guest-signup-prompt');
+            if (modal) {
+                modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Also scroll the main window to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 100);
+    }
+    
+    showGuestStatsSignupPromptWithNormalClose() {
+        // Same as showGuestStatsSignupPrompt but with normal close behavior (no teasing loop)
+        const existingPrompt = document.getElementById('guest-stats-signup-prompt');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+        
+        const promptHTML = `
+            <div id="guest-stats-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>📊 Sign Up for Full Stats</h2>
+                        <button class="close-btn" onclick="document.getElementById('guest-stats-signup-prompt').remove();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p><strong>Want to track your progress?</strong></p>
+                        <div class="mecca-voucher" style="margin: 16px 0; padding: 16px; background: linear-gradient(135deg, #ff6b6b, #4ecdc4); color: white; border-radius: 8px; font-weight: bold;">
+                            🎁 Sign up to record your streaks<br>
+                            and be in the running for a<br>
+                            <span style="font-size: 1.2em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">MECCA VOUCHER</span>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 12px 0;">
+                            Track your progress, compare with friends, and compete for prizes!
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                            <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
+                                Sign Up Now!
+                            </button>
+                            <button onclick="document.getElementById('guest-stats-signup-prompt').remove();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                                Maybe Later
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
+    }
+    
+    showGuestSignupPromptWithNormalClose() {
+        // Same as showGuestSignupPrompt but with normal close behavior (no teasing loop)
+        const existingPrompt = document.getElementById('guest-signup-prompt');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+        
+        const promptHTML = `
+            <div id="guest-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>🎉 Congratulations!</h2>
+                        <button class="close-btn" onclick="document.getElementById('guest-signup-prompt').remove();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p><strong>Great job solving today's puzzle!</strong></p>
+                        <div class="mecca-voucher" style="margin: 16px 0;">
+                            Sign up now to be in the running for a<br>
+                            <span style="font-size: 1.2em; font-weight: bold; color: #ff6b35;">MECCA VOUCHER</span>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 12px 0;">
+                            🏆 Compete on leaderboards<br>
+                            📈 Track your streak & progress<br>
+                            🎁 Win amazing prizes!
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
+                                Sign Up for Prizes!
+                            </button>
+                            <button onclick="document.getElementById('guest-signup-prompt').remove();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
                                 Maybe Later
                             </button>
                         </div>
