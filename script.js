@@ -1591,6 +1591,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             tile.classList.add('filled');
             this.currentCol++;
             console.log('Letter added, new col:', this.currentCol);
+            
+            // Save game state after each letter input
+            this.saveGameState();
         } else {
             console.log('Tile already has content:', tile.textContent);
         }
@@ -1602,6 +1605,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             const tile = this.getTile(this.currentRow, this.currentCol);
             tile.textContent = '';
             tile.classList.remove('filled');
+            
+            // Save game state after deleting a letter
+            this.saveGameState();
         }
     }
 
@@ -2813,6 +2819,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             gameOver: this.gameOver,
             gameWon: this.gameWon,
             guesses: this.guesses,
+            currentRowLetters: this.getCurrentRowLetters(), // Save partial row
             startTime: this.startTime,
             endTime: this.endTime,
             date: this.getPuzzleDate()
@@ -2858,6 +2865,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             this.gameOver = gameState.gameOver;
             this.gameWon = gameState.gameWon;
             this.guesses = gameState.guesses;
+            this.savedCurrentRowLetters = gameState.currentRowLetters || []; // Store for restoration
             this.startTime = new Date(gameState.startTime);
             this.endTime = gameState.endTime ? new Date(gameState.endTime) : null;
 
@@ -2871,6 +2879,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     restoreBoard() {
+        // Restore completed guesses
         for (let row = 0; row < this.guesses.length; row++) {
             const guess = this.guesses[row];
             for (let col = 0; col < 5; col++) {
@@ -2884,10 +2893,34 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             this.updateKeyboard(guess);
         }
 
-        // Restore current row
-        if (!this.gameOver && this.currentCol > 0) {
-            // This would only happen if game was in progress, but we don't save partial rows
+        // Restore current partial row if exists
+        if (!this.gameOver && this.currentCol > 0 && this.currentRow < 6 && this.savedCurrentRowLetters) {
+            console.log('Restoring partial row:', this.currentRow, 'up to column:', this.currentCol, 'letters:', this.savedCurrentRowLetters);
+            // Restore letters in the current row up to currentCol
+            for (let col = 0; col < this.currentCol; col++) {
+                const tile = this.getTile(this.currentRow, col);
+                const savedLetter = this.savedCurrentRowLetters[col];
+                if (savedLetter) {
+                    tile.textContent = savedLetter;
+                    tile.classList.add('filled');
+                    console.log(`Restored letter ${savedLetter} at position ${col}`);
+                }
+            }
+            // Clear the saved data after use
+            this.savedCurrentRowLetters = null;
         }
+    }
+
+    getCurrentRowLetters() {
+        // Get letters from the current row tiles
+        const letters = [];
+        if (this.currentRow < 6) {
+            for (let col = 0; col < 5; col++) {
+                const tile = this.getTile(this.currentRow, col);
+                letters.push(tile.textContent || '');
+            }
+        }
+        return letters;
     }
 
     checkGuessInstant(guess, row) {
