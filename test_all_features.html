@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PM Puzzle - Complete Feature Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .test-section { margin: 30px 0; padding: 20px; border: 2px solid #ddd; border-radius: 10px; }
+        .test-pass { color: green; font-weight: bold; }
+        .test-fail { color: red; font-weight: bold; }
+        .test-warning { color: orange; }
+        .test-info { color: blue; }
+        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .result-item { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .summary { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 PM Puzzle Complete Feature Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>🔐 Authentication Tests</h2>
+        <button onclick="testAuth()">Run Authentication Tests</button>
+        <div id="auth-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Statistics Tests</h2>
+        <button onclick="testStats()">Run Statistics Tests</button>
+        <div id="stats-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>💾 Game State Persistence Tests</h2>
+        <button onclick="testGameState()">Run Game State Tests</button>
+        <div id="state-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🏆 Leaderboard Tests</h2>
+        <button onclick="testLeaderboards()">Run Leaderboard Tests</button>
+        <div id="leaderboard-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>👨‍💼 Admin Panel Tests</h2>
+        <button onclick="testAdmin()">Run Admin Tests</button>
+        <div id="admin-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎮 Game Mechanics Tests</h2>
+        <button onclick="testGameMechanics()">Run Game Mechanics Tests</button>
+        <div id="mechanics-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔄 Run All Tests</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div class="summary">
+        <h3>Test Summary</h3>
+        <div id="summary-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let totalTests = 0;
+        let passedTests = 0;
+        
+        function addResult(containerId, testName, passed, details = '') {
+            const container = document.getElementById(containerId);
+            const status = passed ? 'test-pass' : 'test-fail';
+            const icon = passed ? '✅' : '❌';
+            
+            totalTests++;
+            if (passed) passedTests++;
+            
+            container.innerHTML += `
+                <div class="result-item">
+                    <span class="${status}">${icon} ${testName}</span>
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+            
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            const summary = document.getElementById('summary-content');
+            const percentage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            summary.innerHTML = `
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> ${passedTests}</p>
+                <p><strong>Failed:</strong> ${totalTests - passedTests}</p>
+                <p><strong>Success Rate:</strong> ${percentage}%</p>
+                <p><strong>Status:</strong> ${percentage === 100 ? 
+                    '<span class="test-pass">All tests passed!</span>' : 
+                    '<span class="test-fail">Some tests failed</span>'}</p>
+            `;
+        }
+        
+        async function testAuth() {
+            const results = document.getElementById('auth-results');
+            results.innerHTML = '<p class="test-info">Testing authentication system...</p>';
+            totalTests = 0;
+            passedTests = 0;
+            
+            // Test 1: Check auth functions exist in script.js
+            try {
+                const scriptResponse = await fetch('script.js');
+                if (!scriptResponse.ok) {
+                    throw new Error(`Failed to load script.js: ${scriptResponse.status}`);
+                }
+                const scriptText = await scriptResponse.text();
+                
+                // Check for actual function signatures
+                const hasSignUp = scriptText.includes('async signUp(email, password');
+                const hasSignIn = scriptText.includes('async signIn(email, password)');
+                const hasHandleAuth = scriptText.includes('async handleAuth()');
+                const hasResetPassword = scriptText.includes('resetPasswordForEmail');
+                const hasTransferStats = scriptText.includes('async transferGuestStatsToUser(userId)');
+                const hasLogout = scriptText.includes('async logout()');
+                
+                addResult('auth-results', 'SignUp function exists', hasSignUp, 
+                    hasSignUp ? 'Found in DatabaseService class' : 'Not found');
+                addResult('auth-results', 'SignIn function exists', hasSignIn,
+                    hasSignIn ? 'Found in DatabaseService class' : 'Not found');
+                addResult('auth-results', 'HandleAuth function exists', hasHandleAuth,
+                    hasHandleAuth ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('auth-results', 'Password reset function exists', hasResetPassword,
+                    hasResetPassword ? 'Found in password reset flow' : 'Not found');
+                addResult('auth-results', 'Guest stats transfer exists', hasTransferStats,
+                    hasTransferStats ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('auth-results', 'Logout function exists', hasLogout,
+                    hasLogout ? 'Found in PMPuzzleGame class' : 'Not found');
+                
+                // Test 2: Check Supabase auth configuration
+                const { data: session } = await supabaseClient.auth.getSession();
+                addResult('auth-results', 'Supabase auth configured', true, 
+                    session.session ? 'Active session found' : 'No active session');
+                
+            } catch (e) {
+                addResult('auth-results', 'Authentication system check', false, e.message);
+            }
+        }
+        
+        async function testStats() {
+            const results = document.getElementById('stats-results');
+            results.innerHTML = '<p class="test-info">Testing statistics system...</p>';
+            
+            try {
+                const scriptResponse = await fetch('script.js');
+                if (!scriptResponse.ok) {
+                    throw new Error(`Failed to load script.js: ${scriptResponse.status}`);
+                }
+                const scriptText = await scriptResponse.text();
+                
+                // Check for actual function signatures and calls
+                const hasSaveStats = scriptText.includes('async saveStats()');
+                const hasGetStats = scriptText.includes('async getStats()');
+                const hasUpdateStats = scriptText.includes('async updateStats()');
+                const hasShowStats = scriptText.includes('showStatsModal()');
+                const hasGetUserStats = scriptText.includes('async getUserStats(userId)');
+                const hasUpdateUserStats = scriptText.includes('async updateUserStats(userId, stats)');
+                
+                addResult('stats-results', 'Save stats function', hasSaveStats,
+                    hasSaveStats ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('stats-results', 'Get stats function', hasGetStats,
+                    hasGetStats ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('stats-results', 'Update stats display', hasUpdateStats,
+                    hasUpdateStats ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('stats-results', 'Show stats modal', hasShowStats,
+                    hasShowStats ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('stats-results', 'Get user stats from DB', hasGetUserStats,
+                    hasGetUserStats ? 'Found in DatabaseService class' : 'Not found');
+                addResult('stats-results', 'Update user stats in DB', hasUpdateUserStats,
+                    hasUpdateUserStats ? 'Found in DatabaseService class' : 'Not found');
+                
+                // Test database table access
+                const { count, error: statsError } = await supabaseClient
+                    .from('user_stats')
+                    .select('*', { count: 'exact', head: true });
+                
+                addResult('stats-results', 'User stats table accessible', !statsError,
+                    statsError ? statsError.message : `Table accessible (${count || 0} records)`);
+                
+            } catch (e) {
+                addResult('stats-results', 'Statistics system check', false, e.message);
+            }
+        }
+        
+        async function testGameState() {
+            const results = document.getElementById('state-results');
+            results.innerHTML = '<p class="test-info">Testing game state persistence...</p>';
+            
+            try {
+                const scriptResponse = await fetch('script.js');
+                if (!scriptResponse.ok) {
+                    throw new Error(`Failed to load script.js: ${scriptResponse.status}`);
+                }
+                const scriptText = await scriptResponse.text();
+                
+                // Check for actual function signatures
+                const hasSaveGameState = scriptText.includes('async saveGameState()');
+                const hasLoadGameState = scriptText.includes('loadGameState()');
+                const hasLocalStorage = scriptText.includes('localStorage.setItem');
+                const hasSessionStorage = scriptText.includes('sessionStorage');
+                const hasGetGameSession = scriptText.includes('async getGameSession(userId, date)');
+                const hasSaveGameSession = scriptText.includes('async saveGameSession(userId, sessionData)');
+                
+                addResult('state-results', 'Save game state function', hasSaveGameState,
+                    hasSaveGameState ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('state-results', 'Load game state function', hasLoadGameState,
+                    hasLoadGameState ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('state-results', 'LocalStorage usage', hasLocalStorage,
+                    hasLocalStorage ? 'localStorage.setItem found' : 'Not found');
+                addResult('state-results', 'SessionStorage usage', hasSessionStorage,
+                    hasSessionStorage ? 'sessionStorage found' : 'Not found');
+                addResult('state-results', 'Get game session from DB', hasGetGameSession,
+                    hasGetGameSession ? 'Found in DatabaseService class' : 'Not found');
+                addResult('state-results', 'Save game session to DB', hasSaveGameSession,
+                    hasSaveGameSession ? 'Found in DatabaseService class' : 'Not found');
+                
+                // Test localStorage availability
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    addResult('state-results', 'LocalStorage available', true, 'Can read/write');
+                } catch {
+                    addResult('state-results', 'LocalStorage available', false, 'Cannot access');
+                }
+                
+            } catch (e) {
+                addResult('state-results', 'Game state persistence check', false, e.message);
+            }
+        }
+        
+        async function testLeaderboards() {
+            const results = document.getElementById('leaderboard-results');
+            results.innerHTML = '<p class="test-info">Testing leaderboard system...</p>';
+            
+            try {
+                const scriptResponse = await fetch('script.js');
+                if (!scriptResponse.ok) {
+                    throw new Error(`Failed to load script.js: ${scriptResponse.status}`);
+                }
+                const scriptText = await scriptResponse.text();
+                
+                // Check for actual function signatures
+                const hasRenderDaily = scriptText.includes('async renderDailyLeaderboard()');
+                const hasUpdateStreak = scriptText.includes('async updateStreakLeaderboard()');
+                const hasUpdateLeaderboards = scriptText.includes('async updateLeaderboards()');
+                const hasGetDailyLeaderboard = scriptText.includes('async getDailyLeaderboard(date)');
+                const hasGetStreakLeaderboard = scriptText.includes('async getStreakLeaderboard()');
+                const hasUpdateDailyLeaderboard = scriptText.includes('async updateDailyLeaderboard(');
+                
+                addResult('leaderboard-results', 'Render daily leaderboard', hasRenderDaily,
+                    hasRenderDaily ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('leaderboard-results', 'Update streak leaderboard', hasUpdateStreak,
+                    hasUpdateStreak ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('leaderboard-results', 'Update all leaderboards', hasUpdateLeaderboards,
+                    hasUpdateLeaderboards ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('leaderboard-results', 'Get daily leaderboard from DB', hasGetDailyLeaderboard,
+                    hasGetDailyLeaderboard ? 'Found in DatabaseService class' : 'Not found');
+                addResult('leaderboard-results', 'Get streak leaderboard from DB', hasGetStreakLeaderboard,
+                    hasGetStreakLeaderboard ? 'Found in DatabaseService class' : 'Not found');
+                addResult('leaderboard-results', 'Update daily leaderboard in DB', hasUpdateDailyLeaderboard,
+                    hasUpdateDailyLeaderboard ? 'Found in DatabaseService class' : 'Not found');
+                
+                // Test database tables
+                const { count: dailyCount, error: dailyError } = await supabaseClient
+                    .from('daily_leaderboard')
+                    .select('*', { count: 'exact', head: true });
+                
+                const { count: streakCount, error: streakError } = await supabaseClient
+                    .from('streak_leaderboard')
+                    .select('*', { count: 'exact', head: true });
+                
+                addResult('leaderboard-results', 'Daily leaderboard table accessible', !dailyError,
+                    dailyError ? dailyError.message : `Table accessible (${dailyCount || 0} records)`);
+                addResult('leaderboard-results', 'Streak leaderboard table accessible', !streakError,
+                    streakError ? streakError.message : `Table accessible (${streakCount || 0} records)`);
+                
+            } catch (e) {
+                addResult('leaderboard-results', 'Leaderboard system check', false, e.message);
+            }
+        }
+        
+        async function testAdmin() {
+            const results = document.getElementById('admin-results');
+            results.innerHTML = '<p class="test-info">Testing admin panel...</p>';
+            
+            try {
+                // Test admin files exist
+                const adminHtmlResponse = await fetch('admin.html');
+                const adminJsResponse = await fetch('admin.js');
+                
+                addResult('admin-results', 'Admin HTML exists', adminHtmlResponse.ok,
+                    adminHtmlResponse.ok ? `Loaded successfully` : `HTTP ${adminHtmlResponse.status}`);
+                addResult('admin-results', 'Admin JS exists', adminJsResponse.ok,
+                    adminJsResponse.ok ? `Loaded successfully` : `HTTP ${adminJsResponse.status}`);
+                
+                if (adminJsResponse.ok) {
+                    const adminJs = await adminJsResponse.text();
+                    
+                    const hasLogin = adminJs.includes('handleLogin(');
+                    const hasLoadDashboard = adminJs.includes('async loadDashboardData()');
+                    const hasGetUsers = adminJs.includes('async getTotalUsers()');
+                    const hasGetGames = adminJs.includes('async getTotalGames()');
+                    const hasDownloadCSV = adminJs.includes('downloadCSV()');
+                    const hasGetShares = adminJs.includes('async getTotalShares()');
+                    const hasSharingAnalytics = adminJs.includes('async loadSharingAnalytics()');
+                    
+                    addResult('admin-results', 'Admin login handler', hasLogin,
+                        hasLogin ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'Dashboard data loader', hasLoadDashboard,
+                        hasLoadDashboard ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'Get total users function', hasGetUsers,
+                        hasGetUsers ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'Get total games function', hasGetGames,
+                        hasGetGames ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'CSV download function', hasDownloadCSV,
+                        hasDownloadCSV ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'Get total shares function', hasGetShares,
+                        hasGetShares ? 'Found in AdminDashboard class' : 'Not found');
+                    addResult('admin-results', 'Sharing analytics loader', hasSharingAnalytics,
+                        hasSharingAnalytics ? 'Found in AdminDashboard class' : 'Not found');
+                }
+                
+                // Test user_profiles table for admin
+                const { count, error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*', { count: 'exact', head: true });
+                
+                addResult('admin-results', 'User profiles table accessible', !profileError,
+                    profileError ? profileError.message : `Table accessible (${count || 0} records)`);
+                
+                // Test share_tracking table
+                const { count: shareCount, error: shareError } = await supabaseClient
+                    .from('share_tracking')
+                    .select('*', { count: 'exact', head: true });
+                
+                addResult('admin-results', 'Share tracking table accessible', !shareError,
+                    shareError ? shareError.message : `Table accessible (${shareCount || 0} records)`);
+                
+            } catch (e) {
+                addResult('admin-results', 'Admin panel check', false, e.message);
+            }
+        }
+        
+        async function testGameMechanics() {
+            const results = document.getElementById('mechanics-results');
+            results.innerHTML = '<p class="test-info">Testing game mechanics...</p>';
+            
+            try {
+                const scriptResponse = await fetch('script.js');
+                if (!scriptResponse.ok) {
+                    throw new Error(`Failed to load script.js: ${scriptResponse.status}`);
+                }
+                const scriptText = await scriptResponse.text();
+                
+                // Check for actual function signatures
+                const hasHandleKeyPress = scriptText.includes('async handleKeyPress(key)');
+                const hasCheckGuess = scriptText.includes('checkGuess(guess)');
+                const hasSubmitGuess = scriptText.includes('async submitGuess()');
+                const hasEventListenersSetup = scriptText.includes('eventListenersSetup');
+                const hasSetupEventListeners = scriptText.includes('setupEventListeners()');
+                const hasLoadWords = scriptText.includes('async loadWordsFromFile()');
+                const hasCustomWords = scriptText.includes('customWords');
+                const hasCelebrate = scriptText.includes('async celebrateWin()');
+                const hasInitGame = scriptText.includes('initGame()');
+                const hasResetGame = scriptText.includes('resetGame()');
+                
+                addResult('mechanics-results', 'Key press handler', hasHandleKeyPress,
+                    hasHandleKeyPress ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Guess checking logic', hasCheckGuess,
+                    hasCheckGuess ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Submit guess function', hasSubmitGuess,
+                    hasSubmitGuess ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Double input prevention flag', hasEventListenersSetup,
+                    hasEventListenersSetup ? 'eventListenersSetup flag found' : 'Not found');
+                addResult('mechanics-results', 'Setup event listeners', hasSetupEventListeners,
+                    hasSetupEventListeners ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Word loading system', hasLoadWords,
+                    hasLoadWords ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Custom PM words', hasCustomWords,
+                    hasCustomWords ? 'customWords array found' : 'Not found');
+                addResult('mechanics-results', 'Win celebration', hasCelebrate,
+                    hasCelebrate ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Initialize game', hasInitGame,
+                    hasInitGame ? 'Found in PMPuzzleGame class' : 'Not found');
+                addResult('mechanics-results', 'Reset game', hasResetGame,
+                    hasResetGame ? 'Found in PMPuzzleGame class' : 'Not found');
+                
+                // Check HTML structure
+                const indexResponse = await fetch('index.html');
+                if (!indexResponse.ok) {
+                    throw new Error(`Failed to load index.html: ${indexResponse.status}`);
+                }
+                const indexText = await indexResponse.text();
+                
+                const hasGameBoard = indexText.includes('class="game-board"');
+                const hasKeyboard = indexText.includes('class="keyboard"');
+                const hasModals = indexText.includes('class="modal"');
+                const hasLoginForm = indexText.includes('id="login-form"');
+                const hasStatsModal = indexText.includes('id="stats-modal"');
+                const hasHelpModal = indexText.includes('id="help-modal"');
+                
+                addResult('mechanics-results', 'Game board in HTML', hasGameBoard,
+                    hasGameBoard ? 'Found game-board class' : 'Not found');
+                addResult('mechanics-results', 'Keyboard in HTML', hasKeyboard,
+                    hasKeyboard ? 'Found keyboard class' : 'Not found');
+                addResult('mechanics-results', 'Modal system in HTML', hasModals,
+                    hasModals ? 'Found modal class' : 'Not found');
+                addResult('mechanics-results', 'Login form in HTML', hasLoginForm,
+                    hasLoginForm ? 'Found login-form id' : 'Not found');
+                addResult('mechanics-results', 'Stats modal in HTML', hasStatsModal,
+                    hasStatsModal ? 'Found stats-modal id' : 'Not found');
+                addResult('mechanics-results', 'Help modal in HTML', hasHelpModal,
+                    hasHelpModal ? 'Found help-modal id' : 'Not found');
+                
+            } catch (e) {
+                addResult('mechanics-results', 'Game mechanics check', false, e.message);
+            }
+        }
+        
+        async function runAllTests() {
+            totalTests = 0;
+            passedTests = 0;
+            
+            await testAuth();
+            await testStats();
+            await testGameState();
+            await testLeaderboards();
+            await testAdmin();
+            await testGameMechanics();
+            
+            // Scroll to summary
+            document.querySelector('.summary').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

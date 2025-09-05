@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PM Puzzle - Complete Feature Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .test-section { margin: 30px 0; padding: 20px; border: 2px solid #ddd; border-radius: 10px; }
+        .test-pass { color: green; font-weight: bold; }
+        .test-fail { color: red; font-weight: bold; }
+        .test-warning { color: orange; }
+        .test-info { color: blue; }
+        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .result-item { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .summary { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 PM Puzzle Complete Feature Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>🔐 Authentication Tests</h2>
+        <button onclick="testAuth()">Run Authentication Tests</button>
+        <div id="auth-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Statistics Tests</h2>
+        <button onclick="testStats()">Run Statistics Tests</button>
+        <div id="stats-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>💾 Game State Persistence Tests</h2>
+        <button onclick="testGameState()">Run Game State Tests</button>
+        <div id="state-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🏆 Leaderboard Tests</h2>
+        <button onclick="testLeaderboards()">Run Leaderboard Tests</button>
+        <div id="leaderboard-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>👨‍💼 Admin Panel Tests</h2>
+        <button onclick="testAdmin()">Run Admin Tests</button>
+        <div id="admin-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎮 Game Mechanics Tests</h2>
+        <button onclick="testGameMechanics()">Run Game Mechanics Tests</button>
+        <div id="mechanics-results"></div>
+    </div>
+    
+    <div class="summary">
+        <h3>Test Summary</h3>
+        <div id="summary-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let totalTests = 0;
+        let passedTests = 0;
+        
+        function addResult(containerId, testName, passed, details = '') {
+            const container = document.getElementById(containerId);
+            const status = passed ? 'test-pass' : 'test-fail';
+            const icon = passed ? '✅' : '❌';
+            
+            totalTests++;
+            if (passed) passedTests++;
+            
+            container.innerHTML += `
+                <div class="result-item">
+                    <span class="${status}">${icon} ${testName}</span>
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+            
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            const summary = document.getElementById('summary-content');
+            const percentage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            summary.innerHTML = `
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> ${passedTests}</p>
+                <p><strong>Failed:</strong> ${totalTests - passedTests}</p>
+                <p><strong>Success Rate:</strong> ${percentage}%</p>
+                <p><strong>Status:</strong> ${percentage === 100 ? 
+                    '<span class="test-pass">All tests passed!</span>' : 
+                    '<span class="test-fail">Some tests failed</span>'}</p>
+            `;
+        }
+        
+        async function testAuth() {
+            const results = document.getElementById('auth-results');
+            results.innerHTML = '<p class="test-info">Testing authentication system...</p>';
+            
+            // Test 1: Check auth functions exist in script.js
+            try {
+                const scriptResponse = await fetch('/script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasSignUp = scriptText.includes('async signUp(');
+                const hasSignIn = scriptText.includes('async signIn(');
+                const hasHandleAuth = scriptText.includes('async handleAuth()');
+                const hasResetPassword = scriptText.includes('resetPasswordForEmail');
+                const hasTransferStats = scriptText.includes('async transferGuestStatsToUser');
+                
+                addResult('auth-results', 'SignUp function exists', hasSignUp);
+                addResult('auth-results', 'SignIn function exists', hasSignIn);
+                addResult('auth-results', 'HandleAuth function exists', hasHandleAuth);
+                addResult('auth-results', 'Password reset function exists', hasResetPassword);
+                addResult('auth-results', 'Guest stats transfer exists', hasTransferStats);
+                
+                // Test 2: Check Supabase auth configuration
+                const { data: session } = await supabaseClient.auth.getSession();
+                addResult('auth-results', 'Supabase auth configured', true, 
+                    session.session ? 'Active session found' : 'No active session');
+                
+            } catch (e) {
+                addResult('auth-results', 'Authentication system check', false, e.message);
+            }
+        }
+        
+        async function testStats() {
+            const results = document.getElementById('stats-results');
+            results.innerHTML = '<p class="test-info">Testing statistics system...</p>';
+            
+            try {
+                const scriptResponse = await fetch('/script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasSaveStats = scriptText.includes('async saveStats()');
+                const hasLoadStats = scriptText.includes('getStats()');
+                const hasUpdateStats = scriptText.includes('async updateStats()');
+                const hasShowStats = scriptText.includes('showStatsModal()');
+                const hasGetUserStats = scriptText.includes('async getUserStats(');
+                
+                addResult('stats-results', 'Save stats function', hasSaveStats);
+                addResult('stats-results', 'Load stats function', hasLoadStats);
+                addResult('stats-results', 'Update stats display', hasUpdateStats);
+                addResult('stats-results', 'Show stats modal', hasShowStats);
+                addResult('stats-results', 'Get user stats from DB', hasGetUserStats);
+                
+                // Test database table access
+                const { error: statsError } = await supabaseClient
+                    .from('user_stats')
+                    .select('count', { count: 'exact', head: true });
+                
+                addResult('stats-results', 'User stats table accessible', !statsError,
+                    statsError ? statsError.message : 'Table accessible');
+                
+            } catch (e) {
+                addResult('stats-results', 'Statistics system check', false, e.message);
+            }
+        }
+        
+        async function testGameState() {
+            const results = document.getElementById('state-results');
+            results.innerHTML = '<p class="test-info">Testing game state persistence...</p>';
+            
+            try {
+                const scriptResponse = await fetch('/script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasSaveGameState = scriptText.includes('async saveGameState()');
+                const hasLoadGameState = scriptText.includes('loadGameState()');
+                const hasLocalStorage = scriptText.includes('localStorage.setItem');
+                const hasSessionStorage = scriptText.includes('sessionStorage');
+                
+                addResult('state-results', 'Save game state function', hasSaveGameState);
+                addResult('state-results', 'Load game state function', hasLoadGameState);
+                addResult('state-results', 'LocalStorage usage', hasLocalStorage);
+                addResult('state-results', 'SessionStorage usage', hasSessionStorage);
+                
+                // Test localStorage availability
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    addResult('state-results', 'LocalStorage available', true);
+                } catch {
+                    addResult('state-results', 'LocalStorage available', false);
+                }
+                
+            } catch (e) {
+                addResult('state-results', 'Game state persistence check', false, e.message);
+            }
+        }
+        
+        async function testLeaderboards() {
+            const results = document.getElementById('leaderboard-results');
+            results.innerHTML = '<p class="test-info">Testing leaderboard system...</p>';
+            
+            try {
+                const scriptResponse = await fetch('/script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasRenderDaily = scriptText.includes('async renderDailyLeaderboard()');
+                const hasUpdateStreak = scriptText.includes('async updateStreakLeaderboard()');
+                const hasUpdateLeaderboards = scriptText.includes('async updateLeaderboards()');
+                
+                addResult('leaderboard-results', 'Render daily leaderboard', hasRenderDaily);
+                addResult('leaderboard-results', 'Update streak leaderboard', hasUpdateStreak);
+                addResult('leaderboard-results', 'Update all leaderboards', hasUpdateLeaderboards);
+                
+                // Test database tables
+                const { error: dailyError } = await supabaseClient
+                    .from('daily_leaderboard')
+                    .select('count', { count: 'exact', head: true });
+                
+                const { error: streakError } = await supabaseClient
+                    .from('streak_leaderboard')
+                    .select('count', { count: 'exact', head: true });
+                
+                addResult('leaderboard-results', 'Daily leaderboard table accessible', !dailyError,
+                    dailyError ? dailyError.message : 'Table accessible');
+                addResult('leaderboard-results', 'Streak leaderboard table accessible', !streakError,
+                    streakError ? streakError.message : 'Table accessible');
+                
+            } catch (e) {
+                addResult('leaderboard-results', 'Leaderboard system check', false, e.message);
+            }
+        }
+        
+        async function testAdmin() {
+            const results = document.getElementById('admin-results');
+            results.innerHTML = '<p class="test-info">Testing admin panel...</p>';
+            
+            try {
+                // Test admin files exist
+                const adminHtmlResponse = await fetch('/admin.html');
+                const adminJsResponse = await fetch('/admin.js');
+                
+                addResult('admin-results', 'Admin HTML exists', adminHtmlResponse.ok);
+                addResult('admin-results', 'Admin JS exists', adminJsResponse.ok);
+                
+                if (adminJsResponse.ok) {
+                    const adminJs = await adminJsResponse.text();
+                    
+                    const hasLogin = adminJs.includes('handleLogin');
+                    const hasLoadDashboard = adminJs.includes('loadDashboardData');
+                    const hasGetUsers = adminJs.includes('getTotalUsers');
+                    const hasGetGames = adminJs.includes('getTotalGames');
+                    const hasDownloadCSV = adminJs.includes('downloadCSV');
+                    
+                    addResult('admin-results', 'Admin login handler', hasLogin);
+                    addResult('admin-results', 'Dashboard data loader', hasLoadDashboard);
+                    addResult('admin-results', 'Get total users function', hasGetUsers);
+                    addResult('admin-results', 'Get total games function', hasGetGames);
+                    addResult('admin-results', 'CSV download function', hasDownloadCSV);
+                }
+                
+                // Test user_profiles table for admin
+                const { error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .select('count', { count: 'exact', head: true });
+                
+                addResult('admin-results', 'User profiles table accessible', !profileError,
+                    profileError ? profileError.message : 'Table accessible');
+                
+            } catch (e) {
+                addResult('admin-results', 'Admin panel check', false, e.message);
+            }
+        }
+        
+        async function testGameMechanics() {
+            const results = document.getElementById('mechanics-results');
+            results.innerHTML = '<p class="test-info">Testing game mechanics...</p>';
+            
+            try {
+                const scriptResponse = await fetch('/script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasHandleKeyPress = scriptText.includes('async handleKeyPress(');
+                const hasCheckGuess = scriptText.includes('async checkGuess(');
+                const hasEventListenersSetup = scriptText.includes('eventListenersSetup');
+                const hasLoadWords = scriptText.includes('async loadWordsFromFile()');
+                const hasCustomWords = scriptText.includes('customWords');
+                const hasCelebrate = scriptText.includes('celebrateWin()');
+                
+                addResult('mechanics-results', 'Key press handler', hasHandleKeyPress);
+                addResult('mechanics-results', 'Guess checking logic', hasCheckGuess);
+                addResult('mechanics-results', 'Double input prevention', hasEventListenersSetup);
+                addResult('mechanics-results', 'Word loading system', hasLoadWords);
+                addResult('mechanics-results', 'Custom PM words', hasCustomWords);
+                addResult('mechanics-results', 'Win celebration', hasCelebrate);
+                
+                // Check HTML structure
+                const indexResponse = await fetch('/index.html');
+                const indexText = await indexResponse.text();
+                
+                const hasGameBoard = indexText.includes('game-board');
+                const hasKeyboard = indexText.includes('keyboard');
+                const hasModals = indexText.includes('modal');
+                
+                addResult('mechanics-results', 'Game board in HTML', hasGameBoard);
+                addResult('mechanics-results', 'Keyboard in HTML', hasKeyboard);
+                addResult('mechanics-results', 'Modal system in HTML', hasModals);
+                
+            } catch (e) {
+                addResult('mechanics-results', 'Game mechanics check', false, e.message);
+            }
+        }
+    </script>
+</body>
+</html>

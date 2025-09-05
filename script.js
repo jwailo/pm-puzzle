@@ -349,6 +349,7 @@ class PMWordle {
         this.currentUser = null;
         this.processingGuess = false;
         this.eventListenersSetup = false;
+        this.authInProgress = false;
 
         // Initialize game
         this.init().catch(error => {
@@ -486,6 +487,9 @@ class PMWordle {
     }
 
     async init() {
+        // Clear any old game states from previous days
+        this.clearOldGameStates();
+        
         try {
             // Load words first
             await this.loadWordsFromFile();
@@ -664,6 +668,33 @@ class PMWordle {
         });
     }
 
+    clearOldGameStates() {
+        // Clear all old game states from localStorage
+        const today = this.getPuzzleDate();
+        const keysToRemove = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('pm-wordle-game-state-')) {
+                keysToRemove.push(key);
+            }
+        }
+        
+        keysToRemove.forEach(key => {
+            try {
+                const state = JSON.parse(localStorage.getItem(key));
+                if (state.date !== today) {
+                    localStorage.removeItem(key);
+                    console.log('Cleared old game state:', key);
+                }
+            } catch {
+                // Remove corrupted states
+                localStorage.removeItem(key);
+                console.log('Cleared corrupted game state:', key);
+            }
+        });
+    }
+    
     getPuzzleDate() {
         // Get the current puzzle date based on 12pm reset time
         const now = new Date();
@@ -1467,16 +1498,38 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         console.log('Found auth elements:', {authForm, authToggle, skipAuth, userBtn});
 
         if (authForm) {
-            authForm.addEventListener('submit', (e) => {
+            authForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 console.log('Auth form submitted');
-                console.log('Form validity:', authForm.checkValidity());
-                console.log('Form elements validity:', {
-                    email: document.getElementById('email').checkValidity(),
-                    password: document.getElementById('password').checkValidity(),
-                    firstname: document.getElementById('firstname').checkValidity()
-                });
-                this.handleAuth();
+                
+                // Check form validity
+                const emailField = document.getElementById('email');
+                const passwordField = document.getElementById('password');
+                const firstnameField = document.getElementById('firstname');
+                
+                // Basic validation
+                if (!emailField.value.trim()) {
+                    this.showMessage('Please enter your email address', 'error');
+                    emailField.focus();
+                    return;
+                }
+                
+                if (!passwordField.value) {
+                    this.showMessage('Please enter your password', 'error');
+                    passwordField.focus();
+                    return;
+                }
+                
+                const isLogin = document.getElementById('auth-title').textContent === 'Sign In';
+                if (!isLogin && !firstnameField.value.trim()) {
+                    this.showMessage('Please enter your first name', 'error');
+                    firstnameField.focus();
+                    return;
+                }
+                
+                console.log('Form validation passed, calling handleAuth');
+                await this.handleAuth();
             });
         }
         
@@ -1889,6 +1942,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     async handleAuth() {
         console.log('Handling auth');
         
+        // Prevent multiple simultaneous auth attempts
+        if (this.authInProgress) {
+            console.log('Auth already in progress');
+            return;
+        }
+        
         // Check if database service is available
         if (!this.db || !this.db.supabase) {
             console.error('Database service not available');
@@ -1904,29 +1963,44 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
         console.log('Auth data:', {firstname, email, password: password ? '***' : '', isLogin, marketingConsent});
 
-        if (isLogin) {
-            // For login, use email as username
-            if (!email || !password) {
-                this.showMessage('Please fill in all fields', 'error');
-                return;
+        this.authInProgress = true;
+        const submitBtn = document.getElementById('auth-submit');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = isLogin ? 'Signing In...' : 'Signing Up...';
+        }
+
+        try {
+            if (isLogin) {
+                // For login, use email as username
+                if (!email || !password) {
+                    this.showMessage('Please fill in all fields', 'error');
+                    return;
+                }
+                console.log('Attempting to call login function');
+                await this.login(email, password);
+            } else {
+                // For registration, need all fields
+                if (!firstname || !email || !password) {
+                    this.showMessage('Please fill in all fields', 'error');
+                    return;
+                }
+                
+                // Check marketing consent is required
+                if (!marketingConsent) {
+                    this.showMessage('Marketing consent is required to sign up', 'error');
+                    return;
+                }
+                
+                console.log('Attempting to call register function');
+                await this.register(firstname, email, password);
             }
-            console.log('Attempting to call login function');
-            await this.login(email, password);
-        } else {
-            // For registration, need all fields
-            if (!firstname || !email || !password) {
-                this.showMessage('Please fill in all fields', 'error');
-                return;
+        } finally {
+            this.authInProgress = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = isLogin ? 'Sign In' : 'Sign Up';
             }
-            
-            // Check marketing consent is required
-            if (!marketingConsent) {
-                this.showMessage('Marketing consent is required to sign up', 'error');
-                return;
-            }
-            
-            console.log('Attempting to call register function');
-            await this.register(firstname, email, password);
         }
     }
 
@@ -2914,33 +2988,45 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const savedState = localStorage.getItem(stateKey);
         if (!savedState) return;
 
-        const gameState = JSON.parse(savedState);
-        const today = this.getPuzzleDate();
+        try {
+            const gameState = JSON.parse(savedState);
+            const today = this.getPuzzleDate();
 
-        // Only load if it's the same day
-        if (gameState.date === today) {
-            // If the saved word differs from generated word, trust the saved word
-            // (This handles cases where word generation might have slight inconsistencies)
-            if (gameState.currentWord !== this.currentWord) {
-                console.log('Saved word differs from generated word, using saved word:', gameState.currentWord);
-                this.currentWord = gameState.currentWord;
+            // Only load if it's the same day
+            if (gameState.date === today) {
+                // If the saved word differs from generated word, trust the saved word
+                // (This handles cases where word generation might have slight inconsistencies)
+                if (gameState.currentWord !== this.currentWord) {
+                    console.log('Saved word differs from generated word, using saved word:', gameState.currentWord);
+                    this.currentWord = gameState.currentWord;
+                }
+                
+                this.currentRow = gameState.currentRow;
+                this.currentCol = gameState.currentCol;
+                this.gameOver = gameState.gameOver;
+                this.gameWon = gameState.gameWon;
+                this.guesses = gameState.guesses || [];
+                this.savedCurrentRowLetters = gameState.currentRowLetters || []; // Store for restoration
+                this.startTime = gameState.startTime ? new Date(gameState.startTime) : new Date();
+                this.endTime = gameState.endTime ? new Date(gameState.endTime) : null;
+
+                // Restore the board state
+                this.restoreBoard();
+                
+                console.log('Game state loaded successfully for date:', today, 'word:', this.currentWord);
+            } else {
+                console.log('Saved game state is for a different date, clearing old state and starting fresh');
+                // Clear the old state
+                localStorage.removeItem(stateKey);
+                // Initialize fresh game
+                this.initGame();
             }
-            
-            this.currentRow = gameState.currentRow;
-            this.currentCol = gameState.currentCol;
-            this.gameOver = gameState.gameOver;
-            this.gameWon = gameState.gameWon;
-            this.guesses = gameState.guesses;
-            this.savedCurrentRowLetters = gameState.currentRowLetters || []; // Store for restoration
-            this.startTime = new Date(gameState.startTime);
-            this.endTime = gameState.endTime ? new Date(gameState.endTime) : null;
-
-            // Restore the board state
-            this.restoreBoard();
-            
-            console.log('Game state loaded successfully for date:', today, 'word:', this.currentWord);
-        } else {
-            console.log('Saved game state is for a different date, starting fresh');
+        } catch (error) {
+            console.error('Error loading game state:', error);
+            // Clear corrupted state
+            localStorage.removeItem(stateKey);
+            // Initialize fresh game
+            this.initGame();
         }
     }
 

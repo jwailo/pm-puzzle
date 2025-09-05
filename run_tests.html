@@ -44,9 +44,9 @@
             try {
                 const supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
                 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
-                const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
                 
-                const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true });
+                const { data, error } = await supabaseClient.from('user_profiles').select('count', { count: 'exact', head: true });
                 addResult('Database', 'Supabase connection', !error, error ? error.message : 'Connected successfully');
             } catch (e) {
                 addResult('Database', 'Supabase connection', false, e.message);
