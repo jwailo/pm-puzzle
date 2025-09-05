@@ -348,6 +348,7 @@ class PMWordle {
         this.isGuest = true;
         this.currentUser = null;
         this.processingGuess = false;
+        this.eventListenersSetup = false;
 
         // Initialize game
         this.init().catch(error => {
@@ -696,6 +697,13 @@ class PMWordle {
     }
 
     setupEventListeners() {
+        // Prevent duplicate event listeners
+        if (this.eventListenersSetup) {
+            console.log('Event listeners already setup, skipping');
+            return;
+        }
+        this.eventListenersSetup = true;
+        
         console.log('Setting up event listeners');
         
         // Mobile viewport and centering adjustments
@@ -741,7 +749,11 @@ class PMWordle {
             if ('ontouchstart' in window) {
                 key.addEventListener('touchstart', handleKeyInput, { passive: false });
                 // Prevent click event to avoid double triggers
-                key.addEventListener('click', (e) => e.preventDefault());
+                key.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                });
             } else {
                 key.addEventListener('click', handleKeyInput);
             }
