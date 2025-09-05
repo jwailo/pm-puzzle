@@ -525,34 +525,43 @@ class PMWordle {
 
     async loadWordsFromFile() {
         try {
-            // Load comprehensive Wordle allowed guesses list (10,657 words)
-            const response = await fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt');
-            const text = await response.text();
+            // Load both word lists in parallel for better performance
+            const [guessesResponse, answersResponse] = await Promise.all([
+                // Load comprehensive Wordle allowed guesses list (10,657 obscure words)
+                fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
+                // Load Wordle answers list (2,309 common words including TABLE, CROWN, BENCH)
+                fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
+            ]);
             
-            // Parse the text file - each line is a word
-            const words = text.trim().split('\n').map(word => word.trim().toUpperCase());
+            const [guessesText, answersText] = await Promise.all([
+                guessesResponse.text(),
+                answersResponse.text()
+            ]);
             
-            // Filter out any empty lines and ensure 5-letter words
-            this.validWords = words.filter(word => word.length === 5);
+            // Parse both word lists
+            const allowedGuesses = guessesText.trim().split('\n').map(word => word.trim().toUpperCase());
+            const answerWords = answersText.trim().split('\n').map(word => word.trim().toUpperCase());
             
-            console.log(`Loaded ${this.validWords.length} words from comprehensive Wordle list`);
-            console.log('First 10 words:', this.validWords.slice(0, 10));
+            // Combine both lists for validation (answers + allowed guesses)
+            // Using Set to avoid duplicates and for faster lookup
+            const validWordsSet = new Set([...answerWords, ...allowedGuesses]);
             
             // Also include our answer bank in the valid words
             this.answerBank.forEach(word => {
-                if (!this.validWords.includes(word)) {
-                    this.validWords.push(word);
-                }
+                validWordsSet.add(word);
             });
             
             // Add custom words that should always be accepted
             const customWords = ['BINGE'];
             customWords.forEach(word => {
-                if (!this.validWords.includes(word)) {
-                    this.validWords.push(word);
-                    console.log(`Added custom word: ${word}`);
-                }
+                validWordsSet.add(word);
             });
+            
+            // Convert Set back to array for compatibility
+            this.validWords = Array.from(validWordsSet);
+            
+            console.log(`Loaded ${answerWords.length} common words and ${allowedGuesses.length} additional guesses`);
+            console.log(`Total valid words: ${this.validWords.length}`);
             
         } catch (error) {
             console.error('Error loading words from comprehensive Wordle list:', error);
