@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PM Puzzle - Complete Test Suite</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-pass { color: green; }
+        .test-fail { color: red; }
+        .test-warning { color: orange; }
+        h2 { color: #333; }
+        .test-result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>PM Puzzle - Complete Test Suite</h1>
+    <div id="test-results"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const results = document.getElementById('test-results');
+        let testsPassed = 0;
+        let testsFailed = 0;
+        
+        function addResult(section, test, passed, details = '') {
+            const status = passed ? 'test-pass' : 'test-fail';
+            const icon = passed ? '✅' : '❌';
+            
+            if (passed) testsPassed++;
+            else testsFailed++;
+            
+            results.innerHTML += `
+                <div class="test-result">
+                    <span class="${status}">${icon} ${section}: ${test}</span>
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        async function runTests() {
+            results.innerHTML = '<h2>Running tests...</h2>';
+            
+            // Test 1: Supabase Connection
+            try {
+                const supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
+                const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                
+                const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true });
+                addResult('Database', 'Supabase connection', !error, error ? error.message : 'Connected successfully');
+            } catch (e) {
+                addResult('Database', 'Supabase connection', false, e.message);
+            }
+            
+            // Test 2: Word Loading
+            try {
+                const [guessesResponse, answersResponse] = await Promise.all([
+                    fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
+                    fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
+                ]);
+                
+                const guessesOk = guessesResponse.ok;
+                const answersOk = answersResponse.ok;
+                
+                addResult('Word Lists', 'Load allowed guesses', guessesOk, guessesOk ? 'Loaded successfully' : 'Failed to load');
+                addResult('Word Lists', 'Load answer words', answersOk, answersOk ? 'Loaded successfully' : 'Failed to load');
+                
+                if (guessesOk && answersOk) {
+                    const [guessesText, answersText] = await Promise.all([
+                        guessesResponse.text(),
+                        answersResponse.text()
+                    ]);
+                    
+                    const guesses = guessesText.trim().split('\n');
+                    const answers = answersText.trim().split('\n');
+                    
+                    addResult('Word Lists', 'Parse word lists', true, `${guesses.length} guesses, ${answers.length} answers`);
+                    
+                    // Test specific words
+                    const testWords = ['table', 'crown', 'bench', 'binge'];
+                    testWords.forEach(word => {
+                        const inAnswers = answers.includes(word);
+                        const inGuesses = guesses.includes(word);
+                        const valid = inAnswers || inGuesses;
+                        addResult('Word Validation', `Word "${word.toUpperCase()}"`, valid, 
+                            `Answers: ${inAnswers ? 'Yes' : 'No'}, Guesses: ${inGuesses ? 'Yes' : 'No'}`);
+                    });
+                }
+            } catch (e) {
+                addResult('Word Lists', 'Load word files', false, e.message);
+            }
+            
+            // Test 3: Script Loading
+            try {
+                const scriptResponse = await fetch('script.js');
+                addResult('Script Files', 'script.js loads', scriptResponse.ok, 
+                    scriptResponse.ok ? 'Loaded successfully' : `HTTP ${scriptResponse.status}`);
+                
+                const configResponse = await fetch('config.js');
+                addResult('Script Files', 'config.js loads', configResponse.ok,
+                    configResponse.ok ? 'Loaded successfully' : `HTTP ${configResponse.status}`);
+            } catch (e) {
+                addResult('Script Files', 'Load scripts', false, e.message);
+            }
+            
+            // Test 4: HTML Elements
+            try {
+                const indexResponse = await fetch('index.html');
+                const indexText = await indexResponse.text();
+                
+                const hasAuthForm = indexText.includes('id="login-form"');
+                const hasGameBoard = indexText.includes('class="game-board"');
+                const hasKeyboard = indexText.includes('class="keyboard"');
+                const hasModals = indexText.includes('class="modal"');
+                
+                addResult('HTML Structure', 'Auth form present', hasAuthForm);
+                addResult('HTML Structure', 'Game board present', hasGameBoard);
+                addResult('HTML Structure', 'Keyboard present', hasKeyboard);
+                addResult('HTML Structure', 'Modals present', hasModals);
+            } catch (e) {
+                addResult('HTML Structure', 'Check HTML', false, e.message);
+            }
+            
+            // Test 5: Critical Functions
+            try {
+                const scriptResponse = await fetch('script.js');
+                const scriptText = await scriptResponse.text();
+                
+                const hasHandleAuth = scriptText.includes('handleAuth()');
+                const hasLoadWords = scriptText.includes('loadWordsFromFile()');
+                const hasEventListeners = scriptText.includes('setupEventListeners()');
+                const hasGameLogic = scriptText.includes('handleKeyPress(');
+                const hasDoubleInputFix = scriptText.includes('eventListenersSetup');
+                
+                addResult('Core Functions', 'Authentication handler', hasHandleAuth);
+                addResult('Core Functions', 'Word loading', hasLoadWords);
+                addResult('Core Functions', 'Event listeners', hasEventListeners);
+                addResult('Core Functions', 'Game logic', hasGameLogic);
+                addResult('Core Functions', 'Double input prevention', hasDoubleInputFix);
+            } catch (e) {
+                addResult('Core Functions', 'Check functions', false, e.message);
+            }
+            
+            // Test 6: Security Features
+            try {
+                const scriptText = await (await fetch('script.js')).text();
+                
+                const hasPasswordMasking = scriptText.includes("password: password ? '***' : ''");
+                const hasErrorHandling = scriptText.includes('try {') && scriptText.includes('catch');
+                const hasValidation = scriptText.includes('checkValidity()');
+                
+                addResult('Security', 'Password masking in logs', hasPasswordMasking);
+                addResult('Security', 'Error handling', hasErrorHandling);
+                addResult('Security', 'Form validation', hasValidation);
+            } catch (e) {
+                addResult('Security', 'Check security', false, e.message);
+            }
+            
+            // Summary
+            const total = testsPassed + testsFailed;
+            const percentage = Math.round((testsPassed / total) * 100);
+            
+            results.innerHTML += `
+                <div class="test-section">
+                    <h2>Test Summary</h2>
+                    <p><strong>Total Tests:</strong> ${total}</p>
+                    <p class="test-pass"><strong>Passed:</strong> ${testsPassed}</p>
+                    <p class="test-fail"><strong>Failed:</strong> ${testsFailed}</p>
+                    <p><strong>Success Rate:</strong> ${percentage}%</p>
+                    <p><strong>Status:</strong> ${testsFailed === 0 ? 
+                        '<span class="test-pass">✅ All tests passed!</span>' : 
+                        '<span class="test-fail">❌ Some tests failed - review above</span>'}</p>
+                </div>
+            `;
+        }
+        
+        // Run tests on load
+        runTests();
+    </script>
+</body>
+</html>
