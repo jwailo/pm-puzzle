@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication</title>
+</head>
+<body>
+    <h1>PM Puzzle Authentication Test</h1>
+    
+    <div style="margin: 20px;">
+        <h2>Test Sign Up</h2>
+        <form id="test-signup">
+            <input type="text" id="signup-name" placeholder="First Name" required><br><br>
+            <input type="email" id="signup-email" placeholder="Email" required><br><br>
+            <input type="password" id="signup-password" placeholder="Password" required><br><br>
+            <button type="submit">Sign Up</button>
+        </form>
+        <div id="signup-result"></div>
+    </div>
+    
+    <div style="margin: 20px;">
+        <h2>Test Sign In</h2>
+        <form id="test-signin">
+            <input type="email" id="signin-email" placeholder="Email" required><br><br>
+            <input type="password" id="signin-password" placeholder="Password" required><br><br>
+            <button type="submit">Sign In</button>
+        </form>
+        <div id="signin-result"></div>
+    </div>
+    
+    <div style="margin: 20px;">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        const resultsDiv = document.getElementById('test-results');
+        
+        // Test 1: Check Supabase connection
+        resultsDiv.innerHTML += '<p>Testing Supabase connection...</p>';
+        
+        async function testConnection() {
+            try {
+                const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Supabase connection error: ${error.message}</p>`;
+                } else {
+                    resultsDiv.innerHTML += '<p style="color: green;">✅ Supabase connected successfully</p>';
+                }
+            } catch (e) {
+                resultsDiv.innerHTML += `<p style="color: red;">❌ Connection failed: ${e.message}</p>`;
+            }
+        }
+        
+        // Test Sign Up
+        document.getElementById('test-signup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const resultDiv = document.getElementById('signup-result');
+            
+            resultDiv.innerHTML = 'Testing sign up...';
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    resultDiv.innerHTML = `<p style="color: red;">Sign up error: ${error.message}</p>`;
+                } else if (data.user) {
+                    resultDiv.innerHTML = `<p style="color: green;">Sign up successful! User ID: ${data.user.id}</p>`;
+                    
+                    // Try to create profile
+                    const { error: profileError } = await supabase
+                        .from('user_profiles')
+                        .insert([{
+                            id: data.user.id,
+                            first_name: name,
+                            email: email,
+                            marketing_consent: true
+                        }]);
+                        
+                    if (profileError) {
+                        resultDiv.innerHTML += `<p style="color: orange;">Profile creation warning: ${profileError.message}</p>`;
+                    } else {
+                        resultDiv.innerHTML += '<p style="color: green;">Profile created successfully!</p>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<p style="color: orange;">Sign up returned no user data</p>';
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `<p style="color: red;">Exception: ${e.message}</p>`;
+            }
+        });
+        
+        // Test Sign In
+        document.getElementById('test-signin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            const resultDiv = document.getElementById('signin-result');
+            
+            resultDiv.innerHTML = 'Testing sign in...';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    resultDiv.innerHTML = `<p style="color: red;">Sign in error: ${error.message}</p>`;
+                } else if (data.user) {
+                    resultDiv.innerHTML = `<p style="color: green;">Sign in successful! User: ${data.user.email}</p>`;
+                } else {
+                    resultDiv.innerHTML = '<p style="color: orange;">Sign in returned no user data</p>';
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `<p style="color: red;">Exception: ${e.message}</p>`;
+            }
+        });
+        
+        // Run initial test
+        testConnection();
+    </script>
+</body>
+</html>

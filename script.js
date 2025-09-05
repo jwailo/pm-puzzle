@@ -1888,6 +1888,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     // Authentication System
     async handleAuth() {
         console.log('Handling auth');
+        
+        // Check if database service is available
+        if (!this.db || !this.db.supabase) {
+            console.error('Database service not available');
+            this.showMessage('Authentication service not available. Please refresh the page.', 'error');
+            return;
+        }
+        
         const firstname = document.getElementById('firstname').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
@@ -1902,6 +1910,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 this.showMessage('Please fill in all fields', 'error');
                 return;
             }
+            console.log('Attempting to call login function');
             await this.login(email, password);
         } else {
             // For registration, need all fields
@@ -1916,6 +1925,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 return;
             }
             
+            console.log('Attempting to call register function');
             await this.register(firstname, email, password);
         }
     }
@@ -1923,15 +1933,16 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     async login(email, password) {
         console.log('Attempting login for:', email);
         
-        const { user, error } = await this.db.signIn(email, password);
-        
-        if (error) {
-            console.log('Login failed:', error);
-            this.showMessage(error, 'error');
-            return;
-        }
+        try {
+            const { user, error } = await this.db.signIn(email, password);
+            
+            if (error) {
+                console.error('Login failed:', error);
+                this.showMessage(typeof error === 'string' ? error : error.message || 'Login failed', 'error');
+                return;
+            }
 
-        if (user) {
+            if (user) {
             console.log('Login successful');
             this.currentUser = user.id;
             this.isGuest = false;
@@ -2012,9 +2023,13 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             await this.updateStreakLeaderboard();
             console.log('Post-login refresh completed');
             
-            // Show success and hide auth modal after everything is complete
-            this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
-            this.hideModal('auth');
+                // Show success and hide auth modal after everything is complete
+                this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
+                this.hideModal('auth');
+            }
+        } catch (error) {
+            console.error('Login exception:', error);
+            this.showMessage('An error occurred during login. Please try again.', 'error');
         }
     }
 
@@ -2023,13 +2038,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         
         console.log('Attempting registration for:', email);
         
-        const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
-        
-        if (error) {
-            console.log('Registration failed:', error);
-            this.showMessage(error, 'error');
-            return;
-        }
+        try {
+            const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
+            
+            if (error) {
+                console.error('Registration failed:', error);
+                this.showMessage(typeof error === 'string' ? error : error.message || 'Registration failed', 'error');
+                return;
+            }
 
         if (user) {
             console.log('Registration successful');
@@ -2077,9 +2093,13 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             await this.updateStreakLeaderboard();
             console.log('Post-registration refresh completed');
             
-            // Show success and hide auth modal after everything is complete
-            this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
-            this.hideModal('auth');
+                // Show success and hide auth modal after everything is complete
+                this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
+                this.hideModal('auth');
+            }
+        } catch (error) {
+            console.error('Registration exception:', error);
+            this.showMessage('An error occurred during registration. Please try again.', 'error');
         }
     }
     

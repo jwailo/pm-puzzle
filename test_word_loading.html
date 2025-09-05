@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Word Loading</title>
+</head>
+<body>
+    <h1>Testing Word Loading Logic</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testWordLoading() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Loading words...</p>';
+            
+            try {
+                // Exact same logic as in script.js
+                const [guessesResponse, answersResponse] = await Promise.all([
+                    fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
+                    fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
+                ]);
+                
+                const [guessesText, answersText] = await Promise.all([
+                    guessesResponse.text(),
+                    answersResponse.text()
+                ]);
+                
+                // Parse both word lists
+                const allowedGuesses = guessesText.trim().split('\n').map(word => word.trim().toUpperCase());
+                const answerWords = answersText.trim().split('\n').map(word => word.trim().toUpperCase());
+                
+                // Combine both lists for validation (answers + allowed guesses)
+                const validWordsSet = new Set([...answerWords, ...allowedGuesses]);
+                
+                // Convert Set back to array for compatibility
+                const validWords = Array.from(validWordsSet);
+                
+                // Test specific words
+                const testWords = ['TABLE', 'CROWN', 'BENCH', 'BINGE'];
+                
+                let html = `
+                    <p><strong>Loading Results:</strong></p>
+                    <p>Answer words loaded: ${answerWords.length}</p>
+                    <p>Allowed guesses loaded: ${allowedGuesses.length}</p>
+                    <p>Total valid words: ${validWords.length}</p>
+                    <p>First 5 answer words: ${answerWords.slice(0, 5).join(', ')}</p>
+                    <p>First 5 guess words: ${allowedGuesses.slice(0, 5).join(', ')}</p>
+                    <hr>
+                    <p><strong>Test Words:</strong></p>
+                `;
+                
+                testWords.forEach(word => {
+                    const inAnswers = answerWords.includes(word);
+                    const inGuesses = allowedGuesses.includes(word);
+                    const inValid = validWords.includes(word);
+                    
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: ${inValid ? '#d4f4dd' : '#f4d4d4'}">
+                            <strong>${word}:</strong><br>
+                            - In answers: ${inAnswers ? '✅' : '❌'}<br>
+                            - In guesses: ${inGuesses ? '✅' : '❌'}<br>
+                            - Valid word: ${inValid ? '✅ YES' : '❌ NO'}
+                        </div>
+                    `;
+                });
+                
+                // Check if TABLE specifically exists in the lists
+                html += `<hr><p><strong>Debug TABLE:</strong></p>`;
+                html += `<p>Finding "TABLE" in answers: ${answerWords.indexOf('TABLE')} (${answerWords.indexOf('TABLE') >= 0 ? 'Found' : 'Not found'})</p>`;
+                html += `<p>Finding "table" lowercase in raw text: ${answersText.includes('table') ? 'Found' : 'Not found'}</p>`;
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        testWordLoading();
+    </script>
+</body>
+</html>
