@@ -1536,9 +1536,22 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Also add direct button click listener as fallback
         const submitBtn = document.getElementById('auth-submit');
         if (submitBtn) {
-            submitBtn.addEventListener('click', (e) => {
-                console.log('Submit button clicked');
-                // Don't prevent default here - let form submission handle it
+            // Remove any existing onclick handlers
+            submitBtn.onclick = null;
+            
+            // Ensure button type is submit
+            submitBtn.type = 'submit';
+            
+            submitBtn.addEventListener('click', async (e) => {
+                console.log('Submit button clicked directly');
+                // Check if we need to handle auth manually
+                const authForm = document.getElementById('login-form');
+                if (!authForm) {
+                    console.log('No form found, handling auth directly');
+                    e.preventDefault();
+                    await this.handleAuth();
+                }
+                // Otherwise let form submission handle it
             });
         }
 
@@ -1975,6 +1988,11 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 // For login, use email as username
                 if (!email || !password) {
                     this.showMessage('Please fill in all fields', 'error');
+                    this.authInProgress = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Sign In';
+                    }
                     return;
                 }
                 console.log('Attempting to call login function');
@@ -1983,18 +2001,25 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 // For registration, need all fields
                 if (!firstname || !email || !password) {
                     this.showMessage('Please fill in all fields', 'error');
+                    this.authInProgress = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Sign Up';
+                    }
                     return;
                 }
                 
-                // Check marketing consent is required
+                // Check marketing consent is optional for now to avoid blocking signups
                 if (!marketingConsent) {
-                    this.showMessage('Marketing consent is required to sign up', 'error');
-                    return;
+                    console.log('Marketing consent not checked, proceeding anyway');
                 }
                 
                 console.log('Attempting to call register function');
-                await this.register(firstname, email, password);
+                await this.register(firstname, email, password, marketingConsent);
             }
+        } catch (error) {
+            console.error('Auth handling error:', error);
+            this.showMessage(error.message || 'Authentication failed', 'error');
         } finally {
             this.authInProgress = false;
             if (submitBtn) {
@@ -2005,14 +2030,22 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     async login(email, password) {
-        console.log('Attempting login for:', email);
+        console.log('=== LOGIN ATTEMPT ===');
+        console.log('Email:', email);
+        console.log('Database service available:', !!this.db);
+        console.log('Supabase client available:', !!this.db?.supabase);
         
         try {
+            console.log('Calling db.signIn...');
             const { user, error } = await this.db.signIn(email, password);
             
+            console.log('SignIn response - User:', user ? 'exists' : 'null', 'Error:', error);
+            
             if (error) {
-                console.error('Login failed:', error);
-                this.showMessage(typeof error === 'string' ? error : error.message || 'Login failed', 'error');
+                console.error('Login failed with error:', error);
+                const errorMessage = typeof error === 'string' ? error : 
+                    (error.message || error.error_description || 'Login failed');
+                this.showMessage(errorMessage, 'error');
                 return;
             }
 
@@ -2107,10 +2140,13 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
     }
 
-    async register(firstname, email, password) {
-        const marketingConsent = document.getElementById('marketing-checkbox').checked;
+    async register(firstname, email, password, marketingConsent = false) {
+        // Use passed marketingConsent or check the checkbox
+        if (marketingConsent === undefined || marketingConsent === null) {
+            marketingConsent = document.getElementById('marketing-checkbox')?.checked || false;
+        }
         
-        console.log('Attempting registration for:', email);
+        console.log('Attempting registration for:', email, 'with marketing consent:', marketingConsent);
         
         try {
             const { user, error } = await this.db.signUp(email, password, firstname, marketingConsent);
