@@ -538,11 +538,19 @@ class PMWordle {
                 fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
                 // Load Wordle answers list (2,309 common words including TABLE, CROWN, BENCH)
                 fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
-            ]);
+            ]).catch(error => {
+                console.error('Failed to fetch word lists:', error);
+                return [null, null];
+            });
+            
+            // Check if fetch failed
+            if (!guessesResponse || !answersResponse) {
+                throw new Error('Network request failed - using fallback word list');
+            }
             
             console.log('Fetch responses received:', { 
-                guesses: guessesResponse.ok, 
-                answers: answersResponse.ok 
+                guesses: guessesResponse?.ok, 
+                answers: answersResponse?.ok 
             });
             
             const [guessesText, answersText] = await Promise.all([
@@ -568,8 +576,8 @@ class PMWordle {
                 validWordsSet.add(word);
             });
             
-            // Add custom words that should always be accepted including TABLE, CROWN, BENCH
-            const customWords = ['BINGE', 'TABLE', 'CROWN', 'BENCH'];
+            // Add custom words and common words that should always be accepted
+            const customWords = ['BINGE', 'TABLE', 'CROWN', 'BENCH', 'BREAK', 'BRAKE', 'BREAD', 'BRING', 'BUILD', 'BUILT'];
             customWords.forEach(word => {
                 validWordsSet.add(word);
                 console.log(`Added custom word: ${word}`);
@@ -593,7 +601,8 @@ class PMWordle {
             // Fallback to a comprehensive word list if file loading fails
             this.validWords = [
                 ...this.answerBank,
-                'ACHES', 'CHATS', 'BINGE', // Common words that were missing
+                'ACHES', 'CHATS', 'BINGE', 'BREAK', 'BRAKE', 'BREAD', 'BRING', 'BUILD', 'BUILT',
+                'BROKE', 'BROWN', 'BRUSH', 'BUNCH', 'BURNS', 'BURST', 'BUYER', 'CABLE', 'CALLS', 'CAMPS',
                 'ABOUT', 'ABOVE', 'ABUSE', 'ACTOR', 'ACUTE', 'ADMIT', 'ADOPT', 'ADULT', 'AFTER', 'AGAIN',
                 'AGENT', 'AGREE', 'AHEAD', 'ALARM', 'ALBUM', 'ALERT', 'ALIEN', 'ALIGN', 'ALIKE', 'ALIVE',
                 'ALLOW', 'ALONE', 'ALONG', 'ALTER', 'AMONG', 'ANGER', 'ANGLE', 'ANGRY', 'APART', 'APPLE',
@@ -669,8 +678,9 @@ class PMWordle {
     }
 
     clearOldGameStates() {
-        // Clear all old game states from localStorage
+        // Clear ONLY old game states from previous days, not today's
         const today = this.getPuzzleDate();
+        console.log('Clearing old game states. Today is:', today);
         const keysToRemove = [];
         
         for (let i = 0; i < localStorage.length; i++) {
@@ -683,14 +693,17 @@ class PMWordle {
         keysToRemove.forEach(key => {
             try {
                 const state = JSON.parse(localStorage.getItem(key));
-                if (state.date !== today) {
+                // Only remove if date is different from today
+                if (state.date && state.date !== today) {
                     localStorage.removeItem(key);
-                    console.log('Cleared old game state:', key);
+                    console.log('Cleared old game state from:', state.date, 'key:', key);
+                } else {
+                    console.log('Keeping today\'s game state:', key);
                 }
-            } catch {
+            } catch (e) {
                 // Remove corrupted states
+                console.error('Corrupted state found, removing:', key, e);
                 localStorage.removeItem(key);
-                console.log('Cleared corrupted game state:', key);
             }
         });
     }
@@ -1738,8 +1751,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
 
         // Check if word is valid (in our valid words list)
-        console.log('Validating guess:', guess, 'Valid words count:', this.validWords.length, 'Includes guess:', this.validWords.includes(guess));
-        if (!this.validWords.includes(guess)) {
+        console.log('Validating guess:', guess, 'Valid words count:', this.validWords.length);
+        
+        // If word list failed to load, accept any 5-letter word as a fallback
+        if (!this.validWords || this.validWords.length === 0) {
+            console.warn('Word list not loaded properly, accepting any 5-letter word');
+            this.showMessage('Word list not loaded, accepting guess', 'warning');
+        } else if (!this.validWords.includes(guess)) {
+            console.log('Word not in list:', guess);
             this.showMessage('Not in word list', 'error');
             this.shakeRow();
             return;
