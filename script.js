@@ -526,6 +526,8 @@ class PMWordle {
 
     async loadWordsFromFile() {
         try {
+            console.log('Starting to load word files...');
+            
             // Load both word lists in parallel for better performance
             const [guessesResponse, answersResponse] = await Promise.all([
                 // Load comprehensive Wordle allowed guesses list (10,657 obscure words)
@@ -534,10 +536,20 @@ class PMWordle {
                 fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
             ]);
             
+            console.log('Fetch responses received:', { 
+                guesses: guessesResponse.ok, 
+                answers: answersResponse.ok 
+            });
+            
             const [guessesText, answersText] = await Promise.all([
                 guessesResponse.text(),
                 answersResponse.text()
             ]);
+            
+            console.log('Text lengths:', { 
+                guesses: guessesText.length, 
+                answers: answersText.length 
+            });
             
             // Parse both word lists
             const allowedGuesses = guessesText.trim().split('\n').map(word => word.trim().toUpperCase());
@@ -552,10 +564,11 @@ class PMWordle {
                 validWordsSet.add(word);
             });
             
-            // Add custom words that should always be accepted
-            const customWords = ['BINGE'];
+            // Add custom words that should always be accepted including TABLE, CROWN, BENCH
+            const customWords = ['BINGE', 'TABLE', 'CROWN', 'BENCH'];
             customWords.forEach(word => {
                 validWordsSet.add(word);
+                console.log(`Added custom word: ${word}`);
             });
             
             // Convert Set back to array for compatibility
@@ -563,6 +576,12 @@ class PMWordle {
             
             console.log(`Loaded ${answerWords.length} common words and ${allowedGuesses.length} additional guesses`);
             console.log(`Total valid words: ${this.validWords.length}`);
+            
+            // Test if our specific words are included
+            const testWords = ['TABLE', 'CROWN', 'BENCH'];
+            testWords.forEach(word => {
+                console.log(`${word} is valid: ${this.validWords.includes(word)}`);
+            });
             
         } catch (error) {
             console.error('Error loading words from comprehensive Wordle list:', error);
