@@ -2088,7 +2088,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
     // Authentication System
     async handleAuth() {
-        console.log('Handling auth');
+        console.log('=== HANDLEAUTH CALLED ===');
+        console.log('Handling auth at', new Date().toISOString());
         
         // Prevent multiple simultaneous auth attempts
         if (this.authInProgress) {
@@ -2099,6 +2100,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Check if database service is available
         if (!this.db || !this.db.supabase) {
             console.error('Database service not available');
+            console.error('this.db:', this.db);
+            console.error('this.db.supabase:', this.db?.supabase);
             this.showMessage('Authentication service not available. Please refresh the page.', 'error');
             return;
         }
@@ -2109,7 +2112,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const isLogin = document.getElementById('auth-title').textContent === 'Sign In';
         const marketingConsent = document.getElementById('marketing-checkbox').checked;
 
-        console.log('Auth data:', {firstname, email, password: password ? '***' : '', isLogin, marketingConsent});
+        console.log('Auth data collected:', {firstname, email, password: password ? '***' : '', isLogin, marketingConsent});
 
         this.authInProgress = true;
         const submitBtn = document.getElementById('auth-submit');
@@ -2578,7 +2581,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     skipAuth() {
-        console.log('Skip auth clicked');
+        console.log('=== SKIP AUTH CALLED ===');
+        console.trace('Skip auth call stack');
         this.isGuest = true;
         this.updateAuthUI();
         // Ensure game is ready to play
