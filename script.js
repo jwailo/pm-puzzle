@@ -374,8 +374,16 @@ class DatabaseService {
 // Property Management Wordle Game
 class PMWordle {
     constructor() {
-        // Initialize database service
-        this.db = new DatabaseService();
+        console.log('PMWordle constructor starting...');
+        
+        try {
+            // Initialize database service
+            this.db = new DatabaseService();
+            console.log('Database service initialized');
+        } catch (error) {
+            console.error('Failed to initialize database service:', error);
+            this.db = null; // Continue without database
+        }
         // Property Management Answer Bank (59 words) - these are the daily answers
         this.answerBank = [
             'LEASE', 'RENTS', 'TOWER', 'CONDO', 'AGENT', 'LOBBY', 'SUITE', 'OWNER', 'ASSET', 'UNITS',
@@ -415,17 +423,28 @@ class PMWordle {
         this.authInProgress = false;
 
         // Initialize game
+        console.log('Starting game initialization...');
         this.init().catch(error => {
             console.error('Game initialization failed:', error);
             // Fallback initialization
-            this.initGame();
-            this.setupEventListeners();
-            this.loadSettings();
-            this.updateCountdown();
+            try {
+                this.initGame();
+                this.setupEventListeners();
+                this.loadSettings();
+                this.updateCountdown();
+            } catch (fallbackError) {
+                console.error('Fallback initialization also failed:', fallbackError);
+            }
         });
 
-        // Check for existing user session
-        this.checkUserSession();
+        // Check for existing user session (but don't let it break the game)
+        try {
+            this.checkUserSession();
+        } catch (error) {
+            console.error('Session check failed:', error);
+            this.isGuest = true;
+            this.currentUser = null;
+        }
     }
 
     async checkUserSession() {
@@ -3678,7 +3697,20 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 // Initialize the game when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing game...');
-    window.game = new PMWordle();
+    try {
+        window.game = new PMWordle();
+        console.log('Game initialized successfully');
+    } catch (error) {
+        console.error('CRITICAL ERROR: Failed to initialize game:', error);
+        console.error('Stack trace:', error.stack);
+        // Try to show error to user
+        const container = document.querySelector('.game-container');
+        if (container) {
+            container.innerHTML += `<div style="color: red; padding: 20px; text-align: center;">
+                Error loading game. Please refresh the page. If the problem persists, clear your browser cache.
+            </div>`;
+        }
+    }
     
     // Add global test functions for debugging
     window.testGame = function() {
