@@ -430,35 +430,54 @@ class PMWordle {
 
     async checkUserSession() {
         try {
-            console.log('Checking user session...');
-            console.log('User agent:', navigator.userAgent);
-            console.log('Storage type:', this.detectStorageType());
+            console.log('Checking for existing user session...');
             
-            // ALWAYS start in guest mode by default
-            console.log('Starting in guest mode - user must explicitly log in');
-            
-            // Clear any existing session to ensure fresh start
-            try {
-                await this.db.supabase.auth.signOut({ scope: 'local' });
-            } catch (signOutError) {
-                console.log('Sign out error (expected):', signOutError);
+            // Check if database service is available
+            if (!this.db || !this.db.supabase) {
+                console.log('Database service not ready, starting in guest mode');
+                this.isGuest = true;
+                this.currentUser = null;
+                this.updateAuthUI();
+                return;
             }
             
-            // Clear all authentication-related localStorage
-            this.clearUserSession();
+            // Check for existing Supabase session
+            const { data: { session }, error } = await this.db.supabase.auth.getSession();
             
-            // Force guest mode
-            this.isGuest = true;
-            this.currentUser = null;
+            if (error) {
+                console.error('Error checking session:', error);
+                this.isGuest = true;
+                this.currentUser = null;
+                this.updateAuthUI();
+                return;
+            }
             
-            this.updateAuthUI();
+            if (session && session.user) {
+                console.log('Found existing session for user:', session.user.email);
+                // User has an active session
+                this.isGuest = false;
+                this.currentUser = session.user.id;
+                
+                // Update UI to show logged-in state
+                await this.updateAuthUI();
+                
+                // Load user stats
+                await this.updateStats();
+                
+                console.log('User authenticated from existing session');
+            } else {
+                // No session found - start in guest mode
+                console.log('No existing session found - starting in guest mode');
+                this.isGuest = true;
+                this.currentUser = null;
+                this.updateAuthUI();
+            }
             
         } catch (error) {
             console.error('Session check failed:', error);
-            // On any error, ensure guest mode
+            // On any error, default to guest mode
             this.isGuest = true;
             this.currentUser = null;
-            this.clearUserSession();
             this.updateAuthUI();
         }
     }
@@ -2138,9 +2157,10 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             }
 
             if (user) {
-            console.log('Login successful');
+            console.log('Login successful for user:', user.email, 'ID:', user.id);
             this.currentUser = user.id;
             this.isGuest = false;
+            console.log('Set isGuest to false, currentUser to:', this.currentUser);
             
             // Get user profile for display name
             const { data: profile } = await this.db.getUserProfile(user.id);
@@ -3690,11 +3710,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Auto-skip auth for testing
-    setTimeout(() => {
-        if (window.game && window.game.isGuest) {
-            console.log('Auto-skipping auth for guest play...');
-            window.game.skipAuth();
-        }
-    }, 1000);
+    // Removed auto-skip auth - users should explicitly choose to play as guest or login
 });
