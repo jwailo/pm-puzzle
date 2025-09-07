@@ -595,44 +595,49 @@ class PMWordle {
         try {
             console.log('Starting to load word files...');
             
-            // Load both word lists in parallel for better performance
-            const [guessesResponse, answersResponse] = await Promise.all([
+            // Load all three word lists in parallel for better performance
+            const [guessesResponse, answersResponse, comprehensiveResponse] = await Promise.all([
                 // Load comprehensive Wordle allowed guesses list (10,657 obscure words)
                 fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
                 // Load Wordle answers list (2,309 common words including TABLE, CROWN, BENCH)
-                fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
+                fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt'),
+                // Load comprehensive 5-letter words list
+                fetch('https://raw.githubusercontent.com/charlesreid1/five-letter-words/master/sgb-words.txt')
             ]).catch(error => {
                 console.error('Failed to fetch word lists:', error);
-                return [null, null];
+                return [null, null, null];
             });
             
-            // Check if fetch failed
-            if (!guessesResponse || !answersResponse) {
-                throw new Error('Network request failed - using fallback word list');
+            // Check if fetch failed (at least need one list)
+            if (!guessesResponse && !answersResponse && !comprehensiveResponse) {
+                throw new Error('All network requests failed - using fallback word list');
             }
             
             console.log('Fetch responses received:', { 
                 guesses: guessesResponse?.ok, 
-                answers: answersResponse?.ok 
+                answers: answersResponse?.ok,
+                comprehensive: comprehensiveResponse?.ok
             });
             
-            const [guessesText, answersText] = await Promise.all([
-                guessesResponse.text(),
-                answersResponse.text()
-            ]);
+            // Get text from successful responses
+            const guessesText = guessesResponse ? await guessesResponse.text() : '';
+            const answersText = answersResponse ? await answersResponse.text() : '';
+            const comprehensiveText = comprehensiveResponse ? await comprehensiveResponse.text() : '';
             
             console.log('Text lengths:', { 
                 guesses: guessesText.length, 
-                answers: answersText.length 
+                answers: answersText.length,
+                comprehensive: comprehensiveText.length
             });
             
-            // Parse both word lists
-            const allowedGuesses = guessesText.trim().split('\n').map(word => word.trim().toUpperCase());
-            const answerWords = answersText.trim().split('\n').map(word => word.trim().toUpperCase());
+            // Parse all word lists
+            const allowedGuesses = guessesText ? guessesText.trim().split('\n').map(word => word.trim().toUpperCase()) : [];
+            const answerWords = answersText ? answersText.trim().split('\n').map(word => word.trim().toUpperCase()) : [];
+            const comprehensiveWords = comprehensiveText ? comprehensiveText.trim().split('\n').map(word => word.trim().toUpperCase()) : [];
             
-            // Combine both lists for validation (answers + allowed guesses)
+            // Combine all lists for validation (answers + allowed guesses + comprehensive)
             // Using Set to avoid duplicates and for faster lookup
-            const validWordsSet = new Set([...answerWords, ...allowedGuesses]);
+            const validWordsSet = new Set([...answerWords, ...allowedGuesses, ...comprehensiveWords]);
             
             // Also include our answer bank in the valid words
             this.answerBank.forEach(word => {
@@ -640,7 +645,8 @@ class PMWordle {
             });
             
             // Add custom words and common words that should always be accepted
-            const customWords = ['BINGE', 'TABLE', 'CROWN', 'BENCH', 'BREAK', 'BRAKE', 'BREAD', 'BRING', 'BUILD', 'BUILT'];
+            const customWords = ['BINGE', 'TABLE', 'CROWN', 'BENCH', 'BREAK', 'BRAKE', 'BREAD', 'BRING', 'BUILD', 'BUILT',
+                                'SCOPE', 'SCORE', 'SCOOP', 'SCOUT', 'SCALE', 'SCARE', 'SCENE', 'SCENT', 'SCARY', 'SCARF'];
             customWords.forEach(word => {
                 validWordsSet.add(word);
                 console.log(`Added custom word: ${word}`);
@@ -2212,9 +2218,16 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             await this.updateStreakLeaderboard();
             console.log('Post-login refresh completed');
             
-                // Show success and hide auth modal after everything is complete
+                // Show success and hide auth section
                 this.showMessage(`Welcome back, ${displayName}!`, 'success', 3000);
-                this.hideModal('auth');
+                // Hide auth section instead of modal
+                const authSection = document.getElementById('auth-section');
+                if (authSection) {
+                    authSection.style.display = 'none';
+                }
+                // Ensure game is playable
+                document.querySelector('.game-board').style.pointerEvents = 'auto';
+                document.querySelector('.keyboard').style.pointerEvents = 'auto';
             }
         } catch (error) {
             console.error('Login exception:', error);
@@ -2285,9 +2298,16 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             await this.updateStreakLeaderboard();
             console.log('Post-registration refresh completed');
             
-                // Show success and hide auth modal after everything is complete
+                // Show success and hide auth section
                 this.showMessage(`✅ Account created successfully! Welcome, ${firstname}!`, 'success', 4000);
-                this.hideModal('auth');
+                // Hide auth section instead of modal
+                const authSection = document.getElementById('auth-section');
+                if (authSection) {
+                    authSection.style.display = 'none';
+                }
+                // Ensure game is playable
+                document.querySelector('.game-board').style.pointerEvents = 'auto';
+                document.querySelector('.keyboard').style.pointerEvents = 'auto';
             }
         } catch (error) {
             console.error('Registration exception:', error);
@@ -2532,20 +2552,42 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const leaderboardsSection = document.getElementById('leaderboards-section');
 
         if (this.isGuest) {
-            authSection.classList.remove('logged-in');
-            authForm.classList.remove('hidden');
-            userDropdown.classList.add('hidden');
+            // Show auth section for guests
+            if (authSection) {
+                authSection.style.display = 'block';
+                authSection.classList.remove('logged-in');
+            }
+            if (authForm) {
+                authForm.style.display = 'block';
+                authForm.classList.remove('hidden');
+            }
+            if (userDropdown) {
+                userDropdown.style.display = 'none';
+                userDropdown.classList.add('hidden');
+            }
             // Show leaderboards for everyone to see competition results
             if (leaderboardsSection) leaderboardsSection.style.display = 'block';
             
             // Ensure auth form elements are interactive
-            authForm.style.pointerEvents = 'auto';
-            const authInputs = authForm.querySelectorAll('input, button');
-            authInputs.forEach(input => input.style.pointerEvents = 'auto');
+            if (authForm) {
+                authForm.style.pointerEvents = 'auto';
+                const authInputs = authForm.querySelectorAll('input, button');
+                authInputs.forEach(input => input.style.pointerEvents = 'auto');
+            }
         } else {
-            authSection.classList.add('logged-in');
-            authForm.classList.add('hidden');
-            userDropdown.classList.remove('hidden');
+            // Hide auth section for logged-in users
+            if (authSection) {
+                authSection.style.display = 'none';
+                authSection.classList.add('logged-in');
+            }
+            if (authForm) {
+                authForm.style.display = 'none';
+                authForm.classList.add('hidden');
+            }
+            if (userDropdown) {
+                userDropdown.style.display = 'flex';
+                userDropdown.classList.remove('hidden');
+            }
             
             // Get user profile for display name
             const user = await this.db.getCurrentUser();
