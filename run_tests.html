@@ -56,7 +56,7 @@
             try {
                 const [guessesResponse, answersResponse] = await Promise.all([
                     fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
-                    fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt')
+                    fetch('https://raw.githubusercontent.com/tabatkins/wordle-list/main/words')
                 ]);
                 
                 const guessesOk = guessesResponse.ok;
@@ -92,11 +92,11 @@
             
             // Test 3: Script Loading
             try {
-                const scriptResponse = await fetch('script.js');
-                addResult('Script Files', 'script.js loads', scriptResponse.ok, 
-                    scriptResponse.ok ? 'Loaded successfully' : `HTTP ${scriptResponse.status}`);
+                const scriptResponse = await fetch('/script.js');
+                addResult('Script Files', 'Load scripts', scriptResponse.ok, 
+                    scriptResponse.ok ? 'Loaded successfully' : 'Failed to fetch');
                 
-                const configResponse = await fetch('config.js');
+                const configResponse = await fetch('/config.js');
                 addResult('Script Files', 'config.js loads', configResponse.ok,
                     configResponse.ok ? 'Loaded successfully' : `HTTP ${configResponse.status}`);
             } catch (e) {
@@ -105,7 +105,7 @@
             
             // Test 4: HTML Elements
             try {
-                const indexResponse = await fetch('index.html');
+                const indexResponse = await fetch('/index.html');
                 const indexText = await indexResponse.text();
                 
                 const hasAuthForm = indexText.includes('id="login-form"');
@@ -123,7 +123,7 @@
             
             // Test 5: Critical Functions
             try {
-                const scriptResponse = await fetch('script.js');
+                const scriptResponse = await fetch('/script.js');
                 const scriptText = await scriptResponse.text();
                 
                 const hasHandleAuth = scriptText.includes('handleAuth()');
@@ -143,7 +143,7 @@
             
             // Test 6: Security Features
             try {
-                const scriptText = await (await fetch('script.js')).text();
+                const scriptText = await (await fetch('/script.js')).text();
                 
                 const hasPasswordMasking = scriptText.includes("password: password ? '***' : ''");
                 const hasErrorHandling = scriptText.includes('try {') && scriptText.includes('catch');

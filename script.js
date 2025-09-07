@@ -638,7 +638,7 @@ class PMWordle {
                 // Load comprehensive Wordle allowed guesses list (10,657 obscure words)
                 fetch('https://gist.githubusercontent.com/cfreshman/cdcdf777450c5b5301e439061d29694c/raw/de1df631b45492e0974f7affe266ec36fed736eb/wordle-allowed-guesses.txt'),
                 // Load Wordle answers list (2,309 common words including TABLE, CROWN, BENCH)
-                fetch('https://gist.githubusercontent.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b/raw/746fc218c87c220e1316c0c340a93527605f49ce/wordle-answers-alphabetical.txt'),
+                fetch('https://raw.githubusercontent.com/tabatkins/wordle-list/main/words'),
                 // Load comprehensive 5-letter words list
                 fetch('https://raw.githubusercontent.com/charlesreid1/five-letter-words/master/sgb-words.txt')
             ]).catch(error => {
@@ -1456,25 +1456,41 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     setupModalListeners() {
-        const modals = ['help', 'stats', 'settings', 'test'];
+        const modals = ['help', 'stats', 'settings', 'menu', 'forgot-password', 'share-instructions', 'post-game-stats'];
         
         modals.forEach(modalType => {
             const btn = document.getElementById(`${modalType}-btn`);
             const modal = document.getElementById(`${modalType}-modal`);
-            const closeBtn = modal.querySelector('.close-btn');
             
-            if (btn) {
+            // Add null check before using querySelector
+            if (modal) {
+                const closeBtn = modal.querySelector('.close-btn');
+                
+                if (btn) {
+                    if (modalType === 'stats') {
+                        // Special handling for stats button - show briefly then prompt signup for guests
+                        btn.addEventListener('click', () => this.showStatsModal());
+                    } else {
+                        btn.addEventListener('click', () => this.showModal(modalType));
+                    }
+                }
+                
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => this.hideModal(modalType));
+                }
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.hideModal(modalType);
+                });
+            } else if (btn) {
+                // If modal doesn't exist but button does, still add handler
+                console.warn(`Modal '${modalType}-modal' not found in DOM`);
                 if (modalType === 'stats') {
-                    // Special handling for stats button - show briefly then prompt signup for guests
                     btn.addEventListener('click', () => this.showStatsModal());
                 } else {
                     btn.addEventListener('click', () => this.showModal(modalType));
                 }
             }
-            if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal(modalType));
-            if (modal) modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.hideModal(modalType);
-            });
         });
         
         // Setup share instructions modal separately (no button, just close)
@@ -1501,16 +1517,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             });
         }
 
-        // Hamburger menu button
-        const menuBtn = document.getElementById('menu-btn');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', () => this.showModal('menu'));
-        }
+        // Hamburger menu button - handled in setupModalListeners now
         
-        const testBtn = document.getElementById('test-btn');
-        if (testBtn) {
-            testBtn.addEventListener('click', () => this.showModal('test'));
-        }
+        // Test button removed - modal doesn't exist
         
         // Menu modal options
         const menuLogout = document.getElementById('menu-logout');
@@ -2216,6 +2225,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             // Update UI to show logged in state
             await this.updateAuthUI();
             
+            // Force UI update after a short delay to ensure DOM is ready
+            setTimeout(async () => {
+                console.log('Forcing UI update after login...');
+                await this.updateAuthUI();
+            }, 100);
+            
             // Reset game state for new user
             await this.resetGameForNewUser();
             
@@ -2326,6 +2341,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             
             // Update UI to show logged in state
             await this.updateAuthUI();
+            
+            // Force UI update after a short delay to ensure DOM is ready
+            setTimeout(async () => {
+                console.log('Forcing UI update after login...');
+                await this.updateAuthUI();
+            }, 100);
             
             // Reset game state for new user
             await this.resetGameForNewUser();
