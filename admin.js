@@ -208,13 +208,54 @@ class AdminDashboard {
             if (error) {
                 console.error('Error loading users:', error);
                 document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
+                
+                // Try fallback to direct query if RPC fails
+                console.log('Attempting fallback to direct query...');
+                const { data: profiles, error: profileError } = await this.supabase
+                    .from('user_profiles')
+                    .select(`
+                        id,
+                        first_name,
+                        email,
+                        created_at,
+                        user_stats (
+                            games_played,
+                            games_won,
+                            max_streak,
+                            updated_at
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+                
+                if (profileError) {
+                    console.error('Fallback also failed:', profileError);
+                    return;
+                }
+                
+                // Transform the data to match expected format
+                const transformedUsers = profiles?.map(profile => ({
+                    id: profile.id,
+                    first_name: profile.first_name,
+                    email: profile.email,
+                    created_at: profile.created_at,
+                    games_played: profile.user_stats?.[0]?.games_played || 0,
+                    games_won: profile.user_stats?.[0]?.games_won || 0,
+                    max_streak: profile.user_stats?.[0]?.max_streak || 0,
+                    updated_at: profile.user_stats?.[0]?.updated_at || profile.created_at
+                })) || [];
+                
+                console.log('Fallback users loaded:', transformedUsers);
+                this.usersData = transformedUsers;
+                this.renderUsersTable(transformedUsers);
                 return;
             }
 
-            console.log('Users loaded:', users);
+            console.log('Users loaded from RPC:', users);
+            console.log('Users type:', typeof users);
+            console.log('Users is array?:', Array.isArray(users));
             
-            this.usersData = users;
-            this.renderUsersTable(users);
+            this.usersData = users || [];
+            this.renderUsersTable(users || []);
 
         } catch (error) {
             console.error('Error in loadUsersList:', error);
@@ -226,7 +267,18 @@ class AdminDashboard {
         const tbody = document.getElementById('users-tbody');
         tbody.innerHTML = '';
 
-        users.forEach(user => {
+        console.log('Rendering users table with:', users);
+        console.log('Number of users to render:', users ? users.length : 0);
+        
+        if (!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No users found</td></tr>';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('users-table').style.display = 'table';
+            return;
+        }
+
+        users.forEach((user, index) => {
+            console.log(`User ${index}:`, user);
             const row = document.createElement('tr');
             
             const formatDate = (dateString) => {
