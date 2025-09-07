@@ -91,55 +91,66 @@ class AdminDashboard {
 
     async getTotalUsers() {
         try {
-            // Try RPC function first (bypasses RLS)
-            const { data: rpcData, error: rpcError } = await this.supabase
-                .rpc('get_admin_total_users');
+            // Query user_profiles directly
+            const { data: profiles, count, error } = await this.supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact' });
             
-            if (!rpcError && rpcData !== null) {
-                console.log('Total users from RPC:', rpcData);
-                return { count: rpcData };
+            if (error) {
+                console.error('Error getting user profiles:', error);
+                // Try user_stats as fallback
+                const { data: stats, count: statsCount, error: statsError } = await this.supabase
+                    .from('user_stats')
+                    .select('*', { count: 'exact' });
+                
+                if (statsError) {
+                    console.error('Error getting user stats:', statsError);
+                    return { count: 0 };
+                }
+                console.log('Total users from user_stats:', statsCount);
+                return { count: statsCount || 0 };
             }
+            
+            console.log('Total users from user_profiles:', count, 'profiles:', profiles?.length);
+            return { count: count || profiles?.length || 0 };
         } catch (e) {
-            console.log('RPC function not available, trying direct query');
-        }
-        
-        // Fallback to direct query
-        const { count, error } = await this.supabase
-            .from('user_profiles')
-            .select('*', { count: 'exact', head: true });
-        
-        if (error) {
-            console.error('Error getting total users:', error);
+            console.error('Failed to get total users:', e);
             return { count: 0 };
         }
-        
-        console.log('Total users from direct query:', count);
-        return { count };
     }
 
     async getDailyActiveUsers() {
         try {
-            // Get users who have stats updated in the last 24 hours
+            // Check daily leaderboard for today first (most reliable)
+            const today = new Date().toISOString().split('T')[0];
+            console.log('Checking daily active users for:', today);
+            
+            const { data: dailyData, count: dailyCount, error: dailyError } = await this.supabase
+                .from('daily_leaderboard')
+                .select('*', { count: 'exact' })
+                .eq('puzzle_date', today);
+            
+            if (!dailyError && dailyCount !== null) {
+                console.log('Daily active users from leaderboard:', dailyCount);
+                return dailyCount;
+            }
+            
+            // Fallback: check user_stats for last_played today
             const oneDayAgo = new Date();
             oneDayAgo.setDate(oneDayAgo.getDate() - 1);
             
-            const { count, error } = await this.supabase
+            const { data: statsData, count: statsCount, error: statsError } = await this.supabase
                 .from('user_stats')
-                .select('user_id', { count: 'exact', head: true })
+                .select('*', { count: 'exact' })
                 .gte('last_played', oneDayAgo.toISOString());
             
-            if (error) {
-                console.error('Error getting daily active users:', error);
-                // Fallback: check daily leaderboard for today
-                const today = new Date().toISOString().split('T')[0];
-                const { count: dailyCount } = await this.supabase
-                    .from('daily_leaderboard')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('puzzle_date', today);
-                return dailyCount || 0;
+            if (!statsError && statsCount !== null) {
+                console.log('Daily active users from stats:', statsCount);
+                return statsCount;
             }
             
-            return count || 0;
+            console.error('Error getting daily active users:', dailyError || statsError);
+            return 0;
         } catch (error) {
             console.error('Failed to get daily active users:', error);
             return 0;
@@ -148,21 +159,39 @@ class AdminDashboard {
 
     async getMonthlyActiveUsers() {
         try {
-            // Get users who have stats updated in the last 30 days
+            // Get users who have played in the last 30 days
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
             
-            const { count, error } = await this.supabase
-                .from('user_stats')
-                .select('user_id', { count: 'exact', head: true })
-                .gte('last_played', thirtyDaysAgo.toISOString());
+            console.log('Checking monthly active users since:', thirtyDaysAgoStr);
             
-            if (error) {
-                console.error('Error getting monthly active users:', error);
-                return 0;
+            // Check daily leaderboard for unique users in last 30 days
+            const { data: leaderboardData, error: leaderboardError } = await this.supabase
+                .from('daily_leaderboard')
+                .select('user_id')
+                .gte('puzzle_date', thirtyDaysAgoStr);
+            
+            if (!leaderboardError && leaderboardData) {
+                // Get unique user IDs
+                const uniqueUsers = [...new Set(leaderboardData.map(entry => entry.user_id))];
+                console.log('Monthly active users from leaderboard:', uniqueUsers.length);
+                return uniqueUsers.length;
             }
             
-            return count || 0;
+            // Fallback: check user_stats
+            const { data: statsData, count: statsCount, error: statsError } = await this.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact' })
+                .gte('last_played', thirtyDaysAgo.toISOString());
+            
+            if (!statsError && statsCount !== null) {
+                console.log('Monthly active users from stats:', statsCount);
+                return statsCount;
+            }
+            
+            console.error('Error getting monthly active users:', leaderboardError || statsError);
+            return 0;
         } catch (error) {
             console.error('Failed to get monthly active users:', error);
             return 0;
@@ -200,15 +229,29 @@ class AdminDashboard {
 
     async getSignupPercentage() {
         try {
-            const { data, error } = await this.supabase
-                .rpc('get_admin_signup_percentage');
+            // Get total users with profiles (signed up)
+            const { count: signedUpCount, error: signedUpError } = await this.supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact', head: true });
             
-            if (error) {
-                console.error('Error getting signup percentage:', error);
+            // Get total unique players (including guests) from user_stats
+            const { count: totalPlayersCount, error: totalError } = await this.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact', head: true });
+            
+            if (signedUpError || totalError) {
+                console.error('Error getting signup percentage:', signedUpError || totalError);
                 return 'N/A';
             }
             
-            return data || '0%';
+            const signedUp = signedUpCount || 0;
+            const total = totalPlayersCount || 0;
+            
+            if (total === 0) return '0%';
+            
+            const percentage = Math.round((signedUp / total) * 100);
+            console.log(`Signup rate: ${signedUp} signed up / ${total} total = ${percentage}%`);
+            return `${percentage}%`;
         } catch (error) {
             console.error('Failed to get signup percentage:', error);
             return 'N/A';
@@ -227,27 +270,37 @@ class AdminDashboard {
 
             if (profileError) {
                 console.error('Error loading user profiles:', profileError);
-                // Try to get basic auth users as fallback
-                const { data: authData, error: authError } = await this.supabase.auth.admin.listUsers();
-                if (authError) {
-                    console.error('Error loading users:', authError);
-                    document.getElementById('loading').textContent = 'Error loading users: ' + authError.message;
+                // Try to get users from user_stats as fallback
+                const { data: statsData, error: statsError } = await this.supabase
+                    .from('user_stats')
+                    .select('*')
+                    .order('games_played', { ascending: false });
+                
+                if (statsError) {
+                    console.error('Error loading user stats:', statsError);
+                    document.getElementById('loading').textContent = 'Error loading users: ' + (profileError.message || statsError.message);
                     return;
                 }
-                // Convert auth users to profile format
-                const users = authData?.users?.map(user => ({
-                    user_id: user.id,
-                    email: user.email,
-                    first_name: user.user_metadata?.first_name || 'Unknown',
-                    created_at: user.created_at,
-                    marketing_consent: false
+                
+                // Convert stats to user format
+                const users = statsData?.map(stat => ({
+                    user_id: stat.user_id,
+                    email: stat.user_id.includes('@') ? stat.user_id : 'Guest User',
+                    first_name: stat.user_id.startsWith('guest_') ? 'Guest' : 'User',
+                    created_at: stat.last_played,
+                    marketing_consent: false,
+                    games_played: stat.games_played,
+                    games_won: stat.games_won
                 })) || [];
+                
+                console.log('Users loaded from stats fallback:', users.length);
                 this.usersData = users;
                 this.renderUsersTable(users);
                 return;
             }
             
             const users = profiles || [];
+            console.log('Users loaded from profiles:', users.length, 'profiles:', profiles);
 
             console.log('Users loaded:', users);
             
