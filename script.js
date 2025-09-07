@@ -2,10 +2,37 @@
 // Updated: Fix incognito session issue v1.1
 class DatabaseService {
     constructor() {
+        // Check if Supabase client is available
+        if (!window.supabaseClient) {
+            console.error('Supabase client not initialized! Database operations will fail.');
+            console.log('Attempting to initialize Supabase client now...');
+            
+            // Try to initialize it now if the library is available
+            if (window.supabase && typeof SUPABASE_CONFIG !== 'undefined') {
+                window.supabaseClient = window.supabase.createClient(
+                    SUPABASE_CONFIG.url, 
+                    SUPABASE_CONFIG.anonKey
+                );
+                console.log('Supabase client initialized in DatabaseService');
+            } else if (window.supabase) {
+                // Fallback: use hardcoded config if SUPABASE_CONFIG is not available
+                const url = 'https://taeetzxhrdohdijwgous.supabase.co';
+                const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
+                window.supabaseClient = window.supabase.createClient(url, anonKey);
+                console.log('Supabase client initialized with fallback config');
+            }
+        }
+        
         this.supabase = window.supabaseClient;
         this.currentUser = null;
         // Store the public client for leaderboard queries
         this.publicClient = window.supabaseClient;
+        
+        if (!this.supabase) {
+            console.error('CRITICAL: Supabase client is null - authentication will not work!');
+        } else {
+            console.log('DatabaseService initialized with Supabase client');
+        }
     }
     
     // Temporary method to create mock leaderboard data for testing
@@ -87,15 +114,30 @@ class DatabaseService {
 
     // Authentication methods
     async signUp(email, password, firstName, marketingConsent = false) {
+        console.log('DatabaseService.signUp called');
+        
+        if (!this.supabase) {
+            console.error('Supabase client is null!');
+            return { user: null, error: 'Database connection not available. Please refresh the page.' };
+        }
+        
         try {
+            console.log('Calling supabase.auth.signUp...');
             const { data, error } = await this.supabase.auth.signUp({
                 email: email,
                 password: password
             });
 
+            console.log('SignUp response:', { data: data ? 'exists' : 'null', error });
+            
             if (error) throw error;
+            
+            if (!data || !data.user) {
+                throw new Error('No user returned from signup');
+            }
 
             // Create user profile
+            console.log('Creating user profile...');
             const { error: profileError } = await this.supabase
                 .from('user_profiles')
                 .insert([
@@ -107,26 +149,47 @@ class DatabaseService {
                     }
                 ]);
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Profile creation error:', profileError);
+                // Don't fail the signup if profile creation fails
+                // User can still login and profile can be created later
+            }
 
             return { user: data.user, error: null };
         } catch (error) {
-            return { user: null, error: error.message };
+            console.error('SignUp error:', error);
+            return { user: null, error: error.message || 'Signup failed' };
         }
     }
 
     async signIn(email, password) {
+        console.log('DatabaseService.signIn called');
+        
+        if (!this.supabase) {
+            console.error('Supabase client is null!');
+            return { user: null, error: 'Database connection not available. Please refresh the page.' };
+        }
+        
         try {
+            console.log('Calling supabase.auth.signInWithPassword...');
             const { data, error } = await this.supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
 
+            console.log('SignIn response:', { data: data ? 'exists' : 'null', error });
+            
             if (error) throw error;
+            
+            if (!data || !data.user) {
+                throw new Error('No user returned from signin');
+            }
+            
             this.currentUser = data.user;
             return { user: data.user, error: null };
         } catch (error) {
-            return { user: null, error: error.message };
+            console.error('SignIn error:', error);
+            return { user: null, error: error.message || 'Login failed' };
         }
     }
 
