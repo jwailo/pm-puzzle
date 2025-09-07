@@ -119,15 +119,27 @@ class AdminDashboard {
 
     async getDailyActiveUsers() {
         try {
-            const { data, error } = await this.supabase
-                .rpc('get_admin_active_users', { days: 1 });
+            // Get users who have stats updated in the last 24 hours
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            
+            const { count, error } = await this.supabase
+                .from('user_stats')
+                .select('user_id', { count: 'exact', head: true })
+                .gte('last_played', oneDayAgo.toISOString());
             
             if (error) {
                 console.error('Error getting daily active users:', error);
-                return 0;
+                // Fallback: check daily leaderboard for today
+                const today = new Date().toISOString().split('T')[0];
+                const { count: dailyCount } = await this.supabase
+                    .from('daily_leaderboard')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('puzzle_date', today);
+                return dailyCount || 0;
             }
             
-            return data || 0;
+            return count || 0;
         } catch (error) {
             console.error('Failed to get daily active users:', error);
             return 0;
@@ -136,15 +148,21 @@ class AdminDashboard {
 
     async getMonthlyActiveUsers() {
         try {
-            const { data, error } = await this.supabase
-                .rpc('get_admin_active_users', { days: 30 });
+            // Get users who have stats updated in the last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const { count, error } = await this.supabase
+                .from('user_stats')
+                .select('user_id', { count: 'exact', head: true })
+                .gte('last_played', thirtyDaysAgo.toISOString());
             
             if (error) {
                 console.error('Error getting monthly active users:', error);
                 return 0;
             }
             
-            return data || 0;
+            return count || 0;
         } catch (error) {
             console.error('Failed to get monthly active users:', error);
             return 0;
@@ -201,15 +219,35 @@ class AdminDashboard {
         try {
             console.log('Loading users list...');
             
-            // Use admin RPC function to bypass RLS
-            const { data: users, error } = await this.supabase
-                .rpc('get_admin_user_list');
+            // Query user profiles directly
+            const { data: profiles, error: profileError } = await this.supabase
+                .from('user_profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error loading users:', error);
-                document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
+            if (profileError) {
+                console.error('Error loading user profiles:', profileError);
+                // Try to get basic auth users as fallback
+                const { data: authData, error: authError } = await this.supabase.auth.admin.listUsers();
+                if (authError) {
+                    console.error('Error loading users:', authError);
+                    document.getElementById('loading').textContent = 'Error loading users: ' + authError.message;
+                    return;
+                }
+                // Convert auth users to profile format
+                const users = authData?.users?.map(user => ({
+                    user_id: user.id,
+                    email: user.email,
+                    first_name: user.user_metadata?.first_name || 'Unknown',
+                    created_at: user.created_at,
+                    marketing_consent: false
+                })) || [];
+                this.usersData = users;
+                this.renderUsersTable(users);
                 return;
             }
+            
+            const users = profiles || [];
 
             console.log('Users loaded:', users);
             
