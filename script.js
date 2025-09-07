@@ -1597,22 +1597,32 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     setupTestingListeners() {
-        // Game testing buttons
-        document.getElementById('test-win').addEventListener('click', () => this.testWin());
-        document.getElementById('test-lose').addEventListener('click', () => this.testLose());
-        document.getElementById('test-reset').addEventListener('click', () => this.testReset());
-        document.getElementById('test-reveal').addEventListener('click', () => this.testReveal());
+        // Game testing buttons - only add if they exist
+        const testWin = document.getElementById('test-win');
+        const testLose = document.getElementById('test-lose');
+        const testReset = document.getElementById('test-reset');
+        const testReveal = document.getElementById('test-reveal');
+        const testAddWin = document.getElementById('test-add-win');
+        const testAddLoss = document.getElementById('test-add-loss');
+        const testClearStats = document.getElementById('test-clear-stats');
         
-        // Stats testing buttons
-        document.getElementById('test-add-win').addEventListener('click', () => this.testAddWin());
-        document.getElementById('test-add-loss').addEventListener('click', () => this.testAddLoss());
-        document.getElementById('test-clear-stats').addEventListener('click', () => this.testClearStats());
-        document.getElementById('test-perfect-stats').addEventListener('click', () => this.testPerfectStats());
+        if (testWin) testWin.addEventListener('click', () => this.testWin());
+        if (testLose) testLose.addEventListener('click', () => this.testLose());
+        if (testReset) testReset.addEventListener('click', () => this.testReset());
+        if (testReveal) testReveal.addEventListener('click', () => this.testReveal());
+        if (testAddWin) testAddWin.addEventListener('click', () => this.testAddWin());
+        if (testAddLoss) testAddLoss.addEventListener('click', () => this.testAddLoss());
+        if (testClearStats) testClearStats.addEventListener('click', () => this.testClearStats());
         
-        // Leaderboard testing buttons
-        document.getElementById('test-add-leaderboard').addEventListener('click', () => this.testAddLeaderboard());
-        document.getElementById('test-clear-leaderboard').addEventListener('click', () => this.testClearLeaderboard());
-        document.getElementById('test-populate-leaderboard').addEventListener('click', () => this.testPopulateLeaderboard());
+        const testPerfectStats = document.getElementById('test-perfect-stats');
+        const testAddLeaderboard = document.getElementById('test-add-leaderboard');
+        const testClearLeaderboard = document.getElementById('test-clear-leaderboard');
+        const testPopulateLeaderboard = document.getElementById('test-populate-leaderboard');
+        
+        if (testPerfectStats) testPerfectStats.addEventListener('click', () => this.testPerfectStats());
+        if (testAddLeaderboard) testAddLeaderboard.addEventListener('click', () => this.testAddLeaderboard());
+        if (testClearLeaderboard) testClearLeaderboard.addEventListener('click', () => this.testClearLeaderboard());
+        if (testPopulateLeaderboard) testPopulateLeaderboard.addEventListener('click', () => this.testPopulateLeaderboard());
     }
 
     setupAuthListeners() {
