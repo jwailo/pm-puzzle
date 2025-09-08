@@ -131,8 +131,8 @@ $$;
 CREATE OR REPLACE FUNCTION get_admin_user_list()
 RETURNS TABLE (
     id UUID,
-    first_name VARCHAR(100),
-    email VARCHAR(255),
+    first_name TEXT,
+    email TEXT,
     created_at TIMESTAMPTZ,
     games_played INTEGER,
     games_won INTEGER,
@@ -146,12 +146,12 @@ BEGIN
     RETURN QUERY
     SELECT 
         up.id,
-        up.first_name,
-        up.email,
+        up.first_name::TEXT,
+        up.email::TEXT,
         up.created_at,
-        COALESCE(us.games_played, 0) as games_played,
-        COALESCE(us.games_won, 0) as games_won,
-        COALESCE(us.max_streak, 0) as max_streak,
+        COALESCE(us.games_played, 0)::INTEGER as games_played,
+        COALESCE(us.games_won, 0)::INTEGER as games_won,
+        COALESCE(us.max_streak, 0)::INTEGER as max_streak,
         us.updated_at
     FROM user_profiles up
     LEFT JOIN user_stats us ON up.id = us.user_id
