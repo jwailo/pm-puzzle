@@ -150,6 +150,7 @@ class AdminDashboard {
                 return 0;
             }
             
+            console.log('Daily active users (all players including guests):', data);
             return data || 0;
         } catch (error) {
             console.error('Failed to get daily active users:', error);
@@ -167,6 +168,7 @@ class AdminDashboard {
                 return 0;
             }
             
+            console.log('Monthly active users (all players including guests):', data);
             return data || 0;
         } catch (error) {
             console.error('Failed to get monthly active users:', error);
@@ -206,7 +208,7 @@ class AdminDashboard {
     calculateSignupPercentage(signedUp, total) {
         if (!total || total === 0) return '0%';
         const percentage = Math.round((signedUp / total) * 100);
-        console.log(`Signup rate: ${signedUp} signed up / ${total} total = ${percentage}%`);
+        console.log(`Signup rate calculation: ${signedUp} signed up users / ${total} total players = ${percentage}%`);
         return `${percentage}%`;
     }
     
