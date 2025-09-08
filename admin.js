@@ -92,19 +92,47 @@ class AdminDashboard {
     }
 
     async getTotalPlayers() {
-        // Get ALL players including guests from user_stats
+        // Get total players = all signed up users + guest players
         try {
-            const { count, error } = await this.supabase
-                .from('user_stats')
-                .select('*', { count: 'exact', head: true });
-            
-            if (error) {
-                console.error('Error getting total players:', error);
-                return { count: 0 };
+            // Try RPC function first if available
+            try {
+                const { data: rpcData, error: rpcError } = await this.supabase
+                    .rpc('get_admin_total_players');
+                
+                if (!rpcError && rpcData !== null) {
+                    console.log('Total players from RPC:', rpcData);
+                    return { count: rpcData };
+                }
+            } catch (e) {
+                console.log('RPC function not available, using direct queries');
             }
             
-            console.log('Total players (including guests):', count);
-            return { count };
+            // Fallback: calculate manually
+            // First get all signed up users (from user_profiles)
+            const { count: profileCount, error: profileError } = await this.supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact', head: true });
+            
+            if (profileError) {
+                console.error('Error getting user profiles count:', profileError);
+            }
+            
+            // Then get guest players (user_stats entries starting with 'guest_')
+            const { count: guestCount, error: guestError } = await this.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact', head: true })
+                .like('user_id', 'guest_%');
+            
+            if (guestError) {
+                console.error('Error getting guest count:', guestError);
+            }
+            
+            const signedUpUsers = profileCount || 0;
+            const guestPlayers = guestCount || 0;
+            const totalPlayers = signedUpUsers + guestPlayers;
+            
+            console.log(`Total players calculation: ${signedUpUsers} signed up + ${guestPlayers} guests = ${totalPlayers} total`);
+            return { count: totalPlayers };
         } catch (e) {
             console.error('Failed to get total players:', e);
             return { count: 0 };
