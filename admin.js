@@ -60,17 +60,19 @@ class AdminDashboard {
             document.getElementById('users-table').style.display = 'none';
 
             // Load all data
-            const userStats = await this.getTotalUsers();
+            const totalPlayers = await this.getTotalPlayers();  // All players including guests
+            const signedUpUsers = await this.getSignedUpUsers(); // Only registered users
             const dailyActive = await this.getDailyActiveUsers();
             const monthlyActive = await this.getMonthlyActiveUsers();
             const totalGames = await this.getTotalGames();
-            const signupPercentage = await this.getSignupPercentage();
+            const signupPercentage = this.calculateSignupPercentage(signedUpUsers.count, totalPlayers.count);
             const totalShares = await this.getTotalShares();
 
-            console.log('Stats loaded:', { userStats, dailyActive, monthlyActive, totalGames, signupPercentage, totalShares });
+            console.log('Stats loaded:', { totalPlayers, signedUpUsers, dailyActive, monthlyActive, totalGames, signupPercentage, totalShares });
 
             // Update stats
-            document.getElementById('total-users').textContent = userStats.count || 0;
+            document.getElementById('total-users').textContent = totalPlayers.count || 0;
+            document.getElementById('signed-up-users').textContent = signedUpUsers.count || 0;
             document.getElementById('daily-active').textContent = dailyActive || 0;
             document.getElementById('monthly-active').textContent = monthlyActive || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
@@ -89,14 +91,35 @@ class AdminDashboard {
         }
     }
 
-    async getTotalUsers() {
+    async getTotalPlayers() {
+        // Get ALL players including guests from user_stats
+        try {
+            const { count, error } = await this.supabase
+                .from('user_stats')
+                .select('*', { count: 'exact', head: true });
+            
+            if (error) {
+                console.error('Error getting total players:', error);
+                return { count: 0 };
+            }
+            
+            console.log('Total players (including guests):', count);
+            return { count };
+        } catch (e) {
+            console.error('Failed to get total players:', e);
+            return { count: 0 };
+        }
+    }
+    
+    async getSignedUpUsers() {
+        // Get only registered users from user_profiles
         try {
             // Try RPC function first (bypasses RLS)
             const { data: rpcData, error: rpcError } = await this.supabase
                 .rpc('get_admin_total_users');
             
             if (!rpcError && rpcData !== null) {
-                console.log('Total users from RPC:', rpcData);
+                console.log('Signed up users from RPC:', rpcData);
                 return { count: rpcData };
             }
         } catch (e) {
@@ -109,11 +132,11 @@ class AdminDashboard {
             .select('*', { count: 'exact', head: true });
         
         if (error) {
-            console.error('Error getting total users:', error);
+            console.error('Error getting signed up users:', error);
             return { count: 0 };
         }
         
-        console.log('Total users from direct query:', count);
+        console.log('Signed up users from direct query:', count);
         return { count };
     }
 
@@ -180,7 +203,15 @@ class AdminDashboard {
         return totalGames;
     }
 
+    calculateSignupPercentage(signedUp, total) {
+        if (!total || total === 0) return '0%';
+        const percentage = Math.round((signedUp / total) * 100);
+        console.log(`Signup rate: ${signedUp} signed up / ${total} total = ${percentage}%`);
+        return `${percentage}%`;
+    }
+    
     async getSignupPercentage() {
+        // Legacy function - now using calculateSignupPercentage instead
         try {
             const { data, error } = await this.supabase
                 .rpc('get_admin_signup_percentage');
