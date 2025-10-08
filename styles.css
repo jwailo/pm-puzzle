@@ -35,7 +35,7 @@ input, textarea {
     --color-present: var(--color-ailo-blue);
     --color-absent: #787c7e;
     --color-empty: #d3d6da;
-    --color-bg: #32ff00;  /* Lime green background */
+    --color-bg: #ffffff;
     --color-text: #1a1a1b;
     --color-key-bg: #d3d6da;
     --color-key-text: #1a1a1b;
