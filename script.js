@@ -977,19 +977,110 @@ class PMWordle {
         console.log('showGameCompletionModal called');
         console.log('isGuest:', this.isGuest, 'gameWon:', this.gameWon, 'gameOver:', this.gameOver);
 
-        if (this.isGuest && this.gameWon) {
-            // For guests who won: show stats briefly, then signup prompt
-            console.log('Showing stats for guest winner');
-            this.showModal('stats');
-            setTimeout(() => {
-                this.hideModal('stats');
-                this.showGuestSignupPrompt();
-            }, 1000); // Show for 1 second
+        if (this.isGuest) {
+            // For guests: prompt to sign up first, then show stats
+            if (this.gameWon) {
+                console.log('Guest won - showing win signup prompt');
+                this.showGuestWinSignupPrompt();
+            } else {
+                console.log('Guest lost - showing loss signup prompt');
+                this.showGuestLossSignupPrompt();
+            }
         } else {
-            // Show regular stats modal (for losses or logged-in users)
-            console.log('Showing regular stats modal');
+            // For logged-in users: show stats directly
+            console.log('Showing regular stats modal for logged-in user');
             this.showModal('stats');
         }
+    }
+
+    showGuestWinSignupPrompt() {
+        // For guests who won - encourage signup with celebration
+        const existingPrompt = document.getElementById('guest-game-signup-prompt');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+
+        const promptHTML = `
+            <div id="guest-game-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>🎉 Congratulations!</h2>
+                        <button class="close-btn" onclick="game.skipGuestSignupAndShowStats();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="font-size: 18px; margin-bottom: 16px;"><strong>You solved today's puzzle!</strong></p>
+                        <div class="mecca-voucher" style="margin: 16px 0; padding: 16px; background: linear-gradient(135deg, #ff6b6b, #4ecdc4); color: white; border-radius: 8px; font-weight: bold;">
+                            🎁 Sign up to save your win<br>
+                            and compete for a daily<br>
+                            <span style="font-size: 1.2em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">$50 MECCA VOUCHER</span>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 12px 0;">
+                            Track your streak and compete on the leaderboard!
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                            <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0; background: var(--color-correct);">
+                                Sign Up & Save Win
+                            </button>
+                            <button onclick="game.skipGuestSignupAndShowStats();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                                View Stats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
+    }
+
+    showGuestLossSignupPrompt() {
+        // For guests who lost - encourage signup to track progress
+        const existingPrompt = document.getElementById('guest-game-signup-prompt');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+
+        const promptHTML = `
+            <div id="guest-game-signup-prompt" class="modal show" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2500; display: flex !important; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.6); overflow: auto;">
+                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    <div class="modal-header">
+                        <h2>😔 Better luck tomorrow!</h2>
+                        <button class="close-btn" onclick="game.skipGuestSignupAndShowStats();">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">The word was <strong style="color: var(--color-correct);">${this.currentWord}</strong></p>
+                        <p style="margin-bottom: 16px;">Don't worry, there's a new puzzle tomorrow!</p>
+                        <div class="mecca-voucher" style="margin: 16px 0; padding: 16px; background: linear-gradient(135deg, #ff6b6b, #4ecdc4); color: white; border-radius: 8px; font-weight: bold;">
+                            🎯 Sign up to track your progress<br>
+                            and compete for a daily<br>
+                            <span style="font-size: 1.2em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">$50 MECCA VOUCHER</span>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 12px 0;">
+                            Build your streak and improve your stats!
+                        </p>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                            <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
+                                Sign Up Now
+                            </button>
+                            <button onclick="game.skipGuestSignupAndShowStats();" class="skip-btn" style="margin: 0; padding: 12px 16px;">
+                                View Stats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', promptHTML);
+    }
+
+    skipGuestSignupAndShowStats() {
+        // Remove the signup prompt and show stats
+        const prompt = document.getElementById('guest-game-signup-prompt');
+        if (prompt) {
+            prompt.remove();
+        }
+        this.showModal('stats');
     }
 
     showGuestStatsSignupPrompt() {
@@ -1944,8 +2035,11 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             this.processingGuess = false; // Clear flag when game ends
             await this.celebrateWin();
 
-            // Show popup immediately for better UX
-            setTimeout(() => this.showGameCompletionModal(), 1000);
+            // Show completion modal after celebration
+            setTimeout(() => {
+                console.log('Showing game completion modal after win');
+                this.showGameCompletionModal();
+            }, 1000);
 
             // Do database updates in background (don't await)
             this.saveStats();
@@ -1958,19 +2052,25 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             console.log('Final row was:', this.currentRow);
             this.gameOver = true;
             this.processingGuess = false; // Clear flag when game ends
-            this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
+
+            // Only show the word message for logged-in users
+            // Guests will see it in the signup prompt
+            if (!this.isGuest) {
+                this.showMessage(`The word was ${this.currentWord}`, 'error', 3000);
+            }
 
             // Save stats first
             await this.saveStats();
             await this.updateStats();
             await this.saveGameState();
 
-            // Show completion modal for both guests and logged-in users
+            // Show completion modal immediately for guests, with delay for logged-in users
+            const delay = this.isGuest ? 500 : 1500;
             setTimeout(() => {
                 console.log('Showing game completion modal after loss');
                 console.log('isGuest:', this.isGuest, 'gameWon:', this.gameWon);
                 this.showGameCompletionModal();
-            }, 1500);
+            }, delay);
         } else {
             // Move to next row
             this.currentRow++;
