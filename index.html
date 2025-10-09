@@ -4,12 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>The PM Puzzle</title>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2W2V6EYFGQ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-2W2V6EYFGQ');
+    </script>
+
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Clear+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Security Initialization (loads before main scripts) -->
+    <script src="/secure-init.js"></script>
+    <script src="/utils/auth-security.js"></script>
 </head>
 <body>
     <div class="game-container">
@@ -67,6 +87,16 @@
                     <input type="text" id="firstname" placeholder="First Name" autocomplete="given-name">
                     <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
                     <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+                    <div id="password-requirements" class="password-requirements hidden">
+                        <small>Password must contain:</small>
+                        <ul class="requirements-list">
+                            <li id="req-length" class="requirement">At least 8 characters</li>
+                            <li id="req-uppercase" class="requirement">Uppercase letter (A-Z)</li>
+                            <li id="req-lowercase" class="requirement">Lowercase letter (a-z)</li>
+                            <li id="req-number" class="requirement">Number (0-9)</li>
+                            <li id="req-special" class="requirement">Special character (!@#$%^&*)</li>
+                        </ul>
+                    </div>
                     <div id="marketing-consent" class="marketing-consent hidden">
                         <label class="checkbox-label">
                             <input type="checkbox" id="marketing-checkbox" checked required>
