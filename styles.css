@@ -638,7 +638,7 @@ body.dark-mode .icon-btn:hover {
     color: white;
 }
 
-/* Modals - Mobile Optimized */
+/* Modals - Mobile Optimized with Better Scrolling */
 .modal {
     display: none;
     position: fixed;
@@ -648,32 +648,77 @@ body.dark-mode .icon-btn:hover {
     width: 100%;
     height: 100%;
     height: 100vh;
-    height: 100svh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
     background-color: var(--color-modal-overlay);
     animation: fadeIn 0.3s ease-out;
     overscroll-behavior: contain;
+    /* Prevent scrolling on the modal backdrop */
+    touch-action: none;
+    overflow: hidden;
 }
 
 .modal.show {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Changed from center to flex-start for better mobile scroll */
     justify-content: center;
-    padding: 16px;
-    padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
+    padding: 0; /* Remove padding to prevent scroll issues */
+    overflow-y: auto; /* Allow scrolling on the modal container itself */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y; /* Allow vertical scrolling */
+}
+
+/* Modal inner wrapper for proper spacing */
+.modal.show::before {
+    content: '';
+    display: block;
+    height: 40px; /* Top spacing */
+    flex-shrink: 0;
+}
+
+.modal.show::after {
+    content: '';
+    display: block;
+    height: 40px; /* Bottom spacing */
+    flex-shrink: 0;
 }
 
 .modal-content {
     background-color: var(--color-modal-bg);
     border-radius: 12px;
-    width: 100%;
+    width: calc(100% - 32px);
     max-width: 500px;
-    max-height: 90vh;
-    max-height: calc(100svh - 32px);
-    overflow-y: auto;
+    max-height: none; /* Remove max-height restriction */
+    margin: 40px 16px; /* Add margin for spacing */
+    overflow-y: visible; /* Content doesn't scroll internally */
     animation: slideUp 0.3s ease-out;
-    touch-action: manipulation;
-    -webkit-overflow-scrolling: touch;
     position: relative;
+    flex-shrink: 0; /* Prevent squishing */
+    /* Better touch handling */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .modal {
+        height: -webkit-fill-available;
+    }
+
+    .modal-content {
+        /* Prevent rubber-banding on iOS */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
 }
 
 .modal-header {
@@ -2068,4 +2113,66 @@ input[type="checkbox"]:checked + .toggle-label::after {
     .game-board {
         padding: 0;
     }
+}
+/* Password Requirements Indicator */
+.password-requirements {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background-color: rgba(238, 11, 79, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    text-align: left;
+}
+
+.password-requirements small {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.requirements-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.requirement {
+    font-size: 11px;
+    color: var(--color-text);
+    margin-bottom: 4px;
+    padding-left: 20px;
+    position: relative;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.requirement::before {
+    content: "✗";
+    position: absolute;
+    left: 0;
+    color: var(--color-error);
+    font-weight: bold;
+}
+
+.requirement.valid {
+    color: var(--color-correct);
+    opacity: 1;
+}
+
+.requirement.valid::before {
+    content: "✓";
+    color: var(--color-correct);
+}
+
+/* Password field with validation state */
+#password.invalid {
+    border-color: var(--color-error);
+}
+
+#password.valid {
+    border-color: var(--color-correct);
 }

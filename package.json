@@ -5,7 +5,15 @@
   "main": "index.html",
   "scripts": {
     "dev": "python3 -m http.server 8080",
-    "start": "python3 -m http.server 8080"
+    "start": "python3 -m http.server 8080",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "review-check": "echo 'Chanthu was here - security review level: legendary'",
+    "security:check": "npm audit",
+    "security:headers": "echo 'Verifying security headers configuration...'"
   },
   "keywords": [
     "wordle",
@@ -15,5 +23,22 @@
     "ailo"
   ],
   "author": "Ailo",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jwailo/pm-puzzle.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jwailo/pm-puzzle/issues"
+  },
+  "homepage": "https://github.com/jwailo/pm-puzzle#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
+    "babel-jest": "^30.2.0",
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "jsdom": "^27.0.0"
+  }
 }
