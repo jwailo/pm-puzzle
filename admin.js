@@ -4,10 +4,10 @@ class AdminDashboard {
         // Use the same Supabase configuration as the main game
         this.supabaseUrl = 'https://taeetzxhrdohdijwgous.supabase.co';
         this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZWV0enhocmRvaGRpandnb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzc2NTcsImV4cCI6MjA3MTgxMzY1N30.xzf-hGFWF6iumTarOA1-3hABjab_O_o0tcM956a3PG0';
-        
+
         // Initialize Supabase client
         this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
-        
+
         this.adminPassword = 'pmwordle2024!'; // Change this to a secure password
         this.init();
     }
@@ -53,14 +53,14 @@ class AdminDashboard {
 
     async loadDashboardData() {
         try {
-            console.log('Loading dashboard data...');
-            
+            console.log('=== Loading Admin Dashboard Data ===');
+
             // Show loading state
             document.getElementById('loading').style.display = 'block';
             document.getElementById('users-table').style.display = 'none';
 
             // Load all data
-            const totalPlayers = await this.getTotalPlayers();  // All players including guests
+            const totalPlayers = await this.getTotalPlayers(); // All players including guests
             const signedUpUsers = await this.getSignedUpUsers(); // Only registered users
             const dailyActive = await this.getDailyActiveUsers();
             const monthlyActive = await this.getMonthlyActiveUsers();
@@ -68,7 +68,15 @@ class AdminDashboard {
             const signupPercentage = this.calculateSignupPercentage(signedUpUsers.count, totalPlayers.count);
             const totalShares = await this.getTotalShares();
 
-            console.log('Stats loaded:', { totalPlayers, signedUpUsers, dailyActive, monthlyActive, totalGames, signupPercentage, totalShares });
+            console.log('=== Dashboard Stats Summary ===');
+            console.log('Total Players (including guests):', totalPlayers.count);
+            console.log('Signed Up Users:', signedUpUsers.count);
+            console.log('Sign-up Rate:', signupPercentage);
+            console.log('Daily Active:', dailyActive);
+            console.log('Monthly Active:', monthlyActive);
+            console.log('Total Games:', totalGames);
+            console.log('Total Shares:', totalShares);
+            console.log('================================');
 
             // Update stats
             document.getElementById('total-users').textContent = totalPlayers.count || 0;
@@ -81,10 +89,9 @@ class AdminDashboard {
 
             // Load and display users
             await this.loadUsersList();
-            
+
             // Load sharing analytics
             await this.loadSharingAnalytics();
-
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             alert('Error loading dashboard data. Check console for details.');
@@ -98,7 +105,7 @@ class AdminDashboard {
             try {
                 const { data: rpcData, error: rpcError } = await this.supabase
                     .rpc('get_admin_total_players');
-                
+
                 if (!rpcError && rpcData !== null) {
                     console.log('Total players from RPC:', rpcData);
                     return { count: rpcData };
@@ -106,46 +113,64 @@ class AdminDashboard {
             } catch (e) {
                 console.log('RPC function not available, using direct queries');
             }
-            
+
             // Fallback: calculate manually
             // First get all signed up users (from user_profiles)
             const { count: profileCount, error: profileError } = await this.supabase
                 .from('user_profiles')
                 .select('*', { count: 'exact', head: true });
-            
+
             if (profileError) {
                 console.error('Error getting user profiles count:', profileError);
             }
-            
-            // Then get guest players (user_stats entries starting with 'guest_')
-            const { count: guestCount, error: guestError } = await this.supabase
+
+            // Then get ALL user_stats entries to find both guests and registered users who have played
+            const { data: allStats, error: statsError } = await this.supabase
                 .from('user_stats')
-                .select('*', { count: 'exact', head: true })
-                .like('user_id', 'guest_%');
-            
-            if (guestError) {
-                console.error('Error getting guest count:', guestError);
+                .select('user_id');
+
+            if (statsError) {
+                console.error('Error getting user stats:', statsError);
             }
-            
+
+            // Count unique players
+            let guestPlayers = 0;
+            let registeredPlayersInStats = 0;
+
+            if (allStats) {
+                allStats.forEach(stat => {
+                    if (stat.user_id && stat.user_id.startsWith('guest_')) {
+                        guestPlayers++;
+                    } else if (stat.user_id) {
+                        registeredPlayersInStats++;
+                    }
+                });
+            }
+
             const signedUpUsers = profileCount || 0;
-            const guestPlayers = guestCount || 0;
+
+            // Total players = all registered users + guest players
+            // We use profileCount instead of registeredPlayersInStats to include users who signed up but haven't played yet
             const totalPlayers = signedUpUsers + guestPlayers;
-            
-            console.log(`Total players calculation: ${signedUpUsers} signed up + ${guestPlayers} guests = ${totalPlayers} total`);
+
+            console.log(`Player breakdown:`);
+            console.log(`  - Signed up users: ${signedUpUsers}`);
+            console.log(`  - Guest players: ${guestPlayers}`);
+            console.log(`  - Total unique players: ${totalPlayers}`);
             return { count: totalPlayers };
         } catch (e) {
             console.error('Failed to get total players:', e);
             return { count: 0 };
         }
     }
-    
+
     async getSignedUpUsers() {
         // Get only registered users from user_profiles
         try {
             // Try RPC function first (bypasses RLS)
             const { data: rpcData, error: rpcError } = await this.supabase
                 .rpc('get_admin_total_users');
-            
+
             if (!rpcError && rpcData !== null) {
                 console.log('Signed up users from RPC:', rpcData);
                 return { count: rpcData };
@@ -153,17 +178,17 @@ class AdminDashboard {
         } catch (e) {
             console.log('RPC function not available, trying direct query');
         }
-        
+
         // Fallback to direct query
         const { count, error } = await this.supabase
             .from('user_profiles')
             .select('*', { count: 'exact', head: true });
-        
+
         if (error) {
             console.error('Error getting signed up users:', error);
             return { count: 0 };
         }
-        
+
         console.log('Signed up users from direct query:', count);
         return { count };
     }
@@ -172,12 +197,12 @@ class AdminDashboard {
         try {
             const { data, error } = await this.supabase
                 .rpc('get_admin_active_users', { days: 1 });
-            
+
             if (error) {
                 console.error('Error getting daily active users:', error);
                 return 0;
             }
-            
+
             console.log('Daily active users (all players including guests):', data);
             return data || 0;
         } catch (error) {
@@ -190,12 +215,12 @@ class AdminDashboard {
         try {
             const { data, error } = await this.supabase
                 .rpc('get_admin_active_users', { days: 30 });
-            
+
             if (error) {
                 console.error('Error getting monthly active users:', error);
                 return 0;
             }
-            
+
             console.log('Monthly active users (all players including guests):', data);
             return data || 0;
         } catch (error) {
@@ -209,7 +234,7 @@ class AdminDashboard {
             // Try RPC function first (bypasses RLS)
             const { data: rpcData, error: rpcError } = await this.supabase
                 .rpc('get_admin_total_games');
-            
+
             if (!rpcError && rpcData !== null) {
                 console.log('Total games from RPC:', rpcData);
                 return rpcData;
@@ -217,40 +242,43 @@ class AdminDashboard {
         } catch (e) {
             console.log('RPC function not available, trying direct query');
         }
-        
+
         // Fallback to direct query
         const { data, error } = await this.supabase
             .from('user_stats')
             .select('games_played');
-        
+
         if (error) {
             console.error('Error getting total games:', error);
             return 0;
         }
-        
+
         console.log('Games data from direct query:', data);
         const totalGames = data ? data.reduce((sum, user) => sum + (user.games_played || 0), 0) : 0;
         return totalGames;
     }
 
     calculateSignupPercentage(signedUp, total) {
-        if (!total || total === 0) return '0%';
-        const percentage = Math.round((signedUp / total) * 100);
-        console.log(`Signup rate calculation: ${signedUp} signed up users / ${total} total players = ${percentage}%`);
+        if (!total || total === 0) {
+            console.log('No total players to calculate percentage');
+            return '0%';
+        }
+        const percentage = ((signedUp / total) * 100).toFixed(1);
+        console.log(`Signup rate calculation: ${signedUp} signed up ÷ ${total} total = ${percentage}%`);
         return `${percentage}%`;
     }
-    
+
     async getSignupPercentage() {
         // Legacy function - now using calculateSignupPercentage instead
         try {
             const { data, error } = await this.supabase
                 .rpc('get_admin_signup_percentage');
-            
+
             if (error) {
                 console.error('Error getting signup percentage:', error);
                 return 'N/A';
             }
-            
+
             return data || '0%';
         } catch (error) {
             console.error('Failed to get signup percentage:', error);
@@ -261,7 +289,7 @@ class AdminDashboard {
     async loadUsersList() {
         try {
             console.log('Loading users list...');
-            
+
             // Use admin RPC function to bypass RLS
             const { data: users, error } = await this.supabase
                 .rpc('get_admin_user_list');
@@ -269,7 +297,7 @@ class AdminDashboard {
             if (error) {
                 console.error('Error loading users:', error);
                 document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
-                
+
                 // Try fallback to direct query if RPC fails
                 console.log('Attempting fallback to direct query...');
                 const { data: profiles, error: profileError } = await this.supabase
@@ -287,12 +315,12 @@ class AdminDashboard {
                         )
                     `)
                     .order('created_at', { ascending: false });
-                
+
                 if (profileError) {
                     console.error('Fallback also failed:', profileError);
                     return;
                 }
-                
+
                 // Transform the data to match expected format
                 const transformedUsers = profiles?.map(profile => ({
                     id: profile.id,
@@ -304,7 +332,7 @@ class AdminDashboard {
                     max_streak: profile.user_stats?.[0]?.max_streak || 0,
                     updated_at: profile.user_stats?.[0]?.updated_at || profile.created_at
                 })) || [];
-                
+
                 console.log('Fallback users loaded:', transformedUsers);
                 this.usersData = transformedUsers;
                 this.renderUsersTable(transformedUsers);
@@ -314,10 +342,9 @@ class AdminDashboard {
             console.log('Users loaded from RPC:', users);
             console.log('Users type:', typeof users);
             console.log('Users is array?:', Array.isArray(users));
-            
+
             this.usersData = users || [];
             this.renderUsersTable(users || []);
-
         } catch (error) {
             console.error('Error in loadUsersList:', error);
             document.getElementById('loading').textContent = 'Error loading users: ' + error.message;
@@ -330,7 +357,7 @@ class AdminDashboard {
 
         console.log('Rendering users table with:', users);
         console.log('Number of users to render:', users ? users.length : 0);
-        
+
         if (!users || users.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No users found</td></tr>';
             document.getElementById('loading').style.display = 'none';
@@ -341,7 +368,7 @@ class AdminDashboard {
         users.forEach((user, index) => {
             console.log(`User ${index}:`, user);
             const row = document.createElement('tr');
-            
+
             const formatDate = (dateString) => {
                 if (!dateString) return 'Never';
                 return new Date(dateString).toLocaleDateString();
@@ -356,7 +383,7 @@ class AdminDashboard {
                 <td>${formatDate(user.updated_at)}</td>
                 <td>${formatDate(user.created_at)}</td>
             `;
-            
+
             tbody.appendChild(row);
         });
 
@@ -372,7 +399,7 @@ class AdminDashboard {
         }
 
         const csvHeader = 'Name,Email,Games Played,Games Won,Max Streak,Last Active,Signed Up\n';
-        
+
         const csvRows = this.usersData.map(user => {
             const formatDate = (dateString) => {
                 if (!dateString) return 'Never';
@@ -391,16 +418,16 @@ class AdminDashboard {
         }).join('\n');
 
         const csvContent = csvHeader + csvRows;
-        
+
         // Create and trigger download
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        
+
         link.setAttribute('href', url);
         link.setAttribute('download', `pm-puzzle-users-${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -409,12 +436,12 @@ class AdminDashboard {
     async getTotalShares() {
         try {
             const { data, error } = await this.supabase.rpc('get_admin_total_shares');
-            
+
             if (error) {
                 console.error('Error getting total shares:', error);
                 return 0;
             }
-            
+
             return data || 0;
         } catch (error) {
             console.error('Failed to get total shares:', error);
@@ -426,7 +453,7 @@ class AdminDashboard {
         try {
             // Load audience breakdown
             const { data: audienceData, error: audienceError } = await this.supabase.rpc('get_admin_share_stats');
-            
+
             if (audienceError) {
                 console.error('Error loading audience data:', audienceError);
                 document.getElementById('audience-breakdown').innerHTML = '<div style="color: #e53e3e;">Error loading data</div>';
@@ -436,14 +463,13 @@ class AdminDashboard {
 
             // Load custom shares
             const { data: customData, error: customError } = await this.supabase.rpc('get_admin_recent_custom_shares');
-            
+
             if (customError) {
                 console.error('Error loading custom shares:', customError);
                 document.getElementById('custom-shares').innerHTML = '<div style="color: #e53e3e;">Error loading data</div>';
             } else {
                 this.renderCustomShares(customData || []);
             }
-
         } catch (error) {
             console.error('Error in loadSharingAnalytics:', error);
         }
@@ -451,7 +477,7 @@ class AdminDashboard {
 
     renderAudienceBreakdown(data) {
         const container = document.getElementById('audience-breakdown');
-        
+
         if (!data || data.length === 0) {
             container.innerHTML = '<div style="color: #666;">No shares recorded yet</div>';
             return;
@@ -459,7 +485,7 @@ class AdminDashboard {
 
         const audienceNames = {
             colleague: '👔 Colleagues',
-            pms: '🏢 Other PMs', 
+            pms: '🏢 Other PMs',
             tradies: '🔧 Tradies',
             mum: '❤️ Family/Friends',
             custom: '✨ Custom'
@@ -469,7 +495,7 @@ class AdminDashboard {
         data.forEach(item => {
             const name = audienceNames[item.audience_type] || item.audience_type;
             const percentage = data.length > 0 ? Math.round((item.share_count / data.reduce((sum, d) => sum + parseInt(d.share_count), 0)) * 100) : 0;
-            
+
             html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee;">
                     <span>${name}</span>
@@ -488,7 +514,7 @@ class AdminDashboard {
 
     renderCustomShares(data) {
         const container = document.getElementById('custom-shares');
-        
+
         if (!data || data.length === 0) {
             container.innerHTML = '<div style="color: #666;">No custom shares yet</div>';
             return;
@@ -497,8 +523,8 @@ class AdminDashboard {
         let html = '';
         data.forEach(item => {
             const date = new Date(item.shared_at).toLocaleDateString();
-            const time = new Date(item.shared_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
+            const time = new Date(item.shared_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             html += `
                 <div style="padding: 8px 0; border-bottom: 1px solid #eee;">
                     <div style="font-weight: bold; color: #333;">"${item.custom_audience}"</div>
