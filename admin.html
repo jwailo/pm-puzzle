@@ -208,10 +208,11 @@
     <div id="login-container" class="login-container">
         <h1>🔐 PM Puzzle Admin</h1>
         <form id="login-form" class="login-form">
-            <input type="password" id="admin-password" placeholder="Admin Password" required>
+            <input type="email" id="admin-email" placeholder="Email" required autocomplete="email">
+            <input type="password" id="admin-password" placeholder="Password" required autocomplete="current-password">
             <button type="submit" class="login-btn">Login</button>
         </form>
-        <div id="error-message" class="error-message">Invalid password</div>
+        <div id="error-message" class="error-message">Invalid credentials</div>
     </div>
 
     <!-- Admin Dashboard -->

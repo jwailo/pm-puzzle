@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import sessionStore from './auth/session-store.js';
 
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map();
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
     console.log(`Admin auth attempt from IP: ${clientIp}, UA: ${userAgent}`);
 
     try {
-        const { action, password, token } = req.body;
+        const { action, username, email, password, token } = req.body;
 
         if (action === 'login') {
             // Check rate limiting
@@ -40,12 +42,16 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Verify password against environment variable
+            // Support both email-based and legacy authentication
+            const adminEmail = process.env.ADMIN_EMAIL || 'admin@pmpuzzle.com';
+            const adminUsername = process.env.ADMIN_USERNAME || 'Admin';
             const adminPassword = process.env.ADMIN_PASSWORD;
             const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
             // Log environment variable status for debugging (remove in production)
             console.log('Environment check:', {
+                hasEmail: !!email,
+                hasUsername: !!username,
                 hasAdminPassword: !!adminPassword,
                 hasAdminPasswordHash: !!adminPasswordHash,
                 nodeEnv: process.env.NODE_ENV,
@@ -54,46 +60,84 @@ export default async function handler(req, res) {
 
             // Temporary fallback for initial setup (REMOVE after confirming env vars work)
             const FALLBACK_PASSWORD = 'PMpuzzle2024!Admin';
+            const FALLBACK_EMAIL = 'admin@pmpuzzle.com';
+
+            let isValid = false;
+            let authenticatedEmail = email || FALLBACK_EMAIL;
+            let authenticatedUsername = adminUsername;
 
             if (!adminPassword && !adminPasswordHash) {
                 console.warn('Using fallback password - SET ENVIRONMENT VARIABLES IN VERCEL!');
+
+                // Check if email matches (if provided)
+                if (email && email.toLowerCase() !== FALLBACK_EMAIL.toLowerCase()) {
+                    return res.status(401).json({
+                        error: 'Invalid credentials',
+                        attemptsRemaining: Math.max(0, MAX_ATTEMPTS - attempts.count)
+                    });
+                }
+
                 if (password === FALLBACK_PASSWORD) {
                     // Allow fallback login but warn heavily
                     console.warn('SECURITY WARNING: Fallback password used. Configure ADMIN_PASSWORD in Vercel immediately!');
                     // Continue with login process
                     rateLimitStore.delete(clientIp);
                     const sessionToken = crypto.randomBytes(32).toString('hex');
-                    const sessionData = {
+                    const sessionData = sessionStore.create(sessionToken, {
+                        username: authenticatedUsername,
+                        email: authenticatedEmail,
                         ip: clientIp,
                         userAgent,
-                        createdAt: Date.now(),
-                        expiresAt: Date.now() + SESSION_DURATION,
                         fallbackUsed: true
-                    };
-                    sessions.set(sessionToken, sessionData);
+                    });
 
                     return res.status(200).json({
                         success: true,
                         token: sessionToken,
-                        expiresIn: SESSION_DURATION / 1000,
+                        user: {
+                            username: authenticatedUsername,
+                            email: process.env.ADMIN_EMAIL || 'admin@pmpuzzle.com'
+                        },
+                        expiresIn: (sessionData.expiresAt - Date.now()) / 1000,
                         warning: 'Using fallback authentication. Please configure environment variables.'
                     });
                 } else {
                     return res.status(500).json({
                         error: 'Server configuration error. Admin password not set in Vercel environment variables.',
-                        debug: 'Temporary password: PMpuzzle2024!Admin (configure env vars ASAP)'
+                        debug: 'Temporary credentials: admin / PMpuzzle2024!Admin (configure env vars ASAP)'
                     });
                 }
             }
 
-            let isValid = false;
+            // Check email if provided (primary auth method)
+            if (email && email.toLowerCase() !== adminEmail.toLowerCase()) {
+                // Track failed attempt
+                attempts.count++;
+                if (attempts.count >= MAX_ATTEMPTS) {
+                    attempts.lockedUntil = Date.now() + LOCKOUT_DURATION;
+                    console.warn(`IP ${clientIp} locked out after ${MAX_ATTEMPTS} failed attempts`);
+                }
+                rateLimitStore.set(clientIp, attempts);
 
-            // Check if we're using a hashed password (more secure)
-            if (adminPasswordHash) {
+                return res.status(401).json({
+                    error: 'Invalid credentials',
+                    attemptsRemaining: Math.max(0, MAX_ATTEMPTS - attempts.count)
+                });
+            }
+
+            // Check if we're using bcrypt hashed password
+            if (adminPasswordHash && adminPasswordHash.startsWith('$2')) {
+                // Bcrypt hash
+                isValid = await bcrypt.compare(password, adminPasswordHash);
+            } else if (adminPasswordHash) {
+                // SHA256 hash (legacy)
                 const hash = crypto.createHash('sha256').update(password).digest('hex');
                 isValid = hash === adminPasswordHash;
+            } else if (adminPassword && adminPassword.startsWith('$2')) {
+                // Bcrypt hash stored in ADMIN_PASSWORD
+                isValid = await bcrypt.compare(password, adminPassword);
             } else {
-                // Fallback to plain password (less secure, but needed for initial setup)
+                // Plain text password (for development only)
                 isValid = password === adminPassword;
             }
 
@@ -115,29 +159,25 @@ export default async function handler(req, res) {
             // Successful login - clear rate limit
             rateLimitStore.delete(clientIp);
 
-            // Create session token
+            // Create session token using shared store
             const sessionToken = crypto.randomBytes(32).toString('hex');
-            const sessionData = {
+            const sessionData = sessionStore.create(sessionToken, {
+                username: authenticatedUsername,
+                email: process.env.ADMIN_EMAIL || 'admin@pmpuzzle.com',
                 ip: clientIp,
-                userAgent,
-                createdAt: Date.now(),
-                expiresAt: Date.now() + SESSION_DURATION
-            };
-            sessions.set(sessionToken, sessionData);
+                userAgent
+            });
 
-            // Clean up old sessions
-            for (const [token, data] of sessions.entries()) {
-                if (Date.now() > data.expiresAt) {
-                    sessions.delete(token);
-                }
-            }
-
-            console.log(`Successful admin login from IP: ${clientIp}`);
+            console.log(`Successful admin login for user ${authenticatedUsername} from IP: ${clientIp}`);
 
             return res.status(200).json({
                 success: true,
                 token: sessionToken,
-                expiresIn: SESSION_DURATION / 1000 // in seconds
+                user: {
+                    username: authenticatedUsername,
+                    email: process.env.ADMIN_EMAIL || 'admin@pmpuzzle.com'
+                },
+                expiresIn: (sessionData.expiresAt - Date.now()) / 1000 // in seconds
             });
 
         } else if (action === 'verify') {
@@ -146,37 +186,36 @@ export default async function handler(req, res) {
                 return res.status(401).json({ error: 'No token provided' });
             }
 
-            const session = sessions.get(token);
+            // Use shared session store for verification
+            const strictIpCheck = process.env.STRICT_IP_CHECK === 'true';
+            const verification = sessionStore.verify(token, clientIp, strictIpCheck);
 
-            if (!session) {
-                return res.status(401).json({ error: 'Invalid or expired session' });
+            if (!verification.valid) {
+                return res.status(401).json({ error: verification.error });
             }
 
-            if (Date.now() > session.expiresAt) {
-                sessions.delete(token);
-                return res.status(401).json({ error: 'Session expired' });
-            }
-
-            // Verify IP hasn't changed (additional security)
-            if (session.ip !== clientIp) {
-                console.warn(`Session IP mismatch. Original: ${session.ip}, Current: ${clientIp}`);
-                sessions.delete(token);
-                return res.status(401).json({ error: 'Session invalid' });
-            }
+            const session = verification.session;
 
             // Extend session
-            session.expiresAt = Date.now() + SESSION_DURATION;
-            sessions.set(token, session);
+            sessionStore.extend(token);
 
             return res.status(200).json({
                 success: true,
-                expiresIn: SESSION_DURATION / 1000
+                user: {
+                    username: session.username,
+                    email: session.email
+                },
+                expiresIn: (session.expiresAt - Date.now()) / 1000
             });
 
         } else if (action === 'logout') {
             // Logout - remove session
             if (token) {
-                sessions.delete(token);
+                const session = sessionStore.get(token);
+                if (session) {
+                    console.log(`User ${session.username} logged out from IP: ${clientIp}`);
+                }
+                sessionStore.delete(token);
             }
             return res.status(200).json({ success: true });
 

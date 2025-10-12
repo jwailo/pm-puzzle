@@ -79,6 +79,7 @@ class SecureAdminDashboard {
     async handleLogin(e) {
         e.preventDefault();
 
+        const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
         const errorMessage = document.getElementById('error-message');
         const submitButton = e.target.querySelector('button[type="submit"]');
@@ -88,16 +89,32 @@ class SecureAdminDashboard {
         submitButton.textContent = 'Authenticating...';
 
         try {
-            const response = await fetch('/api/admin-auth', {
+            // Try new endpoint first, then fallback to legacy
+            let response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    action: 'login',
+                    email: email,
                     password: password
                 })
             });
+
+            // Fallback to legacy endpoint if new one not found
+            if (response.status === 404) {
+                response = await fetch('/api/admin-auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'login',
+                        email: email,
+                        password: password
+                    })
+                });
+            }
 
             const data = await response.json();
 
@@ -116,7 +133,8 @@ class SecureAdminDashboard {
                 this.showDashboard();
                 this.startSessionCheck();
 
-                // Clear password field
+                // Clear form fields
+                document.getElementById('admin-email').value = '';
                 document.getElementById('admin-password').value = '';
             } else {
                 // Show error message
@@ -201,6 +219,7 @@ class SecureAdminDashboard {
         // Show login form
         document.getElementById('login-container').style.display = 'flex';
         document.getElementById('admin-dashboard').classList.remove('show');
+        document.getElementById('admin-email').value = '';
         document.getElementById('admin-password').value = '';
     }
 
