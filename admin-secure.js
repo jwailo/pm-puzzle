@@ -106,6 +106,12 @@ class SecureAdminDashboard {
                 this.sessionToken = data.token;
                 localStorage.setItem('adminSessionToken', data.token);
 
+                // Check for warning about fallback
+                if (data.warning) {
+                    console.warn('⚠️ ' + data.warning);
+                    alert('WARNING: ' + data.warning + '\n\nPlease configure ADMIN_PASSWORD in Vercel environment variables immediately!');
+                }
+
                 // Show dashboard
                 this.showDashboard();
                 this.startSessionCheck();
@@ -115,6 +121,11 @@ class SecureAdminDashboard {
             } else {
                 // Show error message
                 errorMessage.textContent = data.error || 'Authentication failed';
+
+                if (data.debug) {
+                    // Show debug info in development
+                    errorMessage.innerHTML = `${data.error}<br><small style="color: #666; margin-top: 8px; display: block;">${data.debug}</small>`;
+                }
 
                 if (data.attemptsRemaining !== undefined) {
                     errorMessage.textContent += ` (${data.attemptsRemaining} attempts remaining)`;

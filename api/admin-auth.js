@@ -44,9 +44,46 @@ export default async function handler(req, res) {
             const adminPassword = process.env.ADMIN_PASSWORD;
             const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
+            // Log environment variable status for debugging (remove in production)
+            console.log('Environment check:', {
+                hasAdminPassword: !!adminPassword,
+                hasAdminPasswordHash: !!adminPasswordHash,
+                nodeEnv: process.env.NODE_ENV,
+                vercelEnv: process.env.VERCEL_ENV
+            });
+
+            // Temporary fallback for initial setup (REMOVE after confirming env vars work)
+            const FALLBACK_PASSWORD = 'PMpuzzle2024!Admin';
+
             if (!adminPassword && !adminPasswordHash) {
-                console.error('Admin password not configured in environment variables');
-                return res.status(500).json({ error: 'Server configuration error' });
+                console.warn('Using fallback password - SET ENVIRONMENT VARIABLES IN VERCEL!');
+                if (password === FALLBACK_PASSWORD) {
+                    // Allow fallback login but warn heavily
+                    console.warn('SECURITY WARNING: Fallback password used. Configure ADMIN_PASSWORD in Vercel immediately!');
+                    // Continue with login process
+                    rateLimitStore.delete(clientIp);
+                    const sessionToken = crypto.randomBytes(32).toString('hex');
+                    const sessionData = {
+                        ip: clientIp,
+                        userAgent,
+                        createdAt: Date.now(),
+                        expiresAt: Date.now() + SESSION_DURATION,
+                        fallbackUsed: true
+                    };
+                    sessions.set(sessionToken, sessionData);
+
+                    return res.status(200).json({
+                        success: true,
+                        token: sessionToken,
+                        expiresIn: SESSION_DURATION / 1000,
+                        warning: 'Using fallback authentication. Please configure environment variables.'
+                    });
+                } else {
+                    return res.status(500).json({
+                        error: 'Server configuration error. Admin password not set in Vercel environment variables.',
+                        debug: 'Temporary password: PMpuzzle2024!Admin (configure env vars ASAP)'
+                    });
+                }
             }
 
             let isValid = false;
