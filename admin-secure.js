@@ -190,6 +190,47 @@ class SecureAdminDashboard {
         logoutBtn.addEventListener('click', () => this.handleLogout());
         refreshBtn.addEventListener('click', () => this.loadDashboardData());
         downloadBtn.addEventListener('click', () => this.downloadCSV());
+
+        // Setup auto-refresh toggle
+        this.setupAutoRefresh();
+    }
+
+    setupAutoRefresh() {
+        // Create auto-refresh control if it doesn't exist
+        if (!document.getElementById('auto-refresh-control')) {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const autoRefreshHTML = `
+                <label style="display: inline-flex; align-items: center; margin-left: 10px; font-size: 14px; color: #4a5568;">
+                    <input type="checkbox" id="auto-refresh-toggle" style="margin-right: 5px;">
+                    Auto-refresh (30s)
+                </label>
+            `;
+            refreshBtn.insertAdjacentHTML('afterend', autoRefreshHTML);
+        }
+
+        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+        this.autoRefreshInterval = null;
+
+        autoRefreshToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                // Start auto-refresh every 30 seconds
+                console.log('Auto-refresh enabled');
+                this.autoRefreshInterval = setInterval(() => {
+                    console.log('Auto-refreshing dashboard data...');
+                    this.loadDashboardData();
+                }, 30000); // 30 seconds
+
+                // Also refresh immediately
+                this.loadDashboardData();
+            } else {
+                // Stop auto-refresh
+                console.log('Auto-refresh disabled');
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                    this.autoRefreshInterval = null;
+                }
+            }
+        });
     }
 
     async handleLogout() {
@@ -215,6 +256,12 @@ class SecureAdminDashboard {
         localStorage.removeItem('adminSessionToken');
         this.sessionToken = null;
         this.stopSessionCheck();
+
+        // Stop auto-refresh if it's running
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
+        }
 
         // Show login form
         document.getElementById('login-container').style.display = 'flex';
