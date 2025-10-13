@@ -246,6 +246,44 @@ class DatabaseService {
 
     // Stats methods
     async getUserStats(userId) {
+        // Check if this is a guest (null userId)
+        if (!userId || userId.startsWith('guest_')) {
+            // For guests, use session ID
+            const sessionId = sessionStorage.getItem('pm-wordle-session-id');
+            if (!sessionId) {
+                return { data: null, error: 'No session ID found' };
+            }
+
+            const { data, error } = await this.supabase
+                .from('user_stats')
+                .select('*')
+                .eq('session_id', sessionId)
+                .single();
+
+            if (error && error.code === 'PGRST116') {
+                // No stats exist, create initial record for guest
+                console.log('No stats found for guest session, creating initial record');
+                const { data: newData, error: createError } = await this.supabase
+                    .from('user_stats')
+                    .insert({
+                        user_id: null,
+                        session_id: sessionId,
+                        games_played: 0,
+                        games_won: 0,
+                        current_streak: 0,
+                        max_streak: 0,
+                        guess_distribution: [0, 0, 0, 0, 0, 0]
+                    })
+                    .select()
+                    .single();
+
+                return { data: newData, error: createError };
+            }
+
+            return { data, error };
+        }
+
+        // For authenticated users, use user_id
         const { data, error } = await this.supabase
             .from('user_stats')
             .select('*')
@@ -276,6 +314,51 @@ class DatabaseService {
     }
 
     async updateUserStats(userId, stats) {
+        // Check if this is a guest
+        if (!userId || userId.startsWith('guest_')) {
+            // For guests, use session ID
+            const sessionId = sessionStorage.getItem('pm-wordle-session-id');
+            if (!sessionId) {
+                return { data: null, error: 'No session ID found' };
+            }
+
+            // Check if record exists for this session
+            const { data: existing, error: checkError } = await this.supabase
+                .from('user_stats')
+                .select('session_id')
+                .eq('session_id', sessionId)
+                .single();
+
+            if (checkError && checkError.code === 'PGRST116') {
+                // No record exists, insert new one
+                console.log('Creating new stats record for guest session:', sessionId);
+                const { data, error } = await this.supabase
+                    .from('user_stats')
+                    .insert({
+                        user_id: null,
+                        session_id: sessionId,
+                        ...stats,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                return { data, error };
+            } else if (existing) {
+                // Record exists, update it
+                console.log('Updating existing stats for guest session:', sessionId);
+                const { data, error } = await this.supabase
+                    .from('user_stats')
+                    .update({
+                        ...stats,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('session_id', sessionId);
+                return { data, error };
+            } else {
+                return { data: null, error: checkError };
+            }
+        }
+
+        // For authenticated users, use user_id
         // First check if record exists
         const { data: existing, error: checkError } = await this.supabase
             .from('user_stats')
@@ -371,6 +454,27 @@ class DatabaseService {
 
     // Game session methods
     async saveGameSession(userId, sessionData) {
+        // Check if this is a guest
+        if (!userId || userId.startsWith('guest_')) {
+            // For guests, use session ID
+            const sessionId = sessionStorage.getItem('pm-wordle-session-id');
+            if (!sessionId) {
+                return { data: null, error: 'No session ID found' };
+            }
+
+            const { data, error } = await this.supabase
+                .from('game_sessions')
+                .upsert({
+                    user_id: null,  // NULL for guests
+                    session_id: sessionId,  // Track by session
+                    ...sessionData,
+                    updated_at: new Date().toISOString()
+                });
+
+            return { data, error };
+        }
+
+        // For authenticated users
         const { data, error } = await this.supabase
             .from('game_sessions')
             .upsert({
@@ -490,28 +594,45 @@ class PMWordle {
         return guestId;
     }
 
+    getOrCreateSessionId() {
+        // Create a session ID for database tracking (separate from display guest ID)
+        let sessionId = sessionStorage.getItem('pm-wordle-session-id');
+
+        if (!sessionId) {
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(2, 15);
+            sessionId = `session_${timestamp}_${randomStr}`;
+            sessionStorage.setItem('pm-wordle-session-id', sessionId);
+            console.log('Generated new session ID for database:', sessionId);
+        }
+
+        return sessionId;
+    }
+
     async initializeGuestInDatabase() {
-        if (!this.isGuest || !this.currentUser || !this.currentUser.startsWith('guest_')) {
+        if (!this.isGuest) {
             return;
         }
 
         try {
-            console.log('Initializing guest in database:', this.currentUser);
+            const sessionId = this.getOrCreateSessionId();
+            console.log('Initializing guest in database with session ID:', sessionId);
 
-            // First check if guest already exists
+            // Check if this session already has stats
             const { data: existingStats, error: checkError } = await this.db.supabase
                 .from('user_stats')
-                .select('user_id')
-                .eq('user_id', this.currentUser)
+                .select('*')
+                .eq('session_id', sessionId)
                 .single();
 
             if (checkError && checkError.code === 'PGRST116') {
-                // No existing record, create new one
+                // No existing record, create new one with NULL user_id
                 console.log('Creating new guest record in database');
                 const { error: insertError } = await this.db.supabase
                     .from('user_stats')
                     .insert({
-                        user_id: this.currentUser,
+                        user_id: null,  // NULL for guest users
+                        session_id: sessionId,  // Track by session instead
                         games_played: 0,
                         games_won: 0,
                         current_streak: 0,
@@ -527,7 +648,7 @@ class PMWordle {
                     console.log('Guest initialized in database successfully');
                 }
             } else if (existingStats) {
-                console.log('Guest already exists in database:', this.currentUser);
+                console.log('Guest session already exists in database:', sessionId);
             } else if (checkError) {
                 console.error('Error checking for existing guest:', checkError);
             }
@@ -3605,8 +3726,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Also save game session to database for all users (including guests)
         if (this.currentUser && this.db && this.db.supabase) {
             try {
+                // Ensure session ID exists for guests
+                let sessionId = sessionStorage.getItem('pm-wordle-session-id');
+                if (!sessionId && this.isGuest) {
+                    sessionId = this.getOrCreateSessionId();
+                }
+
                 const sessionData = {
-                    session_id: sessionStorage.getItem('pm-wordle-session-id') || `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+                    session_id: sessionId,
                     puzzle_date: this.getPuzzleDate(),
                     puzzle_word: this.currentWord,
                     guesses: this.guesses,
