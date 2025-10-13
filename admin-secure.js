@@ -278,7 +278,7 @@ class SecureAdminDashboard {
                 const { data: rpcData, error: rpcError } = await this.supabase
                     .rpc('get_admin_total_players');
 
-                if (!rpcError && rpcData !== null) {
+                if (!rpcError && rpcData !== null && rpcData > 0) {
                     console.log('Total players from RPC:', rpcData);
                     return { count: rpcData };
                 }
@@ -286,7 +286,7 @@ class SecureAdminDashboard {
                 console.log('RPC function not available, using direct queries');
             }
 
-            // Fallback: calculate manually
+            // Get signed up users count
             const { count: profileCount, error: profileError } = await this.supabase
                 .from('user_profiles')
                 .select('*', { count: 'exact', head: true });
@@ -295,41 +295,65 @@ class SecureAdminDashboard {
                 console.error('Error getting user profiles count:', profileError);
             }
 
-            // Get ALL user_stats entries to find both guests and registered users who have played
+            const signedUpUsers = profileCount || 0;
+
+            // Get guest players from game_sessions
+            const { data: guestSessions, error: guestError } = await this.supabase
+                .from('game_sessions')
+                .select('session_id')
+                .or('user_id.is.null,user_id.like.guest_%');
+
+            let uniqueGuestSessions = 0;
+            if (guestSessions) {
+                // Count unique guest sessions
+                const uniqueSessions = new Set(guestSessions.map(s => s.session_id));
+                uniqueGuestSessions = uniqueSessions.size;
+            }
+
+            // Also check user_stats for any additional guest records
             const { data: allStats, error: statsError } = await this.supabase
                 .from('user_stats')
                 .select('user_id');
 
-            if (statsError) {
-                console.error('Error getting user stats:', statsError);
-            }
-
-            // Count unique players
-            let guestPlayers = 0;
-            let registeredPlayersInStats = 0;
-
+            let guestPlayersFromStats = 0;
             if (allStats) {
                 allStats.forEach(stat => {
                     if (stat.user_id && stat.user_id.startsWith('guest_')) {
-                        guestPlayers++;
-                    } else if (stat.user_id) {
-                        registeredPlayersInStats++;
+                        guestPlayersFromStats++;
                     }
                 });
             }
 
-            const signedUpUsers = profileCount || 0;
+            // Use the higher count between game_sessions and user_stats for guests
+            const guestPlayers = Math.max(uniqueGuestSessions, guestPlayersFromStats);
+
+            // Total is signed up users plus guest players
             const totalPlayers = signedUpUsers + guestPlayers;
 
             console.log(`Player breakdown:`);
             console.log(`  - Signed up users: ${signedUpUsers}`);
-            console.log(`  - Guest players: ${guestPlayers}`);
+            console.log(`  - Guest sessions: ${uniqueGuestSessions}`);
+            console.log(`  - Guest players from stats: ${guestPlayersFromStats}`);
+            console.log(`  - Total guest players: ${guestPlayers}`);
             console.log(`  - Total unique players: ${totalPlayers}`);
+
+            // If we still get 0 total but have signed up users, at least return those
+            if (totalPlayers === 0 && signedUpUsers > 0) {
+                return { count: signedUpUsers };
+            }
 
             return { count: totalPlayers };
         } catch (e) {
             console.error('Failed to get total players:', e);
-            return { count: 0 };
+            // If there's an error, at least try to return signed up users count
+            try {
+                const { count } = await this.supabase
+                    .from('user_profiles')
+                    .select('*', { count: 'exact', head: true });
+                return { count: count || 0 };
+            } catch {
+                return { count: 0 };
+            }
         }
     }
 
