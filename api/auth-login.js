@@ -32,7 +32,7 @@ async function initializeAdminUsers() {
     } else {
         // Fallback for development - use pre-computed hash for consistency
         // Hash for 'PMpuzzle2024!Admin'
-        const fallbackPassword = '$2b$10$yVWEhKJR2WQbWgG1te3mVuZbDzVqQvQXqYWZtRKBqIlPzR2vBmXKy';
+        const fallbackPassword = '$2b$10$lj15WEMBWwlm5xgcwwJ.WuRz9uCi0HIx/ByZR.v6L7QuTNxyHhbXO';
         ADMIN_USERS.set('admin@pmpuzzle.com', {
             email: 'admin@pmpuzzle.com',
             password: fallbackPassword,
