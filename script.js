@@ -447,6 +447,60 @@ class PMWordle {
         }
     }
 
+    getOrCreateGuestId() {
+        // Check if we already have a guest ID for this session
+        let guestId = sessionStorage.getItem('pm-wordle-guest-id');
+
+        if (!guestId) {
+            // Generate a new guest ID
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(2, 8);
+            guestId = `guest_${timestamp}_${randomStr}`;
+
+            // Store it for this session
+            sessionStorage.setItem('pm-wordle-guest-id', guestId);
+            console.log('Created new guest ID:', guestId);
+        } else {
+            console.log('Using existing guest ID:', guestId);
+        }
+
+        return guestId;
+    }
+
+    async initializeGuestInDatabase() {
+        if (!this.isGuest || !this.currentUser || !this.currentUser.startsWith('guest_')) {
+            return;
+        }
+
+        try {
+            console.log('Initializing guest in database:', this.currentUser);
+
+            // Create or update guest stats record
+            const { error } = await this.db.supabase
+                .from('user_stats')
+                .upsert({
+                    user_id: this.currentUser,
+                    games_played: 0,
+                    games_won: 0,
+                    current_streak: 0,
+                    max_streak: 0,
+                    guess_distribution: [0, 0, 0, 0, 0, 0],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                });
+
+            if (error) {
+                console.error('Error creating guest stats:', error);
+            } else {
+                console.log('Guest initialized in database');
+            }
+        } catch (error) {
+            console.error('Failed to initialize guest in database:', error);
+        }
+    }
+
     async checkUserSession() {
         try {
             console.log('Checking for existing user session...');
@@ -455,8 +509,9 @@ class PMWordle {
             if (!this.db || !this.db.supabase) {
                 console.log('Database service not ready, starting in guest mode');
                 this.isGuest = true;
-                this.currentUser = null;
+                this.currentUser = this.getOrCreateGuestId();
                 this.updateAuthUI();
+                await this.initializeGuestInDatabase();
                 return;
             }
 
@@ -466,8 +521,9 @@ class PMWordle {
             if (error) {
                 console.error('Error checking session:', error);
                 this.isGuest = true;
-                this.currentUser = null;
+                this.currentUser = this.getOrCreateGuestId();
                 this.updateAuthUI();
+                await this.initializeGuestInDatabase();
                 return;
             }
 
@@ -485,18 +541,22 @@ class PMWordle {
 
                 console.log('User authenticated from existing session');
             } else {
-                // No session found - start in guest mode
+                // No session found - start in guest mode with unique ID
                 console.log('No existing session found - starting in guest mode');
                 this.isGuest = true;
-                this.currentUser = null;
+                this.currentUser = this.getOrCreateGuestId();
                 this.updateAuthUI();
+
+                // Initialize guest in database
+                await this.initializeGuestInDatabase();
             }
         } catch (error) {
             console.error('Session check failed:', error);
             // On any error, default to guest mode
             this.isGuest = true;
-            this.currentUser = null;
+            this.currentUser = this.getOrCreateGuestId();
             this.updateAuthUI();
+            await this.initializeGuestInDatabase();
         }
     }
 
@@ -508,10 +568,13 @@ class PMWordle {
         }
     }
 
-    continueAsGuest() {
+    async continueAsGuest() {
         // Called when user explicitly chooses to skip auth and play as guest
         this.isGuest = true;
-        this.currentUser = null;
+        this.currentUser = this.getOrCreateGuestId();
+
+        // Initialize guest in database
+        await this.initializeGuestInDatabase();
 
         // On mobile, scroll to game area
         if (window.innerWidth <= 768) {
@@ -562,7 +625,7 @@ class PMWordle {
     }
 
     clearUserSession() {
-        this.currentUser = null;
+        this.currentUser = this.getOrCreateGuestId();  // Switch to guest ID instead of null
         this.isGuest = true;
 
         // Clear ALL authentication-related localStorage keys
@@ -584,6 +647,11 @@ class PMWordle {
                 localStorage.removeItem(key);
             }
         });
+
+        console.log('User session cleared - switched to guest mode:', this.currentUser);
+
+        // Initialize guest in database
+        this.initializeGuestInDatabase();
     }
 
     async init() {
@@ -2867,10 +2935,15 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
     }
 
-    skipAuth() {
+    async skipAuth() {
         console.log('=== SKIP AUTH CALLED ===');
         console.trace('Skip auth call stack');
         this.isGuest = true;
+        this.currentUser = this.getOrCreateGuestId();
+
+        // Initialize guest in database
+        await this.initializeGuestInDatabase();
+
         this.updateAuthUI();
         // Ensure game is ready to play
         document.querySelector('.game-board').style.pointerEvents = 'auto';
@@ -3104,11 +3177,30 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
         console.log('New stats to save:', newStats);
 
-        if (this.isGuest) {
-            // Save guest stats to localStorage
-            localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
-            console.log('Saved guest stats to localStorage:', newStats);
-        } else {
+        if (this.isGuest && this.currentUser && this.currentUser.startsWith('guest_')) {
+            // Save guest stats to database
+            const dbStats = {
+                games_played: newStats.gamesPlayed,
+                games_won: newStats.gamesWon,
+                current_streak: newStats.currentStreak,
+                max_streak: newStats.maxStreak,
+                guess_distribution: newStats.guessDistribution
+            };
+
+            console.log('Saving guest stats to database for guest:', this.currentUser, 'Stats:', dbStats);
+            const { error } = await this.db.updateUserStats(this.currentUser, dbStats);
+
+            if (error) {
+                console.error('Error saving guest stats to database:', error);
+                // Fallback to localStorage if database fails
+                localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
+                console.log('Fell back to localStorage for guest stats');
+            } else {
+                console.log('Successfully saved guest stats to database');
+                // Also save to localStorage as backup
+                localStorage.setItem('pm-wordle-guest-stats', JSON.stringify(newStats));
+            }
+        } else if (!this.isGuest) {
             // Get current user from Supabase
             const { data: { user } } = await this.db.supabase.auth.getUser();
             if (!user) {
@@ -3474,6 +3566,34 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Save game state with user-specific key
         const stateKey = this.isGuest ? 'pm-wordle-game-state-guest' : `pm-wordle-game-state-${this.currentUser}`;
         localStorage.setItem(stateKey, JSON.stringify(gameState));
+
+        // Also save game session to database for all users (including guests)
+        if (this.currentUser && this.db && this.db.supabase) {
+            try {
+                const sessionData = {
+                    session_id: sessionStorage.getItem('pm-wordle-session-id') || `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+                    puzzle_date: this.getPuzzleDate(),
+                    puzzle_word: this.currentWord,
+                    guesses: this.guesses,
+                    game_over: this.gameOver,
+                    game_won: this.gameWon,
+                    current_row: this.currentRow,
+                    completion_time: this.gameOver && this.startTime && this.endTime ?
+                        Math.floor((this.endTime - this.startTime) / 1000) : null,
+                    updated_at: new Date().toISOString()
+                };
+
+                // Save session ID for future updates
+                if (!sessionStorage.getItem('pm-wordle-session-id')) {
+                    sessionStorage.setItem('pm-wordle-session-id', sessionData.session_id);
+                }
+
+                await this.db.saveGameSession(this.currentUser, sessionData);
+                console.log('Game session saved to database for user:', this.currentUser);
+            } catch (error) {
+                console.error('Error saving game session to database:', error);
+            }
+        }
 
         // Don't save stats here - they are saved explicitly in the game flow
     }
