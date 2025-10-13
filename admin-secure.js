@@ -357,28 +357,31 @@ class SecureAdminDashboard {
             try {
                 const { data: allStats, error: statsError } = await this.supabase
                     .from('user_stats')
-                    .select('user_id');
+                    .select('user_id, session_id');
 
                 if (!statsError && allStats) {
                     // Count total unique players and guest players
                     const uniqueUserIds = new Set();
+                    const uniqueSessionIds = new Set();
                     let guestCount = 0;
 
                     allStats.forEach(stat => {
                         if (stat.user_id) {
                             uniqueUserIds.add(stat.user_id);
-                            if (stat.user_id.startsWith('guest_')) {
-                                guestCount++;
-                            }
+                        } else if (stat.session_id) {
+                            // This is a guest (NULL user_id but has session_id)
+                            uniqueSessionIds.add(stat.session_id);
+                            guestCount++;
                         }
                     });
 
-                    totalPlayersFromStats = uniqueUserIds.size;
+                    totalPlayersFromStats = uniqueUserIds.size + uniqueSessionIds.size;
                     guestPlayers = guestCount;
 
                     console.log(`Stats breakdown:`);
+                    console.log(`  - Authenticated users in stats: ${uniqueUserIds.size}`);
+                    console.log(`  - Guest sessions in stats: ${uniqueSessionIds.size}`);
                     console.log(`  - Total unique players in stats: ${totalPlayersFromStats}`);
-                    console.log(`  - Guest players in stats: ${guestPlayers}`);
                 }
             } catch (e) {
                 console.log('Could not query user_stats:', e);
@@ -395,9 +398,8 @@ class SecureAdminDashboard {
                 if (!sessionsError && sessions) {
                     const uniqueGuestSessions = new Set();
                     sessions.forEach(session => {
-                        // Check if user_id is null or starts with 'guest_'
-                        if (!session.user_id ||
-                            (session.user_id && session.user_id.startsWith('guest_'))) {
+                        // Check if user_id is null (guest) and has session_id
+                        if (!session.user_id && session.session_id) {
                             uniqueGuestSessions.add(session.session_id);
                         }
                     });
