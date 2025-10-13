@@ -276,17 +276,40 @@ class DatabaseService {
     }
 
     async updateUserStats(userId, stats) {
-        const { data, error } = await this.supabase
+        // First check if record exists
+        const { data: existing, error: checkError } = await this.supabase
             .from('user_stats')
-            .upsert({
-                user_id: userId,
-                ...stats,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            });
+            .select('user_id')
+            .eq('user_id', userId)
+            .single();
 
-        return { data, error };
+        if (checkError && checkError.code === 'PGRST116') {
+            // No record exists, insert new one
+            console.log('Creating new stats record for user:', userId);
+            const { data, error } = await this.supabase
+                .from('user_stats')
+                .insert({
+                    user_id: userId,
+                    ...stats,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+            return { data, error };
+        } else if (existing) {
+            // Record exists, update it
+            console.log('Updating existing stats for user:', userId);
+            const { data, error } = await this.supabase
+                .from('user_stats')
+                .update({
+                    ...stats,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', userId);
+            return { data, error };
+        } else {
+            // Some other error occurred
+            return { data: null, error: checkError };
+        }
     }
 
     // Leaderboard methods
@@ -475,26 +498,38 @@ class PMWordle {
         try {
             console.log('Initializing guest in database:', this.currentUser);
 
-            // Create or update guest stats record
-            const { error } = await this.db.supabase
+            // First check if guest already exists
+            const { data: existingStats, error: checkError } = await this.db.supabase
                 .from('user_stats')
-                .upsert({
-                    user_id: this.currentUser,
-                    games_played: 0,
-                    games_won: 0,
-                    current_streak: 0,
-                    max_streak: 0,
-                    guess_distribution: [0, 0, 0, 0, 0, 0],
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'user_id'
-                });
+                .select('user_id')
+                .eq('user_id', this.currentUser)
+                .single();
 
-            if (error) {
-                console.error('Error creating guest stats:', error);
-            } else {
-                console.log('Guest initialized in database');
+            if (checkError && checkError.code === 'PGRST116') {
+                // No existing record, create new one
+                console.log('Creating new guest record in database');
+                const { error: insertError } = await this.db.supabase
+                    .from('user_stats')
+                    .insert({
+                        user_id: this.currentUser,
+                        games_played: 0,
+                        games_won: 0,
+                        current_streak: 0,
+                        max_streak: 0,
+                        guess_distribution: [0, 0, 0, 0, 0, 0],
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (insertError) {
+                    console.error('Error creating guest stats:', insertError);
+                } else {
+                    console.log('Guest initialized in database successfully');
+                }
+            } else if (existingStats) {
+                console.log('Guest already exists in database:', this.currentUser);
+            } else if (checkError) {
+                console.error('Error checking for existing guest:', checkError);
             }
         } catch (error) {
             console.error('Failed to initialize guest in database:', error);
