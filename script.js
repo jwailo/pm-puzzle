@@ -3329,6 +3329,38 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             console.log(`Adding guess distribution for row ${this.currentRow + 1}, array index ${this.currentRow}`);
             newStats.guessDistribution[this.currentRow] = (newStats.guessDistribution[this.currentRow] || 0) + 1;
             console.log('Updated guess distribution:', newStats.guessDistribution);
+
+            // Record this completion in the daily_completions table for tracking
+            if (!this.isGuest && this.db?.supabase) {
+                try {
+                    const puzzleDate = this.getPuzzleDate();
+                    const timeTaken = this.endTime && this.startTime ?
+                        Math.floor((this.endTime - this.startTime) / 1000) : null;
+
+                    console.log('Recording puzzle completion:', {
+                        date: puzzleDate,
+                        word: this.currentWord,
+                        guesses: this.currentRow + 1,
+                        time: timeTaken
+                    });
+
+                    // Call the function to record completion
+                    const { error } = await this.db.supabase.rpc('record_puzzle_completion', {
+                        p_puzzle_date: puzzleDate,
+                        p_puzzle_word: this.currentWord,
+                        p_guesses: this.currentRow + 1,
+                        p_time_seconds: timeTaken
+                    });
+
+                    if (error) {
+                        console.error('Error recording puzzle completion:', error);
+                    } else {
+                        console.log('Successfully recorded puzzle completion');
+                    }
+                } catch (error) {
+                    console.error('Failed to record puzzle completion:', error);
+                }
+            }
         }
 
         console.log('New stats to save:', newStats);
