@@ -3734,9 +3734,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
                 const sessionData = {
                     session_id: sessionId,
-                    puzzle_date: this.getPuzzleDate(),
-                    puzzle_word: this.currentWord,
-                    guesses: this.guesses,
+                    date: this.getPuzzleDate(),  // Changed from puzzle_date to date
+                    word: this.currentWord,      // Changed from puzzle_word to word
+                    guesses: this.currentRow + 1, // Number of guesses made
                     game_over: this.gameOver,
                     game_won: this.gameWon,
                     current_row: this.currentRow,
