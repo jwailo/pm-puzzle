@@ -191,8 +191,246 @@ class SecureAdminDashboard {
         refreshBtn.addEventListener('click', () => this.loadDashboardData());
         downloadBtn.addEventListener('click', () => this.downloadCSV());
 
+        // Setup tab navigation
+        this.setupTabNavigation();
+
+        // Setup winners section
+        this.setupWinnersSection();
+
         // Setup auto-refresh toggle
         this.setupAutoRefresh();
+    }
+
+    setupTabNavigation() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+
+                // Update button states
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Update content visibility
+                tabContents.forEach(content => {
+                    content.style.display = 'none';
+                });
+
+                const targetContent = document.getElementById(`${targetTab}-tab`);
+                if (targetContent) {
+                    targetContent.style.display = 'block';
+                }
+
+                // Load winners data if switching to winners tab
+                if (targetTab === 'winners' && !this.winnersLoaded) {
+                    this.loadWinnersForLastWeek();
+                }
+            });
+        });
+    }
+
+    setupWinnersSection() {
+        // Set default dates (last 7 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+
+        document.getElementById('winners-start-date').valueAsDate = startDate;
+        document.getElementById('winners-end-date').valueAsDate = endDate;
+
+        // Setup event listeners
+        document.getElementById('load-winners-btn').addEventListener('click', () => this.loadWinners());
+        document.getElementById('refresh-winners-btn').addEventListener('click', () => this.loadWinners());
+        document.getElementById('download-winners-csv').addEventListener('click', () => this.downloadWinnersCSV());
+
+        this.winnersData = [];
+        this.winnersLoaded = false;
+    }
+
+    async loadWinnersForLastWeek() {
+        // Load last 7 days by default
+        this.loadWinners();
+    }
+
+    async loadWinners() {
+        const startDate = document.getElementById('winners-start-date').value;
+        const endDate = document.getElementById('winners-end-date').value;
+
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+
+        const loadingEl = document.getElementById('winners-loading');
+        const containerEl = document.getElementById('winners-container');
+
+        loadingEl.style.display = 'block';
+        containerEl.innerHTML = '';
+
+        try {
+            console.log('Loading winners for date range:', startDate, 'to', endDate);
+
+            const { data, error } = await this.supabase.rpc('get_puzzle_completions_by_date', {
+                start_date: startDate,
+                end_date: endDate
+            });
+
+            if (error) {
+                console.error('Error loading winners:', error);
+                containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Error loading winners data</div>';
+                return;
+            }
+
+            console.log('Winners data received:', data);
+            this.winnersData = data || [];
+            this.winnersLoaded = true;
+            this.renderWinners(data || []);
+        } catch (error) {
+            console.error('Failed to load winners:', error);
+            containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Failed to load winners data</div>';
+        } finally {
+            loadingEl.style.display = 'none';
+        }
+    }
+
+    renderWinners(data) {
+        const containerEl = document.getElementById('winners-container');
+
+        if (!data || data.length === 0) {
+            containerEl.innerHTML = '<div style="color: #666; padding: 2rem; text-align: center;">No puzzle completions found for this date range</div>';
+            return;
+        }
+
+        // Group data by puzzle date
+        const groupedByDate = {};
+        data.forEach(completion => {
+            const date = completion.puzzle_date;
+            if (!groupedByDate[date]) {
+                groupedByDate[date] = [];
+            }
+            groupedByDate[date].push(completion);
+        });
+
+        // Sort dates in descending order
+        const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
+
+        let html = '';
+        sortedDates.forEach(date => {
+            const participants = groupedByDate[date];
+            const winner = this.selectRandomWinner(participants);
+
+            html += `
+                <div class="winner-day">
+                    <div class="winner-day-header">
+                        <div class="winner-day-date">${this.formatDateHeader(date)}</div>
+                        <div class="winner-count">${participants.length} ${participants.length === 1 ? 'player' : 'players'}</div>
+                    </div>
+
+                    ${winner ? `
+                        <div class="winner-selected">
+                            <div class="winner-icon">🏆</div>
+                            <div class="winner-details">
+                                <div class="winner-name">${winner.first_name}</div>
+                                <div class="winner-email">${winner.email}</div>
+                            </div>
+                            <div class="winner-status">WINNER - $50 MECCA</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="participants-list">
+                        <div class="participants-header">
+                            <span>📝</span>
+                            <span>All Players Who Completed This Puzzle:</span>
+                        </div>
+                        ${participants.map((p, index) => `
+                            <div class="participant-row">
+                                <span style="color: #666;">${index + 1}.</span>
+                                <span>${p.first_name}</span>
+                                <span style="color: #666;">${p.email}</span>
+                                <span>${p.guesses} ${p.guesses === 1 ? 'guess' : 'guesses'}</span>
+                                <span>${this.formatCompletionTime(p.completion_time)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        containerEl.innerHTML = html;
+    }
+
+    selectRandomWinner(participants) {
+        if (!participants || participants.length === 0) return null;
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        return participants[randomIndex];
+    }
+
+    formatDateHeader(dateString) {
+        const date = new Date(dateString + 'T12:00:00'); // Add time to avoid timezone issues
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    formatCompletionTime(seconds) {
+        if (!seconds) return 'N/A';
+        if (seconds < 60) return `${seconds}s`;
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${minutes}m ${secs}s`;
+    }
+
+    downloadWinnersCSV() {
+        if (!this.winnersData || this.winnersData.length === 0) {
+            alert('No winners data to download. Please load winners first.');
+            return;
+        }
+
+        const csvHeader = 'Date,Name,Email,Guesses,Time,Selected Winner\n';
+
+        // Group by date and select winners
+        const groupedByDate = {};
+        this.winnersData.forEach(completion => {
+            const date = completion.puzzle_date;
+            if (!groupedByDate[date]) {
+                groupedByDate[date] = [];
+            }
+            groupedByDate[date].push(completion);
+        });
+
+        let csvRows = [];
+        Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+            const participants = groupedByDate[date];
+            const winner = this.selectRandomWinner(participants);
+
+            participants.forEach(p => {
+                const isWinner = winner && p.user_id === winner.user_id ? 'WINNER' : '';
+                csvRows.push([
+                    date,
+                    `"${p.first_name}"`,
+                    `"${p.email}"`,
+                    p.guesses || 0,
+                    this.formatCompletionTime(p.completion_time),
+                    isWinner
+                ].join(','));
+            });
+        });
+
+        const csvContent = csvHeader + csvRows.join('\n');
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', `pm-puzzle-winners-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     setupAutoRefresh() {
