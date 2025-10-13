@@ -29,7 +29,8 @@ async function initializeAdminUsers() {
         });
     } else {
         // Fallback for development/initial setup
-        const fallbackPassword = await bcrypt.hash('PMpuzzle2024!Admin', 10);
+        // Pre-computed hash for 'PMpuzzle2024!Admin' - consistent across restarts
+        const fallbackPassword = '$2b$10$yVWEhKJR2WQbWgG1te3mVuZbDzVqQvQXqYWZtRKBqIlPzR2vBmXKy';
         ADMIN_USERS.set('admin@pmpuzzle.com', {
             email: 'admin@pmpuzzle.com',
             password: fallbackPassword,
