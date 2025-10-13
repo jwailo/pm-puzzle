@@ -232,18 +232,16 @@ class SecureAdminDashboard {
     }
 
     setupWinnersSection() {
-        // Set default dates (last 7 days)
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7);
+        // Setup event listeners for the simplified version
+        const refreshBtn = document.getElementById('refresh-winners-btn');
+        const downloadBtn = document.getElementById('download-winners-csv');
 
-        document.getElementById('winners-start-date').valueAsDate = startDate;
-        document.getElementById('winners-end-date').valueAsDate = endDate;
-
-        // Setup event listeners
-        document.getElementById('load-winners-btn').addEventListener('click', () => this.loadWinners());
-        document.getElementById('refresh-winners-btn').addEventListener('click', () => this.loadWinners());
-        document.getElementById('download-winners-csv').addEventListener('click', () => this.downloadWinnersCSV());
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadWinners());
+        }
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => this.downloadWinnersCSV());
+        }
 
         this.winnersData = [];
         this.winnersLoaded = false;
@@ -255,14 +253,6 @@ class SecureAdminDashboard {
     }
 
     async loadWinners() {
-        const startDate = document.getElementById('winners-start-date').value;
-        const endDate = document.getElementById('winners-end-date').value;
-
-        if (!startDate || !endDate) {
-            alert('Please select both start and end dates');
-            return;
-        }
-
         const loadingEl = document.getElementById('winners-loading');
         const containerEl = document.getElementById('winners-container');
 
@@ -270,29 +260,86 @@ class SecureAdminDashboard {
         containerEl.innerHTML = '';
 
         try {
-            console.log('Loading winners for date range:', startDate, 'to', endDate);
+            console.log('Loading all puzzle completions...');
 
-            const { data, error } = await this.supabase.rpc('get_puzzle_completions_by_date', {
-                start_date: startDate,
-                end_date: endDate
-            });
+            // Use the simple function that just gets everyone who has won
+            const { data, error } = await this.supabase.rpc('get_puzzle_completions_simple');
 
             if (error) {
-                console.error('Error loading winners:', error);
-                containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Error loading winners data</div>';
+                console.error('Error loading completions:', error);
+                containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Error loading data: ' + error.message + '</div>';
                 return;
             }
 
-            console.log('Winners data received:', data);
+            console.log('Completions data received:', data);
             this.winnersData = data || [];
             this.winnersLoaded = true;
-            this.renderWinners(data || []);
+            this.renderSimpleCompletions(data || []);
         } catch (error) {
-            console.error('Failed to load winners:', error);
-            containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Failed to load winners data</div>';
+            console.error('Failed to load completions:', error);
+            containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Failed to load data</div>';
         } finally {
             loadingEl.style.display = 'none';
         }
+    }
+
+    renderSimpleCompletions(data) {
+        const containerEl = document.getElementById('winners-container');
+
+        if (!data || data.length === 0) {
+            containerEl.innerHTML = '<div style="color: #666; padding: 2rem; text-align: center;">No users have completed puzzles yet</div>';
+            return;
+        }
+
+        // Simple table showing all completions
+        let html = `
+            <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f7fafc;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">#</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">Name</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">Email</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">Games Won</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">Last Played</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        data.forEach((user, index) => {
+            const lastPlayed = new Date(user.last_played).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px; color: #666;">${index + 1}</td>
+                    <td style="padding: 12px;">${user.first_name}</td>
+                    <td style="padding: 12px; color: #666;">${user.email}</td>
+                    <td style="padding: 12px; text-align: center;">${user.games_won}</td>
+                    <td style="padding: 12px; color: #666;">${lastPlayed}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+                <p style="color: #666; font-size: 14px;">
+                    <strong>Total Players Who Have Won:</strong> ${data.length}<br>
+                    <strong>Note:</strong> This shows all registered users who have completed at least one puzzle successfully.
+                </p>
+            </div>
+        `;
+
+        containerEl.innerHTML = html;
     }
 
     renderWinners(data) {

@@ -424,7 +424,7 @@
         <!-- Tab Navigation -->
         <div class="tab-navigation" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0;">
             <button class="tab-button active" data-tab="users">👥 Users</button>
-            <button class="tab-button" data-tab="winners">🏆 Daily Winners</button>
+            <button class="tab-button" data-tab="winners">🏆 Completions</button>
         </div>
 
         <!-- Users Section -->
@@ -459,25 +459,17 @@
         <!-- Winners Section -->
         <div class="tab-content winners-section" id="winners-tab" style="display: none;">
             <div class="section-header">
-                <h2>🏆 Daily Winners - $50 MECCA Voucher</h2>
+                <h2>🏆 Puzzle Completions</h2>
                 <div>
                     <button id="refresh-winners-btn" class="refresh-btn">🔄 Refresh</button>
                     <button id="download-winners-csv" class="download-btn">📄 Download CSV</button>
                 </div>
             </div>
 
-            <div class="date-selector" style="margin-bottom: 1.5rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
-                <label style="margin-right: 1rem;">Select Date Range:</label>
-                <input type="date" id="winners-start-date" style="margin-right: 0.5rem;">
-                <span>to</span>
-                <input type="date" id="winners-end-date" style="margin-left: 0.5rem; margin-right: 1rem;">
-                <button id="load-winners-btn" class="refresh-btn" style="margin: 0;">Load Winners</button>
-            </div>
-
-            <div id="winners-loading" class="loading" style="display: none;">Loading winners...</div>
+            <div id="winners-loading" class="loading" style="display: none;">Loading completions...</div>
 
             <div id="winners-container">
-                <!-- Winners will be loaded here -->
+                <!-- Completions will be loaded here -->
             </div>
         </div>
     </div>
