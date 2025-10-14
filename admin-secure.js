@@ -315,7 +315,14 @@ class SecureAdminDashboard {
         // Sort dates in descending order (most recent first)
         const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
 
-        let html = '';
+        // Add date range info
+        const dateRange = sortedDates.length > 0 ?
+            `<div style="padding: 1rem; background: #e6f3ff; border-radius: 8px; margin-bottom: 1rem;">
+                <strong>📅 Date Range:</strong> ${new Date(sortedDates[sortedDates.length - 1]).toLocaleDateString()} - ${new Date(sortedDates[0]).toLocaleDateString()}<br>
+                <strong>📊 Total Days:</strong> ${sortedDates.length} days with completions
+            </div>` : '';
+
+        let html = dateRange;
         let totalCompletions = 0;
 
         sortedDates.forEach(date => {
@@ -374,11 +381,13 @@ class SecureAdminDashboard {
 
             dayCompletions.forEach((completion, index) => {
                 const isWinner = completion.user_id === randomWinner.user_id;
+                const guessesText = completion.guesses ? `(${completion.guesses} guesses)` : '(historical)';
                 html += `
                     <tr style="border-bottom: 1px solid #e2e8f0; ${isWinner ? 'background: #fffaf0;' : ''}">
                         <td style="padding: 8px; color: #666;">${index + 1}</td>
                         <td style="padding: 8px;">${completion.first_name} ${isWinner ? '🏆' : ''}</td>
                         <td style="padding: 8px; color: #666;">${completion.email}</td>
+                        <td style="padding: 8px; color: #999; font-size: 12px;">${guessesText}</td>
                     </tr>
                 `;
             });
