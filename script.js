@@ -3703,18 +3703,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 return;
             }
 
-            // Filter out entries without valid names or with "Player X" pattern
+            // The database function now filters these out, but we'll keep client-side filtering as backup
             const validEntries = streakData.filter(entry => {
+                // With the new function, first_name is directly available
                 if (entry.first_name) {
-                    // Use first_name if directly available (from RPC function)
                     return !entry.first_name.match(/^Player \d+$/) &&
                            !entry.first_name.startsWith('Player ');
-                } else if (entry.user_profiles?.first_name) {
-                    // Check nested user_profiles
-                    return !entry.user_profiles.first_name.match(/^Player \d+$/) &&
-                           !entry.user_profiles.first_name.startsWith('Player ');
                 }
-                // Skip entries without valid names
+                // Skip entries without valid names (shouldn't happen with new function)
                 return false;
             });
 
@@ -3724,18 +3720,11 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             }
 
             listElement.innerHTML = validEntries.map((entry, index) => {
-                let displayName = 'Unknown';
-                // Get the name from wherever it exists
-                if (entry.first_name) {
-                    displayName = entry.first_name;
-                } else if (entry.user_profiles?.first_name) {
-                    displayName = entry.user_profiles.first_name;
-                } else if (entry.user_profiles && Array.isArray(entry.user_profiles) && entry.user_profiles[0]?.first_name) {
-                    displayName = entry.user_profiles[0].first_name;
-                }
+                // With the updated function, first_name is directly available
+                const displayName = entry.first_name || 'Unknown';
 
-                // Use current_streak or max_streak depending on what's available
-                const streakValue = entry.current_streak || entry.max_streak || 0;
+                // Use max_streak for display (showing longest streak)
+                const streakValue = entry.max_streak || 0;
 
                 return `
                     <div class="leaderboard-item">

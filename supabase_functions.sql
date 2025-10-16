@@ -33,6 +33,7 @@ END;
 $$;
 
 -- Function to get streak leaderboard (public access)
+-- Filters out test users and Player X entries
 CREATE OR REPLACE FUNCTION get_public_streak_leaderboard()
 RETURNS TABLE (
     user_id UUID,
@@ -40,7 +41,8 @@ RETURNS TABLE (
     current_streak INTEGER,
     games_played INTEGER,
     games_won INTEGER,
-    user_profiles JSONB
+    first_name TEXT,
+    email TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -48,17 +50,23 @@ SET search_path = public
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         us.user_id,
         us.max_streak,
         us.current_streak,
         us.games_played,
         us.games_won,
-        to_jsonb(row_to_json(up.*)) as user_profiles
+        up.first_name,
+        up.email
     FROM user_stats us
-    LEFT JOIN user_profiles up ON us.user_id = up.id
+    INNER JOIN user_profiles up ON us.user_id = up.id
     WHERE us.max_streak > 0
-    ORDER BY us.max_streak DESC, us.games_won DESC, us.id ASC
+      -- Filter out Player X entries and test accounts
+      AND up.first_name IS NOT NULL
+      AND up.first_name != ''
+      AND up.first_name NOT LIKE 'Player %'
+      AND up.email NOT LIKE '%+%'  -- Remove test accounts with + in email
+    ORDER BY us.max_streak DESC, us.games_won DESC, us.user_id ASC
     LIMIT 10;
 END;
 $$;
