@@ -3263,6 +3263,83 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
     }
 
+    async shouldContinueStreak(currentStats) {
+        // Check if the streak should continue based on weekday-only requirement
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+        // Get the last play date from database or localStorage
+        let lastPlayDate = null;
+
+        if (!this.isGuest) {
+            // Get from database for logged-in users
+            const { data: { user } } = await this.db.supabase.auth.getUser();
+            if (user) {
+                const { data } = await this.db.getUserStats(user.id);
+                if (data?.last_played) {
+                    lastPlayDate = new Date(data.last_played);
+                }
+            }
+        } else {
+            // Check localStorage for last play date (we'll need to store this)
+            const lastPlayStr = localStorage.getItem('pm-wordle-last-play');
+            if (lastPlayStr) {
+                lastPlayDate = new Date(lastPlayStr);
+            }
+        }
+
+        if (!lastPlayDate) {
+            // No previous play record, start new streak
+            return false;
+        }
+
+        // Calculate the number of weekdays between last play and today
+        const weekdaysSinceLastPlay = this.countWeekdaysBetween(lastPlayDate, today);
+
+        console.log('Streak check:', {
+            today: today.toDateString(),
+            lastPlay: lastPlayDate.toDateString(),
+            weekdaysSince: weekdaysSinceLastPlay,
+            currentStreak: currentStats.currentStreak
+        });
+
+        // Streak continues if:
+        // 1. Played yesterday (regardless of weekend/weekday)
+        // 2. OR last play was Friday and today is Monday (weekend skip)
+        // 3. OR only weekdays were missed and it's been 0-1 weekdays
+
+        const daysSinceLastPlay = Math.floor((today - lastPlayDate) / (1000 * 60 * 60 * 24));
+
+        // If played yesterday, always continue
+        if (daysSinceLastPlay === 1) return true;
+
+        // If played today already, continue
+        if (daysSinceLastPlay === 0) return true;
+
+        // If only weekdays matter and no weekdays were missed
+        if (weekdaysSinceLastPlay <= 1) return true;
+
+        // Otherwise, streak is broken
+        return false;
+    }
+
+    countWeekdaysBetween(startDate, endDate) {
+        let count = 0;
+        const current = new Date(startDate);
+        current.setDate(current.getDate() + 1); // Start from day after startDate
+
+        while (current < endDate) {
+            const dayOfWeek = current.getDay();
+            // Count only weekdays (Monday = 1 to Friday = 5)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                count++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+    }
+
     async getStats() {
         if (this.isGuest) {
             const guestStats = JSON.parse(localStorage.getItem('pm-wordle-guest-stats') || '{"gamesPlayed":0,"gamesWon":0,"currentStreak":0,"maxStreak":0,"guessDistribution":[0,0,0,0,0,0]}');
@@ -3339,11 +3416,21 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const currentStats = await this.getStats();
         console.log('Current stats before save:', currentStats);
 
+        // Calculate streak considering weekdays only
+        let newStreak = currentStats.currentStreak;
+        if (this.gameWon) {
+            // Check if streak should continue (weekday logic)
+            const shouldContinueStreak = await this.shouldContinueStreak(currentStats);
+            newStreak = shouldContinueStreak ? currentStats.currentStreak + 1 : 1;
+        } else {
+            newStreak = 0;
+        }
+
         const newStats = {
             gamesPlayed: currentStats.gamesPlayed + 1,
             gamesWon: currentStats.gamesWon + (this.gameWon ? 1 : 0),
-            currentStreak: this.gameWon ? currentStats.currentStreak + 1 : 0,
-            maxStreak: Math.max(currentStats.maxStreak, this.gameWon ? currentStats.currentStreak + 1 : 0),
+            currentStreak: newStreak,
+            maxStreak: Math.max(currentStats.maxStreak, newStreak),
             guessDistribution: [...currentStats.guessDistribution]
         };
 
@@ -3386,6 +3473,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
 
         console.log('New stats to save:', newStats);
+
+        // Store last play date for streak calculation
+        if (this.gameWon) {
+            const today = new Date().toISOString();
+            localStorage.setItem('pm-wordle-last-play', today);
+        }
 
         if (this.isGuest && this.currentUser && this.currentUser.startsWith('guest_')) {
             // Save guest stats to database
