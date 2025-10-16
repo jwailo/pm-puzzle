@@ -3703,21 +3703,45 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 return;
             }
 
-            listElement.innerHTML = streakData.map((entry, index) => {
-                let displayName = 'Unknown Player';
-                if (entry.user_profiles?.first_name) {
+            // Filter out entries without valid names or with "Player X" pattern
+            const validEntries = streakData.filter(entry => {
+                if (entry.first_name) {
+                    // Use first_name if directly available (from RPC function)
+                    return !entry.first_name.match(/^Player \d+$/) &&
+                           !entry.first_name.startsWith('Player ');
+                } else if (entry.user_profiles?.first_name) {
+                    // Check nested user_profiles
+                    return !entry.user_profiles.first_name.match(/^Player \d+$/) &&
+                           !entry.user_profiles.first_name.startsWith('Player ');
+                }
+                // Skip entries without valid names
+                return false;
+            });
+
+            if (validEntries.length === 0) {
+                listElement.innerHTML = '<div class="leaderboard-empty">No streaks recorded yet</div>';
+                return;
+            }
+
+            listElement.innerHTML = validEntries.map((entry, index) => {
+                let displayName = 'Unknown';
+                // Get the name from wherever it exists
+                if (entry.first_name) {
+                    displayName = entry.first_name;
+                } else if (entry.user_profiles?.first_name) {
                     displayName = entry.user_profiles.first_name;
                 } else if (entry.user_profiles && Array.isArray(entry.user_profiles) && entry.user_profiles[0]?.first_name) {
                     displayName = entry.user_profiles[0].first_name;
-                } else {
-                    console.warn('No user profile found for streak entry:', entry);
-                    displayName = `Player ${index + 1}`;
                 }
+
+                // Use current_streak or max_streak depending on what's available
+                const streakValue = entry.current_streak || entry.max_streak || 0;
+
                 return `
                     <div class="leaderboard-item">
                         <span class="leaderboard-rank">${index + 1}</span>
                         <span class="leaderboard-name">${displayName}</span>
-                        <span class="leaderboard-value">${entry.max_streak} days</span>
+                        <span class="leaderboard-value">${streakValue} days</span>
                     </div>
                 `;
             }).join('');
