@@ -3065,18 +3065,32 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             messageDiv.textContent = '';
 
             // Use the production URL for reset redirect to avoid localhost issues
-            const redirectUrl = 'https://pm-puzzle.vercel.app/auth-redirect.html';
+            const redirectUrl = 'https://pm-puzzle.vercel.app/reset-password.html';
 
-            console.log('Sending password reset to:', email, 'with redirect:', redirectUrl);
+            console.log('=== PASSWORD RESET REQUEST ===');
+            console.log('Email:', email);
+            console.log('Redirect URL:', redirectUrl);
+            console.log('Timestamp:', new Date().toISOString());
 
-            const { error } = await this.db.supabase.auth.resetPasswordForEmail(email, {
+            const { data, error } = await this.db.supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: redirectUrl
             });
 
-            if (error) throw error;
+            console.log('Reset password response:', { data, error });
 
+            if (error) {
+                console.error('Supabase error details:', {
+                    message: error.message,
+                    status: error.status,
+                    code: error.code,
+                    details: error.details
+                });
+                throw error;
+            }
+
+            console.log('Password reset email queued successfully');
             messageDiv.style.color = 'var(--color-correct)';
-            messageDiv.textContent = 'Password reset email sent! Check your inbox.';
+            messageDiv.textContent = 'Password reset email sent! Check your inbox (and spam folder).';
 
             setTimeout(() => {
                 this.hideForgotPasswordModal();
@@ -3084,7 +3098,15 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         } catch (error) {
             console.error('Password reset error:', error);
             messageDiv.style.color = 'var(--color-error)';
-            messageDiv.textContent = 'Error: ' + error.message;
+
+            // Provide more helpful error messages
+            if (error.message?.includes('rate')) {
+                messageDiv.textContent = 'Too many reset attempts. Please wait an hour and try again.';
+            } else if (error.message?.includes('not found')) {
+                messageDiv.textContent = 'Email address not found. Please check and try again.';
+            } else {
+                messageDiv.textContent = 'Error: ' + error.message;
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send Reset Link';
