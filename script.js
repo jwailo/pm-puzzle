@@ -3627,16 +3627,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         if (!todayEntries || todayEntries.length === 0) {
             console.log('No entries found for today - this might be an RLS issue');
 
-            // Show a message that indicates potential RLS issue
-            listElement.innerHTML = `
-                <div class="leaderboard-empty">
-                    No times recorded yet today<br>
-                    <small style="color: #666; font-size: 10px;">
-                        If you've completed games, this may be a database permission issue.<br>
-                        Check console for details.
-                    </small>
-                </div>
-            `;
+            // Show simple empty message
+            listElement.innerHTML = '<div class="leaderboard-empty">No times recorded yet today</div>';
             return;
         }
 
