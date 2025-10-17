@@ -15,7 +15,8 @@ export function withSecurity(handler) {
 
         // CORS configuration
         const allowedOrigins = [
-            'https://pm-puzzle.vercel.app',
+            'https://pmpuzzle.ailo.io',
+            'https://pm-puzzle.vercel.app',  // Keep old domain for backwards compatibility
             'http://localhost:8080',
             'http://127.0.0.1:8080'
         ];

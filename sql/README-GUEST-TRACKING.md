@@ -56,7 +56,7 @@ The SQL script:
 After applying the SQL:
 
 1. Open an incognito/private browser window
-2. Go to https://pm-puzzle.vercel.app/
+2. Go to https://pmpuzzle.ailo.io/
 3. Play a game without signing in
 4. Check the browser console (F12) for:
    - "Guest initialized in database successfully"

@@ -67,7 +67,7 @@
         
         <button id="fix-link" class="btn">Continue to Password Reset</button>
         <br>
-        <a href="https://pm-puzzle.vercel.app" class="btn" style="background: #6c757d;">Back to Game</a>
+        <a href="https://pmpuzzle.ailo.io" class="btn" style="background: #6c757d;">Back to Game</a>
         
         <p style="font-size: 12px; color: #888; margin-top: 2rem;">
             This happens when development URLs get cached. Future reset emails will work correctly.
@@ -85,7 +85,7 @@
             const searchParams = new URLSearchParams(window.location.search);
             
             // Build new URL with production domain
-            const fixedUrl = new URL('/reset-password.html', 'https://pm-puzzle.vercel.app');
+            const fixedUrl = new URL('/reset-password.html', 'https://pmpuzzle.ailo.io');
             
             // Add all parameters to hash
             const allParams = new URLSearchParams();

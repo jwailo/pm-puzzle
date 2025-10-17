@@ -1613,7 +1613,7 @@ class PMWordle {
     }
 
     async getShareMessageForAudience(audienceType) {
-        const gameUrl = 'https://pm-puzzle.vercel.app/';
+        const gameUrl = 'https://pmpuzzle.ailo.io/';
         const stats = await this.getCurrentUserStats();
 
         // Get current game info if available
@@ -1871,7 +1871,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             menuShare.addEventListener('click', () => {
                 this.hideModal('menu');
                 // Copy game URL to clipboard
-                const gameUrl = 'https://pm-puzzle.vercel.app';
+                const gameUrl = 'https://pmpuzzle.ailo.io';
                 navigator.clipboard.writeText(gameUrl).then(() => {
                     alert('Game link copied to clipboard! Share it on social media.');
                 }).catch(() => {
@@ -3065,7 +3065,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             messageDiv.textContent = '';
 
             // Use the production URL for reset redirect to avoid localhost issues
-            const redirectUrl = 'https://pm-puzzle.vercel.app/reset-password.html';
+            const redirectUrl = 'https://pmpuzzle.ailo.io/reset-password.html';
 
             console.log('=== PASSWORD RESET REQUEST ===');
             console.log('Email:', email);
@@ -3783,7 +3783,7 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             shareText += rowText + '\n';
         }
 
-        shareText += '\n🏆 Play PM Puzzle: https://pm-puzzle.vercel.app';
+        shareText += '\n🏆 Play PM Puzzle: https://pmpuzzle.ailo.io';
 
         if (navigator.share) {
             navigator.share({
