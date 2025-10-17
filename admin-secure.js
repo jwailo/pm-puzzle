@@ -695,11 +695,9 @@ class SecureAdminDashboard {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('users-table').style.display = 'none';
 
-            // Load all data
+            // Load all data (excluding DAU and MAU)
             const totalPlayers = await this.getTotalPlayers();
             const signedUpUsers = await this.getSignedUpUsers();
-            const dailyActive = await this.getDailyActiveUsers();
-            const monthlyActive = await this.getMonthlyActiveUsers();
             const totalGames = await this.getTotalGames();
             const signupPercentage = this.calculateSignupPercentage(signedUpUsers.count, totalPlayers.count);
             const totalShares = await this.getTotalShares();
@@ -708,8 +706,6 @@ class SecureAdminDashboard {
             console.log('Total Players (including guests):', totalPlayers.count);
             console.log('Signed Up Users:', signedUpUsers.count);
             console.log('Sign-up Rate:', signupPercentage);
-            console.log('Daily Active:', dailyActive);
-            console.log('Monthly Active:', monthlyActive);
             console.log('Total Games:', totalGames);
             console.log('Total Shares:', totalShares);
             console.log('================================');
@@ -717,8 +713,6 @@ class SecureAdminDashboard {
             // Update stats
             document.getElementById('total-users').textContent = totalPlayers.count || 0;
             document.getElementById('signed-up-users').textContent = signedUpUsers.count || 0;
-            document.getElementById('daily-active').textContent = dailyActive || 0;
-            document.getElementById('monthly-active').textContent = monthlyActive || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
             document.getElementById('signup-percentage').textContent = signupPercentage;
             document.getElementById('total-shares').textContent = totalShares || 0;
@@ -883,69 +877,6 @@ class SecureAdminDashboard {
         return { count };
     }
 
-    async getDailyActiveUsers() {
-        try {
-            // Try detailed function first for better insights
-            const { data: detailed, error: detailError } = await this.supabase
-                .rpc('get_admin_active_users_detailed', { days: 1 });
-
-            if (!detailError && detailed && detailed[0]) {
-                console.log('Daily active users (detailed):', detailed[0]);
-                console.log(`  Total: ${detailed[0].total_active}`);
-                console.log(`  Registered: ${detailed[0].registered_active}`);
-                console.log(`  Guests: ${detailed[0].guest_active}`);
-                return detailed[0].total_active || 0;
-            }
-
-            // Fallback to simple function
-            const { data, error } = await this.supabase
-                .rpc('get_admin_active_users', { days: 1 });
-
-            if (error) {
-                console.error('Error getting daily active users:', error);
-                console.error('Note: You may need to update the SQL function using fix-active-users-tracking.sql');
-                return 0;
-            }
-
-            console.log('Daily active users (all players including guests):', data);
-            return data || 0;
-        } catch (error) {
-            console.error('Failed to get daily active users:', error);
-            return 0;
-        }
-    }
-
-    async getMonthlyActiveUsers() {
-        try {
-            // Try detailed function first for better insights
-            const { data: detailed, error: detailError } = await this.supabase
-                .rpc('get_admin_active_users_detailed', { days: 30 });
-
-            if (!detailError && detailed && detailed[0]) {
-                console.log('Monthly active users (detailed):', detailed[0]);
-                console.log(`  Total: ${detailed[0].total_active}`);
-                console.log(`  Registered: ${detailed[0].registered_active}`);
-                console.log(`  Guests: ${detailed[0].guest_active}`);
-                return detailed[0].total_active || 0;
-            }
-
-            // Fallback to simple function
-            const { data, error } = await this.supabase
-                .rpc('get_admin_active_users', { days: 30 });
-
-            if (error) {
-                console.error('Error getting monthly active users:', error);
-                console.error('Note: You may need to update the SQL function using fix-active-users-tracking.sql');
-                return 0;
-            }
-
-            console.log('Monthly active users (all players including guests):', data);
-            return data || 0;
-        } catch (error) {
-            console.error('Failed to get monthly active users:', error);
-            return 0;
-        }
-    }
 
     async getTotalGames() {
         try {
