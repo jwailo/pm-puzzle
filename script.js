@@ -1752,11 +1752,14 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     promptSignupFromGuest() {
-        // Remove the guest prompt and show the signup form
-        const guestPrompt = document.getElementById('guest-signup-prompt');
-        if (guestPrompt) {
-            guestPrompt.remove();
-        }
+        // Remove ALL possible guest signup prompts
+        const promptIds = ['guest-signup-prompt', 'guest-game-signup-prompt', 'guest-stats-signup-prompt'];
+        promptIds.forEach(id => {
+            const prompt = document.getElementById(id);
+            if (prompt) {
+                prompt.remove();
+            }
+        });
 
         // Switch to signup mode and show auth form
         this.isGuest = true; // Keep as guest until they actually sign up
