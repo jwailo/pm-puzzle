@@ -668,6 +668,7 @@ class PMWordle {
                 this.currentUser = this.getOrCreateGuestId();
                 this.updateAuthUI();
                 await this.initializeGuestInDatabase();
+                this.showHelpModalForFirstTimeGuest();
                 return;
             }
 
@@ -680,6 +681,7 @@ class PMWordle {
                 this.currentUser = this.getOrCreateGuestId();
                 this.updateAuthUI();
                 await this.initializeGuestInDatabase();
+                this.showHelpModalForFirstTimeGuest();
                 return;
             }
 
@@ -705,6 +707,9 @@ class PMWordle {
 
                 // Initialize guest in database
                 await this.initializeGuestInDatabase();
+
+                // Show help modal for first-time guests after 2 seconds
+                this.showHelpModalForFirstTimeGuest();
             }
         } catch (error) {
             console.error('Session check failed:', error);
@@ -713,6 +718,7 @@ class PMWordle {
             this.currentUser = this.getOrCreateGuestId();
             this.updateAuthUI();
             await this.initializeGuestInDatabase();
+            this.showHelpModalForFirstTimeGuest();
         }
     }
 
@@ -2497,6 +2503,23 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         }
     }
 
+    showHelpModalForFirstTimeGuest() {
+        // Check if user has seen the help modal before
+        const hasSeenHelp = localStorage.getItem('pm-wordle-help-seen');
+
+        // Only show for guests who haven't seen it before
+        if (!hasSeenHelp && this.isGuest) {
+            console.log('Showing help modal for first-time guest');
+
+            // Wait 2 seconds before showing the modal
+            setTimeout(() => {
+                this.showModal('help');
+                // Mark that the user has seen the help modal
+                localStorage.setItem('pm-wordle-help-seen', 'true');
+            }, 2000);
+        }
+    }
+
     // Authentication System
     async handleAuth() {
         console.log('=== HANDLEAUTH CALLED ===');
@@ -3130,6 +3153,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         document.querySelector('.game-board').style.pointerEvents = 'auto';
         document.querySelector('.keyboard').style.pointerEvents = 'auto';
         this.showMessage('Playing as guest', 'success');
+
+        // Show help modal for first-time guests after 2 seconds
+        this.showHelpModalForFirstTimeGuest();
     }
 
     async logout() {
