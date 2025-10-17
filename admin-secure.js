@@ -885,11 +885,25 @@ class SecureAdminDashboard {
 
     async getDailyActiveUsers() {
         try {
+            // Try detailed function first for better insights
+            const { data: detailed, error: detailError } = await this.supabase
+                .rpc('get_admin_active_users_detailed', { days: 1 });
+
+            if (!detailError && detailed && detailed[0]) {
+                console.log('Daily active users (detailed):', detailed[0]);
+                console.log(`  Total: ${detailed[0].total_active}`);
+                console.log(`  Registered: ${detailed[0].registered_active}`);
+                console.log(`  Guests: ${detailed[0].guest_active}`);
+                return detailed[0].total_active || 0;
+            }
+
+            // Fallback to simple function
             const { data, error } = await this.supabase
                 .rpc('get_admin_active_users', { days: 1 });
 
             if (error) {
                 console.error('Error getting daily active users:', error);
+                console.error('Note: You may need to update the SQL function using fix-active-users-tracking.sql');
                 return 0;
             }
 
@@ -903,11 +917,25 @@ class SecureAdminDashboard {
 
     async getMonthlyActiveUsers() {
         try {
+            // Try detailed function first for better insights
+            const { data: detailed, error: detailError } = await this.supabase
+                .rpc('get_admin_active_users_detailed', { days: 30 });
+
+            if (!detailError && detailed && detailed[0]) {
+                console.log('Monthly active users (detailed):', detailed[0]);
+                console.log(`  Total: ${detailed[0].total_active}`);
+                console.log(`  Registered: ${detailed[0].registered_active}`);
+                console.log(`  Guests: ${detailed[0].guest_active}`);
+                return detailed[0].total_active || 0;
+            }
+
+            // Fallback to simple function
             const { data, error } = await this.supabase
                 .rpc('get_admin_active_users', { days: 30 });
 
             if (error) {
                 console.error('Error getting monthly active users:', error);
+                console.error('Note: You may need to update the SQL function using fix-active-users-tracking.sql');
                 return 0;
             }
 
