@@ -5,31 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>The PM Puzzle</title>
 
-    <!-- Preconnect to Google Analytics for better performance -->
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://www.google-analytics.com">
-
-    <!-- Google Analytics - Load First -->
+    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2W2V6EYFG"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-2W2V6EYFG');
-
-        // Verify GA is loaded
-        window.addEventListener('load', function() {
-            if (typeof gtag !== 'undefined') {
-                console.log('Google Analytics loaded successfully');
-                // Send a test event to verify tracking
-                gtag('event', 'page_view_verified', {
-                    'page_title': 'PM Puzzle',
-                    'page_location': window.location.href
-                });
-            } else {
-                console.warn('Google Analytics may not have loaded properly');
-            }
-        });
     </script>
 
     <link rel="stylesheet" href="styles.css">
@@ -44,10 +26,6 @@
 
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Security Initialization (loads after GA) -->
-    <script src="/secure-init.js"></script>
-    <script src="/utils/auth-security.js"></script>
 </head>
 <body>
     <div class="game-container">
@@ -575,5 +553,9 @@
 
     <script src="config.js?v=4"></script>
     <script src="script.js?v=4"></script>
+
+    <!-- Security Initialization (loads after everything else) -->
+    <script src="/secure-init.js"></script>
+    <script src="/utils/auth-security.js"></script>
 </body>
 </html>

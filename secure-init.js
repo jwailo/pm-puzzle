@@ -45,10 +45,11 @@ const initializeSecurityMeasures = () => {
     });
 
     // Add Content Security Policy meta tag
-    const cspMeta = document.createElement('meta');
-    cspMeta.httpEquiv = 'Content-Security-Policy';
-    cspMeta.content = "default-src 'self' https://taeetzxhrdohdijwgous.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://taeetzxhrdohdijwgous.supabase.co https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net; frame-src 'none'; object-src 'none';";
-    document.head.appendChild(cspMeta);
+    // Temporarily commenting out CSP to ensure it's not blocking GA
+    // const cspMeta = document.createElement('meta');
+    // cspMeta.httpEquiv = 'Content-Security-Policy';
+    // cspMeta.content = "default-src 'self' https://taeetzxhrdohdijwgous.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://taeetzxhrdohdijwgous.supabase.co https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net; frame-src 'none'; object-src 'none';";
+    // document.head.appendChild(cspMeta);
 
     // Prevent iframe embedding
     if (window.top !== window.self) {
