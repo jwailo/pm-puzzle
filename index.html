@@ -40,11 +40,36 @@
             console.log('GA: Page loaded, checking gtag status');
             if (typeof gtag === 'function') {
                 console.log('GA: gtag function is available');
+
+                // Send a test event
+                gtag('event', 'test_event', {
+                    'event_category': 'debugging',
+                    'event_label': 'manual_test',
+                    'value': 1
+                });
+                console.log('GA: Test event sent');
+
+                // Check what's in dataLayer
+                console.log('GA: Current dataLayer contents:', window.dataLayer);
             } else {
                 console.error('GA: gtag function is NOT available');
             }
             if (window.dataLayer) {
                 console.log('GA: dataLayer exists with', window.dataLayer.length, 'items');
+            }
+
+            // Check if GA object exists (for Universal Analytics)
+            if (window.ga) {
+                console.log('GA: window.ga exists (Universal Analytics)');
+            }
+
+            // Check if gtag script actually loaded
+            const scripts = Array.from(document.getElementsByTagName('script'));
+            const gaScript = scripts.find(s => s.src && s.src.includes('googletagmanager.com'));
+            if (gaScript) {
+                console.log('GA: Script tag found in DOM:', gaScript.src);
+            } else {
+                console.error('GA: No GA script tag found in DOM');
             }
         });
     </script>
@@ -158,6 +183,9 @@
                     <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
                 </div>
                 <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
+
+                <!-- Temporary GA Test Button -->
+                <button type="button" onclick="if(typeof gtag !== 'undefined') { gtag('event', 'button_click', {'event_category': 'test', 'event_label': 'manual_button'}); console.log('GA test event sent'); } else { console.error('gtag not defined'); }" style="margin-top: 10px; padding: 8px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer;">Test GA Event</button>
             </div>
         </div>
 
