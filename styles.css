@@ -205,12 +205,15 @@ body.dark-mode {
     transition: all 0.2s ease;
     width: 44px;
     height: 44px;
-    display: flex;
+    display: flex !important;  /* Ensure always displayed */
+    visibility: visible !important;  /* Ensure always visible */
+    opacity: 1 !important;  /* Ensure always opaque */
     align-items: center;
     justify-content: center;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     position: relative;
+    z-index: 100;  /* Ensure it's above other elements */
 }
 
 .icon-btn:hover {
@@ -225,6 +228,13 @@ body.dark-mode .icon-btn:hover {
     width: 20px;
     height: 20px;
     fill: currentColor;
+}
+
+/* Ensure help button is always visible for all users */
+#help-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Auth Section */
