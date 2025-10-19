@@ -6,12 +6,47 @@
     <title>The PM Puzzle</title>
 
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2W2V6EYFG"></script>
     <script>
+        // Debug: Log when this inline script runs
+        console.log('GA: Inline script executing');
+
+        // Initialize dataLayer before GA script loads
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', 'G-2W2V6EYFG');
+
+        // Create and append GA script manually for better control
+        const gaScript = document.createElement('script');
+        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-2W2V6EYFG';
+        gaScript.async = true;
+
+        // Add event listeners to debug loading
+        gaScript.onload = function() {
+            console.log('GA: Script loaded successfully');
+            gtag('config', 'G-2W2V6EYFG');
+            console.log('GA: Configuration sent for G-2W2V6EYFG');
+        };
+
+        gaScript.onerror = function() {
+            console.error('GA: Failed to load Google Analytics script');
+        };
+
+        // Append to head
+        document.head.appendChild(gaScript);
+        console.log('GA: Script tag appended to head');
+
+        // Also check after page load
+        window.addEventListener('load', function() {
+            console.log('GA: Page loaded, checking gtag status');
+            if (typeof gtag === 'function') {
+                console.log('GA: gtag function is available');
+            } else {
+                console.error('GA: gtag function is NOT available');
+            }
+            if (window.dataLayer) {
+                console.log('GA: dataLayer exists with', window.dataLayer.length, 'items');
+            }
+        });
     </script>
 
     <link rel="stylesheet" href="styles.css">
