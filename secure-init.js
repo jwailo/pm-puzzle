@@ -47,7 +47,7 @@ const initializeSecurityMeasures = () => {
     // Add Content Security Policy meta tag
     const cspMeta = document.createElement('meta');
     cspMeta.httpEquiv = 'Content-Security-Policy';
-    cspMeta.content = "default-src 'self' https://taeetzxhrdohdijwgous.supabase.co; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://taeetzxhrdohdijwgous.supabase.co https://*.supabase.co https://www.google-analytics.com; frame-src 'none'; object-src 'none';";
+    cspMeta.content = "default-src 'self' https://taeetzxhrdohdijwgous.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://taeetzxhrdohdijwgous.supabase.co https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net; frame-src 'none'; object-src 'none';";
     document.head.appendChild(cspMeta);
 
     // Prevent iframe embedding
@@ -60,7 +60,7 @@ const initializeSecurityMeasures = () => {
         window.trustedTypes.createPolicy('default', {
             createHTML: (string) => window.DOMPurify ? window.DOMPurify.sanitize(string, { RETURN_TRUSTED_TYPE: true }) : string,
             createScriptURL: (string) => {
-                const allowedDomains = ['supabase.co', 'jsdelivr.net', 'unpkg.com'];
+                const allowedDomains = ['supabase.co', 'jsdelivr.net', 'unpkg.com', 'googletagmanager.com', 'google-analytics.com'];
                 const url = new URL(string, window.location.origin);
                 if (allowedDomains.some(domain => url.hostname.includes(domain))) {
                     return string;
