@@ -11,33 +11,7 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', 'G-C1TPDRCYJ1', {
-            'debug_mode': true,
-            'send_page_view': true
-        });
-
-        // Debug: Monitor dataLayer to see what's being sent
-        window.addEventListener('load', function() {
-            console.log('GA Debug: dataLayer contents:', window.dataLayer);
-
-            // Send a test event to verify tracking
-            gtag('event', 'page_load_complete', {
-                'event_category': 'engagement',
-                'event_label': 'initial_load',
-                'page_location': window.location.href,
-                'page_title': document.title
-            });
-            console.log('GA Debug: Test event sent');
-
-            // Check network requests
-            setTimeout(() => {
-                const hasGARequests = performance.getEntriesByType('resource')
-                    .some(entry => entry.name.includes('google-analytics.com') ||
-                                   entry.name.includes('analytics.google.com') ||
-                                   entry.name.includes('/g/collect'));
-                console.log('GA Debug: Analytics requests found:', hasGARequests);
-            }, 3000);
-        });
+        gtag('config', 'G-C1TPDRCYJ1');
     </script>
 
     <link rel="stylesheet" href="styles.css">
@@ -149,23 +123,6 @@
                     <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
                 </div>
                 <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
-
-                <!-- Temporary GA Debug Button -->
-                <button type="button" onclick="
-                    if(typeof gtag !== 'undefined') {
-                        gtag('event', 'test_click', {
-                            'event_category': 'debug',
-                            'event_label': 'manual_test_' + Date.now(),
-                            'debug_mode': true
-                        });
-                        console.log('GA Debug: Manual test event sent at', new Date().toISOString());
-                        console.log('Current dataLayer:', window.dataLayer);
-                    } else {
-                        console.error('gtag is not defined!');
-                    }
-                " style="margin-top: 10px; padding: 8px 16px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                    Test GA Tracking
-                </button>
             </div>
         </div>
 
