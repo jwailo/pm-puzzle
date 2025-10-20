@@ -6,72 +6,12 @@
     <title>The PM Puzzle</title>
 
     <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-C1TPDRCYJ1"></script>
     <script>
-        // Debug: Log when this inline script runs
-        console.log('GA: Inline script executing');
-
-        // Initialize dataLayer before GA script loads
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-
-        // Create and append GA script manually for better control
-        const gaScript = document.createElement('script');
-        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-2W2V6EYFG';
-        gaScript.async = true;
-
-        // Add event listeners to debug loading
-        gaScript.onload = function() {
-            console.log('GA: Script loaded successfully');
-            gtag('config', 'G-2W2V6EYFG');
-            console.log('GA: Configuration sent for G-2W2V6EYFG');
-        };
-
-        gaScript.onerror = function() {
-            console.error('GA: Failed to load Google Analytics script');
-        };
-
-        // Append to head
-        document.head.appendChild(gaScript);
-        console.log('GA: Script tag appended to head');
-
-        // Also check after page load
-        window.addEventListener('load', function() {
-            console.log('GA: Page loaded, checking gtag status');
-            if (typeof gtag === 'function') {
-                console.log('GA: gtag function is available');
-
-                // Send a test event
-                gtag('event', 'test_event', {
-                    'event_category': 'debugging',
-                    'event_label': 'manual_test',
-                    'value': 1
-                });
-                console.log('GA: Test event sent');
-
-                // Check what's in dataLayer
-                console.log('GA: Current dataLayer contents:', window.dataLayer);
-            } else {
-                console.error('GA: gtag function is NOT available');
-            }
-            if (window.dataLayer) {
-                console.log('GA: dataLayer exists with', window.dataLayer.length, 'items');
-            }
-
-            // Check if GA object exists (for Universal Analytics)
-            if (window.ga) {
-                console.log('GA: window.ga exists (Universal Analytics)');
-            }
-
-            // Check if gtag script actually loaded
-            const scripts = Array.from(document.getElementsByTagName('script'));
-            const gaScript = scripts.find(s => s.src && s.src.includes('googletagmanager.com'));
-            if (gaScript) {
-                console.log('GA: Script tag found in DOM:', gaScript.src);
-            } else {
-                console.error('GA: No GA script tag found in DOM');
-            }
-        });
+        gtag('config', 'G-C1TPDRCYJ1');
     </script>
 
     <link rel="stylesheet" href="styles.css">
@@ -183,9 +123,6 @@
                     <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
                 </div>
                 <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
-
-                <!-- Temporary GA Test Button -->
-                <button type="button" onclick="if(typeof gtag !== 'undefined') { gtag('event', 'button_click', {'event_category': 'test', 'event_label': 'manual_button'}); console.log('GA test event sent'); } else { console.error('gtag not defined'); }" style="margin-top: 10px; padding: 8px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer;">Test GA Event</button>
             </div>
         </div>
 
