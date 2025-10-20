@@ -551,11 +551,11 @@ class PMWordle {
 
         // Initialize game
         console.log('Starting game initialization...');
-        this.init().catch(error => {
+        this.init().catch(async error => {
             console.error('Game initialization failed:', error);
             // Fallback initialization
             try {
-                this.initGame();
+                await this.initGame();
                 this.setupEventListeners();
                 this.loadSettings();
                 this.updateCountdown();
@@ -829,7 +829,7 @@ class PMWordle {
         }
 
         // Always initialize the rest of the game
-        this.initGame();
+        await this.initGame();
         this.setupEventListeners();
         this.loadSettings();
         this.updateCountdown();
@@ -992,17 +992,105 @@ class PMWordle {
         }
     }
 
-    initGame() {
+    async initGame() {
         this.currentWord = this.getTodaysWord();
         this.startTime = new Date();
 
         // Reset keyboard to clean state before loading any saved state
         this.resetKeyboard();
 
-        // Render clean board first, then load any saved state
+        // Render clean board first
         this.renderBoard();
+
+        // For authenticated users, check if they've already played today
+        if (!this.isGuest && this.currentUser && this.db && this.db.supabase) {
+            const hasPlayed = await this.checkIfAlreadyPlayedToday();
+            if (hasPlayed) {
+                // Load the completed game state from database
+                await this.loadCompletedGameFromDatabase();
+                return; // Exit early, don't allow new game
+            }
+        }
+
+        // Load any saved state from localStorage
         this.loadGameState();
         this.updateStats();
+    }
+
+    async checkIfAlreadyPlayedToday() {
+        try {
+            const today = this.getPuzzleDate();
+
+            // Check if user has a completed game for today
+            const { data, error } = await this.db.supabase
+                .from('game_sessions')
+                .select('*')
+                .eq('user_id', this.currentUser)
+                .eq('date', today)
+                .eq('completed', true)
+                .single();
+
+            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+                console.error('Error checking if already played:', error);
+                return false; // On error, allow play
+            }
+
+            if (data) {
+                console.log('User has already completed today\'s puzzle:', data);
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error in checkIfAlreadyPlayedToday:', error);
+            return false; // On error, allow play
+        }
+    }
+
+    async loadCompletedGameFromDatabase() {
+        try {
+            const today = this.getPuzzleDate();
+
+            // Get the completed game session from database
+            const { data, error } = await this.db.supabase
+                .from('game_sessions')
+                .select('*')
+                .eq('user_id', this.currentUser)
+                .eq('date', today)
+                .single();
+
+            if (error || !data) {
+                console.error('Error loading completed game:', error);
+                return;
+            }
+
+            // Set game state from database
+            this.currentWord = data.word || this.currentWord;
+            this.gameOver = true;
+            this.gameWon = data.won || false;
+            this.guesses = data.guesses || [];
+            this.currentRow = this.guesses.length;
+            this.currentCol = 0;
+            this.startTime = data.start_time ? new Date(data.start_time) : new Date();
+            this.endTime = data.completion_time ? new Date(data.completion_time) : new Date();
+
+            // Restore the board with the completed game
+            this.restoreBoard();
+
+            // Disable further input
+            document.querySelector('.game-board').style.pointerEvents = 'none';
+            document.querySelector('.keyboard').style.pointerEvents = 'none';
+
+            // Show message that they've already played
+            this.showMessage('You have already completed today\'s puzzle!', 'info', 3000);
+
+            // Update stats display
+            this.updateStats();
+
+            console.log('Loaded completed game from database for today');
+        } catch (error) {
+            console.error('Error in loadCompletedGameFromDatabase:', error);
+        }
     }
 
     resetKeyboard() {
@@ -3987,15 +4075,25 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 console.log('Saved game state is for a different date, clearing old state and starting fresh');
                 // Clear the old state
                 localStorage.removeItem(stateKey);
-                // Initialize fresh game
-                this.initGame();
+                // Don't call initGame recursively, just reset state
+                this.currentRow = 0;
+                this.currentCol = 0;
+                this.gameOver = false;
+                this.gameWon = false;
+                this.guesses = [];
+                this.startTime = new Date();
             }
         } catch (error) {
             console.error('Error loading game state:', error);
             // Clear corrupted state
             localStorage.removeItem(stateKey);
-            // Initialize fresh game
-            this.initGame();
+            // Don't call initGame recursively, just reset state
+            this.currentRow = 0;
+            this.currentCol = 0;
+            this.gameOver = false;
+            this.gameWon = false;
+            this.guesses = [];
+            this.startTime = new Date();
         }
     }
 
