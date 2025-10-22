@@ -66,7 +66,7 @@ BEGIN
       AND up.first_name != ''
       AND up.first_name NOT LIKE 'Player %'
       AND up.email NOT LIKE '%+%'  -- Remove test accounts with + in email
-    ORDER BY us.max_streak DESC, us.games_won DESC, us.user_id ASC
+    ORDER BY us.max_streak DESC, up.first_name ASC
     LIMIT 10;
 END;
 $$;
