@@ -1132,9 +1132,9 @@ class PMWordle {
     }
 
     getPuzzleDate() {
-        // Get the current puzzle date based on 12pm reset time
+        // Get the current puzzle date based on 12am (midnight) reset time
         const now = new Date();
-        const resetHour = 12; // 12pm reset
+        const resetHour = 0; // 12am (midnight) reset
 
         // Create a date object for today at reset time
         const puzzleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour);
@@ -1155,9 +1155,9 @@ class PMWordle {
             return window.testWord.toUpperCase();
         }
 
-        // Get word based on current date and 12pm reset time
+        // Get word based on current date and 12am (midnight) reset time
         const now = new Date();
-        const resetHour = 12; // 12pm reset
+        const resetHour = 0; // 12am (midnight) reset
 
         // Create a date object for today at reset time
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour);
@@ -1471,7 +1471,7 @@ class PMWordle {
                             <li>Win daily prizes!</li>
                         </ul>
                         <p style="font-size: 12px; color: #888; margin-bottom: 20px;">
-                            <strong>New puzzle released daily at 12:00 PM</strong>
+                            <strong>New puzzle released daily at 12:00 AM</strong>
                         </p>
                         <div style="display: flex; gap: 12px; justify-content: center;">
                             <button onclick="game.promptSignupFromGuest()" class="share-btn" style="margin: 0;">
@@ -4222,10 +4222,10 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             const now = new Date();
             const nextPuzzle = new Date(now);
 
-            // Set to today at 12 PM
-            nextPuzzle.setHours(12, 0, 0, 0);
+            // Set to today at 12 AM (midnight)
+            nextPuzzle.setHours(0, 0, 0, 0);
 
-            // If it's past 12 PM today, set to tomorrow at 12 PM
+            // If it's past midnight today, set to tomorrow at midnight
             if (now >= nextPuzzle) {
                 nextPuzzle.setDate(nextPuzzle.getDate() + 1);
             }

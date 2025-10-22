@@ -4,7 +4,7 @@ A Property Management themed Wordle game created for Ailo.
 
 ## Features
 
-- **Daily Puzzles**: New property management word every day at 12:00 PM
+- **Daily Puzzles**: New property management word every day at 12:00 AM
 - **User Authentication**: Sign up/sign in system with guest play option
 - **Statistics Tracking**: Track wins, streaks, and guess distributions
 - **Leaderboards**: Daily fastest times and longest streaks
