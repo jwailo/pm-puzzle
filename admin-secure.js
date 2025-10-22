@@ -530,7 +530,7 @@ class SecureAdminDashboard {
                                 <span>${p.first_name}</span>
                                 <span style="color: #666;">${p.email}</span>
                                 <span>${p.guesses} ${p.guesses === 1 ? 'guess' : 'guesses'}</span>
-                                <span>${this.formatCompletionTime(p.completion_time)}</span>
+                                ${p.completion_time ? `<span>${this.formatCompletionTime(p.completion_time)}</span>` : ''}
                             </div>
                         `).join('')}
                     </div>
