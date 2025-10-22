@@ -283,6 +283,10 @@ class SecureAdminDashboard {
             }
 
             console.log('Daily completions data received:', data);
+            console.log('Number of completions:', data ? data.length : 0);
+            if (data && data.length > 0) {
+                console.log('First completion sample:', data[0]);
+            }
             this.winnersData = data || [];
             this.winnersLoaded = true;
             this.renderDailyCompletions(data || []);
@@ -305,7 +309,7 @@ class SecureAdminDashboard {
         // Group completions by date
         const groupedByDate = {};
         data.forEach(completion => {
-            const date = completion.completion_date;
+            const date = completion.completion_date || completion.puzzle_date || completion.date;
             if (!groupedByDate[date]) {
                 groupedByDate[date] = [];
             }
@@ -486,7 +490,7 @@ class SecureAdminDashboard {
         // Group data by puzzle date
         const groupedByDate = {};
         data.forEach(completion => {
-            const date = completion.puzzle_date;
+            const date = completion.completion_date || completion.puzzle_date || completion.date;
             if (!groupedByDate[date]) {
                 groupedByDate[date] = [];
             }
