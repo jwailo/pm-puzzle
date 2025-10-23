@@ -1132,20 +1132,19 @@ class PMWordle {
     }
 
     getPuzzleDate() {
-        // Get the current puzzle date based on 12am (midnight) reset time
+        // Get Sydney time for consistent puzzle dates across all users
         const now = new Date();
-        const resetHour = 0; // 12am (midnight) reset
+        const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
+        const sydneyNow = new Date(sydneyTimeString);
 
-        // Create a date object for today at reset time
-        const puzzleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour);
+        // Format as YYYY-MM-DD for database compatibility
+        const year = sydneyNow.getFullYear();
+        const month = String(sydneyNow.getMonth() + 1).padStart(2, '0');
+        const day = String(sydneyNow.getDate()).padStart(2, '0');
 
-        // If current time is before reset time, use yesterday's date
-        if (now.getHours() < resetHour) {
-            puzzleDate.setDate(puzzleDate.getDate() - 1);
-        }
-
-        // Return in YYYY-MM-DD format for database compatibility
-        return puzzleDate.toISOString().split('T')[0];
+        const puzzleDate = `${year}-${month}-${day}`;
+        console.log('Puzzle date (Sydney time):', puzzleDate);
+        return puzzleDate;
     }
 
     getTodaysWord() {
@@ -1155,20 +1154,14 @@ class PMWordle {
             return window.testWord.toUpperCase();
         }
 
-        // Get word based on current date and 12am (midnight) reset time
+        // Get Sydney time for consistent word selection worldwide
         const now = new Date();
-        const resetHour = 0; // 12am (midnight) reset
+        const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
+        const sydneyNow = new Date(sydneyTimeString);
 
-        // Create a date object for today at reset time
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour);
-
-        // If current time is before reset time, use yesterday's date
-        if (now.getHours() < resetHour) {
-            today.setDate(today.getDate() - 1);
-        }
-
-        // Use the date as seed for consistent word selection
-        const seed = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+        // Create seed based on Sydney date only (ignoring time)
+        const sydneyDateOnly = new Date(sydneyNow.getFullYear(), sydneyNow.getMonth(), sydneyNow.getDate());
+        const seed = Math.floor(sydneyDateOnly.getTime() / (1000 * 60 * 60 * 24));
         const wordIndex = seed % this.answerBank.length;
         const selectedWord = this.answerBank[wordIndex];
 
@@ -1179,6 +1172,7 @@ class PMWordle {
             return 'LEASE';
         }
 
+        console.log(`Today's word (Sydney date: ${this.getPuzzleDate()}):`, selectedWord);
         return selectedWord;
     }
 
@@ -4219,21 +4213,24 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     // Countdown timer
     updateCountdown() {
         const updateTimer = () => {
+            // Calculate time until midnight Sydney time
             const now = new Date();
-            const nextPuzzle = new Date(now);
 
-            // Set to today at 12 AM (midnight)
-            nextPuzzle.setHours(0, 0, 0, 0);
+            // Get current Sydney time
+            const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
+            const sydneyNow = new Date(sydneyTimeString);
 
-            // If it's past midnight today, set to tomorrow at midnight
-            if (now >= nextPuzzle) {
-                nextPuzzle.setDate(nextPuzzle.getDate() + 1);
-            }
+            // Create next midnight in Sydney
+            const nextSydneyMidnight = new Date(sydneyNow);
+            nextSydneyMidnight.setHours(24, 0, 0, 0); // Set to next midnight
 
-            const diff = nextPuzzle - now;
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            // Calculate difference from Sydney time
+            const diffInSydney = nextSydneyMidnight - sydneyNow;
+
+            // The diff is the same regardless of user's timezone
+            const hours = Math.floor(diffInSydney / (1000 * 60 * 60));
+            const minutes = Math.floor((diffInSydney % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffInSydney % (1000 * 60)) / 1000);
 
             const timerElement = document.getElementById('countdown-timer');
             if (timerElement) {

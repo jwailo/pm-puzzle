@@ -976,6 +976,28 @@ body.dark-mode .close-btn:hover {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-height: 400px; /* Limit height to show about 10-12 entries */
+    overflow-y: auto; /* Add scroll when content exceeds height */
+    padding-right: 5px; /* Add padding for scrollbar */
+}
+
+/* Custom scrollbar for webkit browsers */
+.leaderboard-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.leaderboard-list::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 3px;
+}
+
+.leaderboard-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.leaderboard-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .leaderboard-item {
