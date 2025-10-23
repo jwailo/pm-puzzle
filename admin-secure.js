@@ -301,7 +301,12 @@ class SecureAdminDashboard {
     renderDailyCompletions(data) {
         const containerEl = document.getElementById('winners-container');
 
+        console.log('renderDailyCompletions called with:', data);
+        console.log('Data type:', typeof data);
+        console.log('Data is array?:', Array.isArray(data));
+
         if (!data || data.length === 0) {
+            console.log('No data found, showing empty message');
             containerEl.innerHTML = '<div style="color: #666; padding: 2rem; text-align: center;">No puzzle completions found</div>';
             return;
         }
@@ -309,7 +314,8 @@ class SecureAdminDashboard {
         // Group completions by date
         const groupedByDate = {};
         data.forEach(completion => {
-            const date = completion.completion_date || completion.puzzle_date || completion.date;
+            const date = completion.completion_date || completion.puzzle_date || completion.date || completion.created_at;
+            console.log('Processing completion:', completion, 'Date:', date);
             if (!groupedByDate[date]) {
                 groupedByDate[date] = [];
             }
