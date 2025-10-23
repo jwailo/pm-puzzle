@@ -468,14 +468,7 @@ class SecureAdminDashboard {
         // Sort dates in descending order (most recent first)
         const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
 
-        // Add date range info
-        const dateRange = sortedDates.length > 0 ?
-            `<div style="padding: 1rem; background: #e6f3ff; border-radius: 8px; margin-bottom: 1rem;">
-                <strong>📅 Date Range:</strong> ${new Date(sortedDates[sortedDates.length - 1]).toLocaleDateString()} - ${new Date(sortedDates[0]).toLocaleDateString()}<br>
-                <strong>📊 Total Days:</strong> ${sortedDates.length} days with completions
-            </div>` : '';
-
-        let html = dateRange;
+        let html = '';
         let totalCompletions = 0;
 
         sortedDates.forEach(date => {
@@ -491,56 +484,35 @@ class SecureAdminDashboard {
                 day: 'numeric'
             });
 
-            // Select a random winner for this day
-            const randomWinner = dayCompletions[Math.floor(Math.random() * dayCompletions.length)];
+            // Remove duplicates - keep only one entry per user per day
+            const uniqueCompletions = [];
+            const seenUsers = new Set();
+            dayCompletions.forEach(completion => {
+                const userKey = `${completion.user_id}`;
+                if (!seenUsers.has(userKey)) {
+                    uniqueCompletions.push(completion);
+                    seenUsers.add(userKey);
+                }
+            });
 
+            // Simple clean list - no trophies, no winners
             html += `
-                <div style="margin-bottom: 2rem; background: #f7fafc; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0;">
-                        <div style="font-size: 1.25rem; font-weight: bold; color: #2d3748;">${formattedDate}</div>
-                        <div style="background: #667eea; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px;">
-                            ${dayCompletions.length} ${dayCompletions.length === 1 ? 'completion' : 'completions'}
-                        </div>
+                <div style="margin-bottom: 2rem; background: #f7fafc; border-radius: 8px; padding: 1rem;">
+                    <div style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #2d3748;">${formattedDate}</div>
                     </div>
 
-                    <!-- Daily Winner -->
-                    <div style="background: linear-gradient(135deg, #ffd700, #ffed4e); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                        <div style="font-size: 2rem;">🏆</div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 1.1rem; font-weight: bold; color: #2d3748;">${randomWinner.first_name}</div>
-                            <div style="color: #666; font-size: 0.9rem;">${randomWinner.email}</div>
-                        </div>
-                        <div style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">
-                            DAILY WINNER - $50 MECCA
-                        </div>
-                    </div>
-
-                    <!-- All Completions for the Day -->
-                    <div style="margin-top: 1rem;">
-                        <div style="font-weight: 600; color: #4a5568; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <span>📝</span>
-                            <span>All Completions:</span>
-                        </div>
+                    <!-- Simple list of completions -->
+                    <div style="margin-top: 0.5rem;">
                         <table style="width: 100%; font-size: 14px;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid #e2e8f0;">
-                                    <th style="text-align: left; padding: 8px; color: #666;">#</th>
-                                    <th style="text-align: left; padding: 8px; color: #666;">Name</th>
-                                    <th style="text-align: left; padding: 8px; color: #666;">Email</th>
-                                </tr>
-                            </thead>
                             <tbody>
             `;
 
-            dayCompletions.forEach((completion, index) => {
-                const isWinner = completion.user_id === randomWinner.user_id;
-                const guessesText = completion.guesses ? `(${completion.guesses} guesses)` : '(historical)';
+            uniqueCompletions.forEach((completion, index) => {
                 html += `
-                    <tr style="border-bottom: 1px solid #e2e8f0; ${isWinner ? 'background: #fffaf0;' : ''}">
-                        <td style="padding: 8px; color: #666;">${index + 1}</td>
-                        <td style="padding: 8px;">${completion.first_name} ${isWinner ? '🏆' : ''}</td>
-                        <td style="padding: 8px; color: #666;">${completion.email}</td>
-                        <td style="padding: 8px; color: #999; font-size: 12px;">${guessesText}</td>
+                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                        <td style="padding: 6px 8px; width: 30%;">${completion.first_name}</td>
+                        <td style="padding: 6px 8px; color: #666;">${completion.email}</td>
                     </tr>
                 `;
             });
@@ -549,20 +521,18 @@ class SecureAdminDashboard {
                             </tbody>
                         </table>
                     </div>
+                    <div style="text-align: right; margin-top: 8px; font-size: 13px; color: #999;">
+                        ${uniqueCompletions.length} ${uniqueCompletions.length === 1 ? 'player' : 'players'}
+                    </div>
                 </div>
             `;
         });
 
-        // Add summary at the bottom
+        // Simple summary
+        const uniquePlayers = [...new Set(data.map(d => d.user_id))].length;
         html += `
-            <div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <p style="color: #666; font-size: 14px;">
-                    <strong>Total Completions:</strong> ${totalCompletions}<br>
-                    <strong>Unique Players:</strong> ${[...new Set(data.map(d => d.user_id))].length}<br>
-                    <strong>Days with Completions:</strong> ${sortedDates.length}<br>
-                    <br>
-                    <strong>Note:</strong> Winners are randomly selected from each day's completions. Players appear multiple times if they've completed puzzles on different days.
-                </p>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; font-size: 13px; color: #666;">
+                Total Days: ${sortedDates.length} | Unique Players: ${uniquePlayers}
             </div>
         `;
 
