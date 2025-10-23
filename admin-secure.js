@@ -261,38 +261,122 @@ class SecureAdminDashboard {
 
         try {
             console.log('Loading all daily puzzle completions...');
+            let completionsData = [];
 
-            // Use the new daily completions function
-            const { data, error } = await this.supabase.rpc('get_daily_puzzle_completions');
+            // Method 1: Try the main RPC function
+            console.log('Method 1: Trying RPC get_daily_puzzle_completions');
+            const { data: rpcData, error: rpcError } = await this.supabase.rpc('get_daily_puzzle_completions');
 
-            if (error) {
-                console.error('Error loading completions:', error);
-                // Fallback to simple function if new one doesn't exist yet
-                console.log('Trying fallback function...');
-                const { data: fallbackData, error: fallbackError } = await this.supabase.rpc('get_puzzle_completions_simple');
+            if (rpcError) {
+                console.error('Method 1 failed:', rpcError);
+            } else {
+                console.log('Method 1 data received:', rpcData);
+                completionsData = rpcData || [];
+            }
 
-                if (fallbackError) {
-                    containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Error loading data: ' + error.message + '</div>';
-                    return;
+            // Method 2: If no data, try the simple function
+            if (!completionsData || completionsData.length === 0) {
+                console.log('Method 2: Trying RPC get_completions_simple');
+                const { data: simpleData, error: simpleError } = await this.supabase.rpc('get_completions_simple');
+
+                if (simpleError) {
+                    console.error('Method 2 failed:', simpleError);
+                } else {
+                    console.log('Method 2 data received:', simpleData);
+                    completionsData = simpleData || [];
                 }
-
-                this.winnersData = fallbackData || [];
-                this.winnersLoaded = true;
-                this.renderSimpleCompletions(fallbackData || []);
-                return;
             }
 
-            console.log('Daily completions data received:', data);
-            console.log('Number of completions:', data ? data.length : 0);
-            if (data && data.length > 0) {
-                console.log('First completion sample:', data[0]);
+            // Method 3: Try direct view query
+            if (!completionsData || completionsData.length === 0) {
+                console.log('Method 3: Trying direct query to puzzle_completions_view');
+                const { data: viewData, error: viewError } = await this.supabase
+                    .from('puzzle_completions_view')
+                    .select('*');
+
+                if (viewError) {
+                    console.error('Method 3 failed:', viewError);
+                } else {
+                    console.log('Method 3 data received:', viewData);
+                    completionsData = viewData || [];
+                }
             }
-            this.winnersData = data || [];
+
+            // Method 4: Direct table query with joins
+            if (!completionsData || completionsData.length === 0) {
+                console.log('Method 4: Direct table query to game_sessions');
+                const { data: directData, error: directError } = await this.supabase
+                    .from('game_sessions')
+                    .select(`
+                        *,
+                        user_profiles!inner(
+                            email,
+                            first_name
+                        )
+                    `)
+                    .eq('game_won', true)
+                    .order('created_at', { ascending: false });
+
+                if (directError) {
+                    console.error('Method 4 failed:', directError);
+                } else {
+                    console.log('Method 4 raw data received:', directData);
+                    // Transform the data to match expected format
+                    if (directData && directData.length > 0) {
+                        completionsData = directData.map(item => ({
+                            completion_date: item.date || new Date(item.created_at).toISOString().split('T')[0],
+                            user_id: item.user_id,
+                            email: item.user_profiles?.email || 'Unknown Email',
+                            first_name: item.user_profiles?.first_name || 'Unknown User',
+                            completed_at: item.updated_at || item.created_at,
+                            guesses: (item.current_row || 5) + 1
+                        }));
+                    }
+                }
+            }
+
+            // Method 5: Try without user_id filter
+            if (!completionsData || completionsData.length === 0) {
+                console.log('Method 5: Trying without user_id filter');
+                const { data: allData, error: allError } = await this.supabase
+                    .from('game_sessions')
+                    .select('*')
+                    .eq('game_won', true)
+                    .order('created_at', { ascending: false });
+
+                if (allError) {
+                    console.error('Method 5 failed:', allError);
+                } else {
+                    console.log('Method 5 - All winning sessions (including guests):', allData);
+                    if (allData && allData.length > 0) {
+                        // Show at least guest wins to verify data exists
+                        completionsData = allData.map(item => ({
+                            completion_date: item.date || new Date(item.created_at).toISOString().split('T')[0],
+                            user_id: item.user_id || 'guest',
+                            email: item.user_id ? 'Loading...' : 'Guest Player',
+                            first_name: item.user_id ? 'Loading...' : 'Guest',
+                            completed_at: item.updated_at || item.created_at,
+                            guesses: (item.current_row || 5) + 1
+                        }));
+                    }
+                }
+            }
+
+            console.log(`Final completions data: ${completionsData?.length || 0} records`);
+            console.log('Sample data:', completionsData && completionsData.length > 0 ? completionsData[0] : 'No data');
+
+            this.winnersData = completionsData || [];
             this.winnersLoaded = true;
-            this.renderDailyCompletions(data || []);
+
+            if (!completionsData || completionsData.length === 0) {
+                containerEl.innerHTML = '<div style="color: #666; padding: 2rem; text-align: center;">No puzzle completions found. Check console for debugging info.</div>';
+            } else {
+                this.renderDailyCompletions(completionsData);
+            }
+
         } catch (error) {
             console.error('Failed to load completions:', error);
-            containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Failed to load data</div>';
+            containerEl.innerHTML = '<div style="color: #e53e3e; padding: 2rem; text-align: center;">Failed to load data: ' + error.message + '</div>';
         } finally {
             loadingEl.style.display = 'none';
         }
