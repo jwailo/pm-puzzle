@@ -362,60 +362,67 @@ class SecureAdminDashboard {
                 }
             }
 
-            // Method 6: Use the SAME RPC that works for the Users tab!
+            // Method 6: Use the SAME RPC the game uses for daily leaderboard!
             if (!completionsData || completionsData.length === 0) {
-                console.log('Method 6: Using get_admin_user_list RPC (which we know works)');
+                console.log('Method 6: Getting real daily completions using get_public_daily_leaderboard');
 
                 try {
-                    // Use the exact same RPC call that works in loadUsersList
-                    const { data: users, error } = await this.supabase
-                        .rpc('get_admin_user_list');
+                    // Get completions for the last 30 days
+                    const allCompletions = [];
+                    const today = new Date();
 
-                    if (error) {
-                        console.error('Method 6 RPC failed:', error);
-                    } else {
-                        console.log('Method 6 - Users data from RPC:', users);
+                    for (let i = 0; i < 30; i++) {
+                        const checkDate = new Date(today);
+                        checkDate.setDate(today.getDate() - i);
+                        const dateStr = checkDate.toISOString().split('T')[0];
 
-                        if (users && users.length > 0) {
-                            // Filter to users who have actually played
-                            const playersWithGames = users.filter(u => u.games_played > 0);
-                            console.log('Players who have played:', playersWithGames.length);
+                        console.log(`Fetching completions for ${dateStr}`);
 
-                            // Transform into completions format
-                            // Since we don't have individual daily records, show each user with their stats
-                            const completions = [];
+                        try {
+                            const { data: dayData, error: dayError } = await this.supabase
+                                .rpc('get_public_daily_leaderboard', {
+                                    target_date: dateStr
+                                });
 
-                            playersWithGames.forEach(user => {
-                                // For each game they've won, create an entry
-                                // This gives us a list that roughly matches the number of games
-                                for (let i = 0; i < user.games_won; i++) {
-                                    // Spread the games across recent dates
-                                    const daysAgo = Math.floor(i / 3); // Assume ~3 winners per day
-                                    const gameDate = new Date();
-                                    gameDate.setDate(gameDate.getDate() - daysAgo);
+                            if (!dayError && dayData && dayData.length > 0) {
+                                console.log(`Found ${dayData.length} completions for ${dateStr}`);
 
-                                    completions.push({
-                                        completion_date: gameDate.toISOString().split('T')[0],
-                                        user_id: user.user_id,
-                                        email: user.email || 'Unknown',
-                                        first_name: user.first_name || 'Unknown',
-                                        completed_at: user.updated_at || user.created_at,
-                                        guesses: Math.floor(Math.random() * 5) + 2, // Random 2-6 guesses
-                                        games_won: user.games_won,
-                                        current_streak: user.current_streak || 0
+                                // Get user profiles for emails
+                                const userIds = dayData.map(d => d.user_id).filter(id => id);
+                                const { data: profiles } = await this.supabase
+                                    .from('user_profiles')
+                                    .select('id, first_name, email')
+                                    .in('id', userIds);
+
+                                const profileMap = {};
+                                if (profiles) {
+                                    profiles.forEach(p => {
+                                        profileMap[p.id] = p;
                                     });
                                 }
-                            });
 
-                            // Sort by date descending
-                            completions.sort((a, b) =>
-                                new Date(b.completion_date) - new Date(a.completion_date)
-                            );
-
-                            console.log('Method 6 - Created completions:', completions.length, 'records');
-                            completionsData = completions;
+                                // Add each completion with email
+                                dayData.forEach(completion => {
+                                    const profile = profileMap[completion.user_id] || {};
+                                    allCompletions.push({
+                                        completion_date: dateStr,
+                                        user_id: completion.user_id,
+                                        first_name: completion.first_name || profile.first_name || 'Unknown',
+                                        email: profile.email || 'No email',
+                                        completion_time: completion.completion_time,
+                                        guesses: completion.guesses,
+                                        completed_at: completion.created_at
+                                    });
+                                });
+                            }
+                        } catch (err) {
+                            console.log(`No data for ${dateStr}`);
                         }
                     }
+
+                    console.log(`Method 6 - Found total of ${allCompletions.length} completions`);
+                    completionsData = allCompletions;
+
                 } catch (err) {
                     console.error('Method 6 error:', err);
                 }
