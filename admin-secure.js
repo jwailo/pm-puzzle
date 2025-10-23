@@ -371,6 +371,13 @@ class SecureAdminDashboard {
                     const allCompletions = [];
                     const today = new Date();
 
+                    // Adjust for timezone - puzzle resets at midnight AEST
+                    const aestOffset = 11 * 60; // AEST is UTC+11 during daylight saving
+                    const localOffset = today.getTimezoneOffset();
+                    const totalOffset = aestOffset + localOffset;
+
+                    today.setMinutes(today.getMinutes() + totalOffset);
+
                     for (let i = 0; i < 30; i++) {
                         const checkDate = new Date(today);
                         checkDate.setDate(today.getDate() - i);
@@ -386,41 +393,81 @@ class SecureAdminDashboard {
 
                             if (!dayError && dayData && dayData.length > 0) {
                                 console.log(`Found ${dayData.length} completions for ${dateStr}`);
+                                console.log('Sample completion data:', dayData[0]);
 
-                                // Get user profiles for emails
-                                const userIds = dayData.map(d => d.user_id).filter(id => id);
-                                const { data: profiles } = await this.supabase
-                                    .from('user_profiles')
-                                    .select('id, first_name, email')
-                                    .in('id', userIds);
+                                // Get ALL user profiles at once for efficiency
+                                const userIds = [...new Set(dayData.map(d => d.user_id).filter(id => id))];
 
-                                const profileMap = {};
-                                if (profiles) {
-                                    profiles.forEach(p => {
-                                        profileMap[p.id] = p;
+                                if (userIds.length > 0) {
+                                    const { data: profiles, error: profileError } = await this.supabase
+                                        .from('user_profiles')
+                                        .select('id, first_name, email')
+                                        .in('id', userIds);
+
+                                    if (profileError) {
+                                        console.error('Error fetching profiles:', profileError);
+                                    }
+
+                                    const profileMap = {};
+                                    if (profiles) {
+                                        profiles.forEach(p => {
+                                            profileMap[p.id] = {
+                                                first_name: p.first_name,
+                                                email: p.email
+                                            };
+                                        });
+                                        console.log('Profile map created:', Object.keys(profileMap).length, 'profiles');
+                                    }
+
+                                    // Add each completion with proper name and email
+                                    dayData.forEach(completion => {
+                                        const profile = profileMap[completion.user_id] || {};
+
+                                        // Use the name from the completion data first (as shown in game)
+                                        // Fall back to profile name if not available
+                                        const firstName = completion.first_name ||
+                                                         completion.name ||
+                                                         profile.first_name ||
+                                                         'Guest';
+
+                                        allCompletions.push({
+                                            completion_date: dateStr,
+                                            user_id: completion.user_id,
+                                            first_name: firstName,
+                                            email: profile.email || 'No email on file',
+                                            completion_time: completion.completion_time,
+                                            guesses: completion.guesses,
+                                            completed_at: completion.created_at
+                                        });
+                                    });
+                                } else {
+                                    // Guest completions
+                                    dayData.forEach(completion => {
+                                        allCompletions.push({
+                                            completion_date: dateStr,
+                                            user_id: completion.user_id || 'guest',
+                                            first_name: completion.first_name || completion.name || 'Guest',
+                                            email: 'Guest player',
+                                            completion_time: completion.completion_time,
+                                            guesses: completion.guesses,
+                                            completed_at: completion.created_at
+                                        });
                                     });
                                 }
-
-                                // Add each completion with email
-                                dayData.forEach(completion => {
-                                    const profile = profileMap[completion.user_id] || {};
-                                    allCompletions.push({
-                                        completion_date: dateStr,
-                                        user_id: completion.user_id,
-                                        first_name: completion.first_name || profile.first_name || 'Unknown',
-                                        email: profile.email || 'No email',
-                                        completion_time: completion.completion_time,
-                                        guesses: completion.guesses,
-                                        completed_at: completion.created_at
-                                    });
-                                });
+                            } else if (dayError) {
+                                console.log(`Error for ${dateStr}:`, dayError);
+                            } else {
+                                console.log(`No completions yet for ${dateStr}`);
                             }
                         } catch (err) {
-                            console.log(`No data for ${dateStr}`);
+                            console.log(`Error fetching ${dateStr}:`, err);
                         }
                     }
 
                     console.log(`Method 6 - Found total of ${allCompletions.length} completions`);
+                    if (allCompletions.length > 0) {
+                        console.log('Sample completion with data:', allCompletions[0]);
+                    }
                     completionsData = allCompletions;
 
                 } catch (err) {
