@@ -362,9 +362,9 @@ class SecureAdminDashboard {
                 }
             }
 
-            // Method 6: Use the SAME RPC the game uses for daily leaderboard!
+            // Method 6: Get ALL completions, not just top 10 leaderboard
             if (!completionsData || completionsData.length === 0) {
-                console.log('Method 6: Getting real daily completions using get_public_daily_leaderboard');
+                console.log('Method 6: Getting ALL daily completions (not just leaderboard top 10)');
 
                 try {
                     // Get completions for the last 30 days
@@ -465,6 +465,98 @@ class SecureAdminDashboard {
 
                 } catch (err) {
                     console.error('Method 6 error:', err);
+                }
+            }
+
+            // Method 7: Try to get ALL completions from a custom function or direct query
+            if (!completionsData || completionsData.length === 0) {
+                console.log('Method 7: Trying to get ALL completions (not limited to top 10)');
+
+                try {
+                    const allCompletions = [];
+                    const today = new Date();
+
+                    // Adjust for AEST timezone
+                    const aestOffset = 11 * 60;
+                    const localOffset = today.getTimezoneOffset();
+                    const totalOffset = aestOffset + localOffset;
+                    today.setMinutes(today.getMinutes() + totalOffset);
+
+                    for (let i = 0; i < 30; i++) {
+                        const checkDate = new Date(today);
+                        checkDate.setDate(today.getDate() - i);
+                        const dateStr = checkDate.toISOString().split('T')[0];
+
+                        // Try custom function first
+                        try {
+                            const { data: allDayData, error: allDayError } = await this.supabase
+                                .rpc('get_all_puzzle_completions_for_date', {
+                                    target_date: dateStr
+                                });
+
+                            if (!allDayError && allDayData && allDayData.length > 0) {
+                                console.log(`Method 7: Found ${allDayData.length} ALL completions for ${dateStr}`);
+
+                                allDayData.forEach(completion => {
+                                    allCompletions.push({
+                                        completion_date: dateStr,
+                                        user_id: completion.user_id,
+                                        first_name: completion.first_name || 'Unknown',
+                                        email: completion.email || 'No email',
+                                        completion_time: completion.completion_time,
+                                        guesses: completion.guesses,
+                                        completed_at: completion.completed_at
+                                    });
+                                });
+                                continue;
+                            }
+                        } catch (e) {
+                            console.log(`Custom function not available for ${dateStr}`);
+                        }
+
+                        // Fallback: Try direct query to puzzle_completions table
+                        try {
+                            const { data: pcData, error: pcError } = await this.supabase
+                                .from('puzzle_completions')
+                                .select(`
+                                    user_id,
+                                    time_seconds,
+                                    guesses,
+                                    created_at,
+                                    user_profiles!inner(
+                                        first_name,
+                                        email
+                                    )
+                                `)
+                                .eq('puzzle_date', dateStr)
+                                .not('user_id', 'is', null);
+
+                            if (!pcError && pcData && pcData.length > 0) {
+                                console.log(`Found ${pcData.length} completions in puzzle_completions for ${dateStr}`);
+
+                                pcData.forEach(completion => {
+                                    allCompletions.push({
+                                        completion_date: dateStr,
+                                        user_id: completion.user_id,
+                                        first_name: completion.user_profiles?.first_name || 'Unknown',
+                                        email: completion.user_profiles?.email || 'No email',
+                                        completion_time: completion.time_seconds,
+                                        guesses: completion.guesses,
+                                        completed_at: completion.created_at
+                                    });
+                                });
+                            }
+                        } catch (e) {
+                            console.log(`No puzzle_completions table or error for ${dateStr}`);
+                        }
+                    }
+
+                    if (allCompletions.length > 0) {
+                        console.log(`Method 7: Found total of ${allCompletions.length} ALL completions`);
+                        completionsData = allCompletions;
+                    }
+                } catch (err) {
+                    console.error('Method 7 error:', err);
                 }
             }
 
