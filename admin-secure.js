@@ -395,65 +395,58 @@ class SecureAdminDashboard {
                                 console.log(`Found ${dayData.length} completions for ${dateStr}`);
                                 console.log('Sample completion data:', dayData[0]);
 
-                                // Get ALL user profiles at once for efficiency
-                                const userIds = [...new Set(dayData.map(d => d.user_id).filter(id => id))];
-
-                                if (userIds.length > 0) {
-                                    const { data: profiles, error: profileError } = await this.supabase
-                                        .from('user_profiles')
-                                        .select('id, first_name, email')
-                                        .in('id', userIds);
-
-                                    if (profileError) {
-                                        console.error('Error fetching profiles:', profileError);
+                                // The RPC returns user_profiles as part of the data
+                                // Process each completion - only include signed-in users
+                                dayData.forEach(completion => {
+                                    // Skip guest users (they don't have user_id)
+                                    if (!completion.user_id) {
+                                        console.log('Skipping guest completion');
+                                        return;
                                     }
 
-                                    const profileMap = {};
-                                    if (profiles) {
-                                        profiles.forEach(p => {
-                                            profileMap[p.id] = {
-                                                first_name: p.first_name,
-                                                email: p.email
-                                            };
-                                        });
-                                        console.log('Profile map created:', Object.keys(profileMap).length, 'profiles');
+                                    // Extract the name from user_profiles field (same as game uses)
+                                    let firstName = 'Unknown';
+                                    let email = 'No email';
+
+                                    // Check different possible structures of user_profiles
+                                    if (completion.user_profiles) {
+                                        if (completion.user_profiles.first_name) {
+                                            // Direct object
+                                            firstName = completion.user_profiles.first_name;
+                                            email = completion.user_profiles.email || 'No email';
+                                        } else if (Array.isArray(completion.user_profiles) && completion.user_profiles[0]) {
+                                            // Array format
+                                            firstName = completion.user_profiles[0].first_name || 'Unknown';
+                                            email = completion.user_profiles[0].email || 'No email';
+                                        } else if (typeof completion.user_profiles === 'string') {
+                                            // JSON string
+                                            try {
+                                                const profile = JSON.parse(completion.user_profiles);
+                                                firstName = profile.first_name || 'Unknown';
+                                                email = profile.email || 'No email';
+                                            } catch (e) {
+                                                console.log('Could not parse user_profiles:', completion.user_profiles);
+                                            }
+                                        }
                                     }
 
-                                    // Add each completion with proper name and email
-                                    dayData.forEach(completion => {
-                                        const profile = profileMap[completion.user_id] || {};
+                                    // Also check if name is directly on the completion
+                                    if (firstName === 'Unknown' && completion.first_name) {
+                                        firstName = completion.first_name;
+                                    }
 
-                                        // Use the name from the completion data first (as shown in game)
-                                        // Fall back to profile name if not available
-                                        const firstName = completion.first_name ||
-                                                         completion.name ||
-                                                         profile.first_name ||
-                                                         'Guest';
+                                    console.log(`Adding completion for ${firstName} (${email})`);
 
-                                        allCompletions.push({
-                                            completion_date: dateStr,
-                                            user_id: completion.user_id,
-                                            first_name: firstName,
-                                            email: profile.email || 'No email on file',
-                                            completion_time: completion.completion_time,
-                                            guesses: completion.guesses,
-                                            completed_at: completion.created_at
-                                        });
+                                    allCompletions.push({
+                                        completion_date: dateStr,
+                                        user_id: completion.user_id,
+                                        first_name: firstName,
+                                        email: email,
+                                        completion_time: completion.completion_time,
+                                        guesses: completion.guesses,
+                                        completed_at: completion.created_at
                                     });
-                                } else {
-                                    // Guest completions
-                                    dayData.forEach(completion => {
-                                        allCompletions.push({
-                                            completion_date: dateStr,
-                                            user_id: completion.user_id || 'guest',
-                                            first_name: completion.first_name || completion.name || 'Guest',
-                                            email: 'Guest player',
-                                            completion_time: completion.completion_time,
-                                            guesses: completion.guesses,
-                                            completed_at: completion.created_at
-                                        });
-                                    });
-                                }
+                                });
                             } else if (dayError) {
                                 console.log(`Error for ${dateStr}:`, dayError);
                             } else {
