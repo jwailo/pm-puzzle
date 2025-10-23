@@ -255,7 +255,7 @@ class DatabaseService {
             }
 
             const { data, error } = await this.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .select('*')
                 .eq('session_id', sessionId)
                 .single();
@@ -264,7 +264,7 @@ class DatabaseService {
                 // No stats exist, create initial record for guest
                 console.log('No stats found for guest session, creating initial record');
                 const { data: newData, error: createError } = await this.supabase
-                    .from('user_stats')
+                    .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                     .insert({
                         user_id: null,
                         session_id: sessionId,
@@ -295,7 +295,7 @@ class DatabaseService {
             // No stats exist, create initial record
             console.log('No stats found for user, creating initial record');
             const { data: newData, error: createError } = await this.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .insert({
                     user_id: userId,
                     games_played: 0,
@@ -324,7 +324,7 @@ class DatabaseService {
 
             // Check if record exists for this session
             const { data: existing, error: checkError } = await this.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .select('session_id')
                 .eq('session_id', sessionId)
                 .single();
@@ -333,7 +333,7 @@ class DatabaseService {
                 // No record exists, insert new one
                 console.log('Creating new stats record for guest session:', sessionId);
                 const { data, error } = await this.supabase
-                    .from('user_stats')
+                    .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                     .insert({
                         user_id: null,
                         session_id: sessionId,
@@ -346,7 +346,7 @@ class DatabaseService {
                 // Record exists, update it
                 console.log('Updating existing stats for guest session:', sessionId);
                 const { data, error } = await this.supabase
-                    .from('user_stats')
+                    .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                     .update({
                         ...stats,
                         updated_at: new Date().toISOString()
@@ -370,7 +370,7 @@ class DatabaseService {
             // No record exists, insert new one
             console.log('Creating new stats record for user:', userId);
             const { data, error } = await this.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .insert({
                     user_id: userId,
                     ...stats,
@@ -382,7 +382,7 @@ class DatabaseService {
             // Record exists, update it
             console.log('Updating existing stats for user:', userId);
             const { data, error } = await this.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .update({
                     ...stats,
                     updated_at: new Date().toISOString()
@@ -398,8 +398,9 @@ class DatabaseService {
     // Leaderboard methods
     async getDailyLeaderboard(date) {
         try {
-            // Use RPC function to bypass RLS for leaderboards
-            const { data, error } = await this.supabase.rpc('get_public_daily_leaderboard', {
+            // Use RPC function to bypass RLS for leaderboards (use Ailo version if available)
+            const functionName = window.PUZZLE_CONFIG ? 'get_ailo_daily_leaderboard' : 'get_public_daily_leaderboard';
+            const { data, error } = await this.supabase.rpc(functionName, {
                 target_date: date
             });
 
@@ -463,7 +464,7 @@ class DatabaseService {
             }
 
             const { data, error } = await this.supabase
-                .from('game_sessions')
+                .from(window.PUZZLE_CONFIG ? 'ailo_game_sessions' : 'game_sessions')
                 .upsert({
                     user_id: null,  // NULL for guests
                     session_id: sessionId,  // Track by session
@@ -511,8 +512,9 @@ class PMWordle {
             console.error('Failed to initialize database service:', error);
             this.db = null; // Continue without database
         }
-        // Property Management Answer Bank (59 words) - these are the daily answers
-        this.answerBank = [
+        // Ailo Support Puzzle Custom Word Bank
+        // Use the Ailo-specific words if available, otherwise fall back to default
+        this.answerBank = window.AILO_WORD_BANK || [
             'LEASE', 'RENTS', 'TOWER', 'CONDO', 'AGENT', 'LOBBY', 'SUITE', 'OWNER', 'ASSET', 'UNITS',
             'TAXES', 'TRUST', 'YIELD', 'HOUSE', 'PROPS', 'SPACE', 'FLOOR', 'DOORS', 'WALLS', 'ROOFS',
             'POOLS', 'YARDS', 'FENCE', 'DECKS', 'PORCH', 'DRIVE', 'ROADS', 'PATHS', 'PIPES', 'WATER',
@@ -520,6 +522,8 @@ class PMWordle {
             'SIGNS', 'LISTS', 'SALES', 'BUYER', 'SELLS', 'LOANS', 'BANKS', 'FUNDS', 'COSTS', 'BILLS',
             'GROSS', 'RENTS', 'VALUE', 'PRICE', 'MONTH', 'YEARS', 'TERMS', 'DEALS', 'FORMS', 'CODES'
         ];
+
+        console.log(`Using ${this.answerBank.length} words from ${window.AILO_WORD_BANK ? 'Ailo' : 'default'} word bank`);
 
         // Validate all answer bank words are 5 letters
         this.answerBank = this.answerBank.filter(word => {
@@ -620,7 +624,7 @@ class PMWordle {
 
             // Check if this session already has stats
             const { data: existingStats, error: checkError } = await this.db.supabase
-                .from('user_stats')
+                .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                 .select('*')
                 .eq('session_id', sessionId)
                 .single();
@@ -629,7 +633,7 @@ class PMWordle {
                 // No existing record, create new one with NULL user_id
                 console.log('Creating new guest record in database');
                 const { error: insertError } = await this.db.supabase
-                    .from('user_stats')
+                    .from(window.PUZZLE_CONFIG ? 'ailo_user_stats' : 'user_stats')
                     .insert({
                         user_id: null,  // NULL for guest users
                         session_id: sessionId,  // Track by session instead
@@ -1023,7 +1027,7 @@ class PMWordle {
 
             // Check if user has a completed game for today
             const { data, error } = await this.db.supabase
-                .from('game_sessions')
+                .from(window.PUZZLE_CONFIG ? 'ailo_game_sessions' : 'game_sessions')
                 .select('*')
                 .eq('user_id', this.currentUser)
                 .eq('date', today)
@@ -1053,7 +1057,7 @@ class PMWordle {
 
             // Get the completed game session from database
             const { data, error } = await this.db.supabase
-                .from('game_sessions')
+                .from(window.PUZZLE_CONFIG ? 'ailo_game_sessions' : 'game_sessions')
                 .select('*')
                 .eq('user_id', this.currentUser)
                 .eq('date', today)
@@ -3564,8 +3568,9 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                         time: timeTaken
                     });
 
-                    // Call the function to record completion
-                    const { error } = await this.db.supabase.rpc('record_puzzle_completion', {
+                    // Call the function to record completion (use Ailo version if available)
+                    const functionName = window.PUZZLE_CONFIG ? 'record_ailo_puzzle_completion' : 'record_puzzle_completion';
+                    const { error } = await this.db.supabase.rpc(functionName, {
                         p_puzzle_date: puzzleDate,
                         p_puzzle_word: this.currentWord,
                         p_guesses: this.currentRow + 1,

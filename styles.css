@@ -30,10 +30,10 @@ input, textarea {
     --color-ailo-blue-light: #6ba3e8;
     --color-ailo-blue-dark: #3a7bc8;
     
-    /* Game Colors with Ailo theming */
-    --color-correct: var(--color-ailo-pink);
-    --color-present: var(--color-ailo-blue);
-    --color-absent: #787c7e;
+    /* Ailo Support Puzzle Colors - Blue, Green, Yellow theme */
+    --color-correct: #22c55e;  /* Green for correct letters */
+    --color-present: #eab308;  /* Yellow for present letters */
+    --color-absent: #3b82f6;   /* Blue for absent letters */
     --color-empty: #d3d6da;
     --color-bg: #ffffff;
     --color-text: #1a1a1b;
