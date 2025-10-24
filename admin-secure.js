@@ -1193,6 +1193,16 @@ class SecureAdminDashboard {
 
     async getRegisteredUsers() {
         try {
+            // Use the same method as getSignedUpUsers which we know works
+            const { data: rpcData, error: rpcError } = await this.supabase
+                .rpc('get_admin_total_users');
+
+            if (!rpcError && rpcData !== null) {
+                console.log('Registered users from RPC:', rpcData);
+                return rpcData;
+            }
+
+            // Fallback to direct count
             const { count, error } = await this.supabase
                 .from('user_profiles')
                 .select('*', { count: 'exact', head: true });
@@ -1202,6 +1212,7 @@ class SecureAdminDashboard {
                 return 0;
             }
 
+            console.log('Registered users from direct count:', count);
             return count || 0;
         } catch (e) {
             console.error('Failed to get registered users:', e);
@@ -1218,46 +1229,64 @@ class SecureAdminDashboard {
                 avgGamesPerUser: 0
             };
 
-            // Get users who played today
-            const today = new Date().toISOString().split('T')[0];
-            const { data: todayData, error: todayError } = await this.supabase
-                .from('user_stats')
-                .select('user_id')
-                .eq('last_played', today);
+            // NOTE: These metrics are for REGISTERED USERS ONLY
+            // We cannot accurately track guest activity
 
-            if (!todayError && todayData) {
-                metrics.today = todayData.length;
+            // Get all user stats to analyze
+            const { data: allStats, error: statsError } = await this.supabase
+                .from('user_stats')
+                .select('user_id, games_played, last_played, last_completed, updated_at')
+                .not('user_id', 'is', null); // Only registered users
+
+            if (statsError) {
+                console.error('Error fetching user stats:', statsError);
+                return metrics;
             }
 
-            // Get users active in last 7 days
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const { data: weekData, error: weekError } = await this.supabase
-                .from('user_stats')
-                .select('user_id')
-                .gte('last_played', weekAgo);
-
-            if (!weekError && weekData) {
-                metrics.week = weekData.length;
+            if (!allStats || allStats.length === 0) {
+                console.log('No user stats found');
+                return metrics;
             }
 
-            // Get users active in last 30 days
-            const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const { data: monthData, error: monthError } = await this.supabase
-                .from('user_stats')
-                .select('user_id, games_played')
-                .gte('last_played', monthAgo);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-            if (!monthError && monthData) {
-                metrics.month = monthData.length;
+            let totalGamesForActive = 0;
+            let activeUserCount = 0;
 
-                // Calculate average games per active user
-                const activeUsers = monthData.filter(u => u.games_played > 0);
-                if (activeUsers.length > 0) {
-                    const totalGames = activeUsers.reduce((sum, u) => sum + u.games_played, 0);
-                    metrics.avgGamesPerUser = (totalGames / activeUsers.length).toFixed(1);
+            allStats.forEach(stat => {
+                // Try multiple date fields to find last activity
+                const lastActivity = stat.last_completed || stat.last_played || stat.updated_at;
+                if (!lastActivity) return;
+
+                const activityDate = new Date(lastActivity);
+
+                // Count active users by period
+                if (activityDate >= today) {
+                    metrics.today++;
                 }
+                if (activityDate >= weekAgo) {
+                    metrics.week++;
+                }
+                if (activityDate >= monthAgo) {
+                    metrics.month++;
+                }
+
+                // Calculate average games for users who have played
+                if (stat.games_played > 0) {
+                    totalGamesForActive += stat.games_played;
+                    activeUserCount++;
+                }
+            });
+
+            // Calculate average
+            if (activeUserCount > 0) {
+                metrics.avgGamesPerUser = (totalGamesForActive / activeUserCount).toFixed(1);
             }
 
+            console.log('Active user metrics:', metrics);
             return metrics;
         } catch (e) {
             console.error('Failed to get active user metrics:', e);
@@ -1327,24 +1356,24 @@ class SecureAdminDashboard {
 
     async calculateEngagementScore() {
         try {
-            // Simple engagement score: (Active Rate × Avg Games × Retention)
+            // Changed to Signup Ratio as requested
+            // Registered Users / Total Sessions (guests + registered)
             const registered = await this.getRegisteredUsers();
-            const activeMetrics = await this.getActiveUserMetrics();
-            const retentionMetrics = await this.getRetentionMetrics();
+            const guestSessions = await this.getGuestSessions();
 
-            if (registered === 0) return '0.0';
+            // Total "players" including guest sessions
+            const totalSessions = registered + guestSessions;
 
-            const activeRate = (activeMetrics.week / registered) || 0;
-            const avgGames = parseFloat(activeMetrics.avgGamesPerUser) || 0;
-            const retention = parseFloat(retentionMetrics.sevenDay) / 100 || 0;
+            if (totalSessions === 0) return '0%';
 
-            // Score out of 100
-            const score = (activeRate * avgGames * retention * 100).toFixed(1);
+            // Calculate what percentage of total sessions are registered users
+            const signupRatio = ((registered / totalSessions) * 100).toFixed(1);
 
-            return score;
+            console.log(`Signup ratio: ${registered} registered / ${totalSessions} total = ${signupRatio}%`);
+            return `${signupRatio}%`;
         } catch (e) {
-            console.error('Failed to calculate engagement score:', e);
-            return '0.0';
+            console.error('Failed to calculate signup ratio:', e);
+            return '0%';
         }
     }
 
