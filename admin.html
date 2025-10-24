@@ -377,25 +377,55 @@
         <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div id="total-users" class="stat-value">-</div>
-                <div class="stat-label">Total Players</div>
+                <div id="registered-users" class="stat-value">-</div>
+                <div class="stat-label">Registered Users</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, #805ad5, #6b46c1);">
-                <div id="signed-up-users" class="stat-value">-</div>
-                <div class="stat-label">Signed Up Users</div>
+                <div id="active-users-week" class="stat-value">-</div>
+                <div class="stat-label">Active This Week</div>
             </div>
             <div class="stat-card">
                 <div id="total-games" class="stat-value">-</div>
-                <div class="stat-label">Total Games Played</div>
+                <div class="stat-label">Total Games (Registered Users)</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, #48bb78, #38a169);">
-                <div id="signup-percentage" class="stat-value">-</div>
-                <div class="stat-label">Signup Rate</div>
+                <div id="retention-rate" class="stat-value">-</div>
+                <div class="stat-label">7-Day Retention</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, #9f7aea, #805ad5);">
                 <div id="total-shares" class="stat-value">-</div>
                 <div class="stat-label">Total Shares</div>
             </div>
+        </div>
+
+        <!-- Additional Metrics Row -->
+        <div class="stats-grid" style="margin-top: 1rem;">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                <div id="active-today" class="stat-value">-</div>
+                <div class="stat-label">Active Today</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #38b2ac, #319795);">
+                <div id="active-month" class="stat-value">-</div>
+                <div class="stat-label">Active This Month</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f687b3, #ed64a6);">
+                <div id="avg-games-per-user" class="stat-value">-</div>
+                <div class="stat-label">Avg Games per Active User</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fbb6ce, #f687b3);">
+                <div id="guest-sessions" class="stat-value">-</div>
+                <div class="stat-label">Guest Sessions*</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #63b3ed, #4299e1);">
+                <div id="engagement-score" class="stat-value">-</div>
+                <div class="stat-label">Engagement Score</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 0.5rem; padding: 0.5rem; background: #f7fafc; border-radius: 8px;">
+            <p style="color: #666; font-size: 12px; margin: 0;">
+                * Guest Sessions are browser sessions, not unique people. Same person can have multiple sessions.
+            </p>
         </div>
 
         <!-- Sharing Analytics Section -->

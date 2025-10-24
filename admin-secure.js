@@ -951,33 +951,45 @@ class SecureAdminDashboard {
     // Copy all the dashboard methods from admin.js below...
     async loadDashboardData() {
         try {
-            console.log('=== Loading Admin Dashboard Data ===');
+            console.log('=== Loading Admin Dashboard Data (Accurate Metrics) ===');
 
             // Show loading state
             document.getElementById('loading').style.display = 'block';
             document.getElementById('users-table').style.display = 'none';
 
-            // Load all data (excluding DAU and MAU)
-            const totalPlayers = await this.getTotalPlayers();
-            const signedUpUsers = await this.getSignedUpUsers();
+            // Load ACCURATE metrics
+            const registeredUsers = await this.getRegisteredUsers();
+            const activeMetrics = await this.getActiveUserMetrics();
             const totalGames = await this.getTotalGames();
-            const signupPercentage = this.calculateSignupPercentage(signedUpUsers.count, totalPlayers.count);
+            const retentionMetrics = await this.getRetentionMetrics();
             const totalShares = await this.getTotalShares();
+            const guestSessions = await this.getGuestSessions();
+            const engagementScore = await this.calculateEngagementScore();
 
-            console.log('=== Dashboard Stats Summary ===');
-            console.log('Total Players (including guests):', totalPlayers.count);
-            console.log('Signed Up Users:', signedUpUsers.count);
-            console.log('Sign-up Rate:', signupPercentage);
-            console.log('Total Games:', totalGames);
+            console.log('=== Accurate Dashboard Stats ===');
+            console.log('Registered Users:', registeredUsers);
+            console.log('Active Today:', activeMetrics.today);
+            console.log('Active This Week:', activeMetrics.week);
+            console.log('Active This Month:', activeMetrics.month);
+            console.log('Total Games (Registered):', totalGames);
+            console.log('7-Day Retention:', retentionMetrics.sevenDay);
+            console.log('Avg Games per User:', activeMetrics.avgGamesPerUser);
+            console.log('Guest Sessions (not unique):', guestSessions);
             console.log('Total Shares:', totalShares);
+            console.log('Engagement Score:', engagementScore);
             console.log('================================');
 
-            // Update stats
-            document.getElementById('total-users').textContent = totalPlayers.count || 0;
-            document.getElementById('signed-up-users').textContent = signedUpUsers.count || 0;
+            // Update stats with ACCURATE numbers
+            document.getElementById('registered-users').textContent = registeredUsers || 0;
+            document.getElementById('active-today').textContent = activeMetrics.today || 0;
+            document.getElementById('active-users-week').textContent = activeMetrics.week || 0;
+            document.getElementById('active-month').textContent = activeMetrics.month || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
-            document.getElementById('signup-percentage').textContent = signupPercentage;
+            document.getElementById('retention-rate').textContent = retentionMetrics.sevenDay || '0%';
+            document.getElementById('avg-games-per-user').textContent = activeMetrics.avgGamesPerUser || '0';
+            document.getElementById('guest-sessions').textContent = guestSessions || 0;
             document.getElementById('total-shares').textContent = totalShares || 0;
+            document.getElementById('engagement-score').textContent = engagementScore || '0';
 
             // Load and display users
             await this.loadUsersList();
@@ -1175,6 +1187,165 @@ class SecureAdminDashboard {
         const percentage = ((signedUp / total) * 100).toFixed(1);
         console.log(`Signup rate calculation: ${signedUp} signed up ÷ ${total} total = ${percentage}%`);
         return `${percentage}%`;
+    }
+
+    // NEW ACCURATE METRIC FUNCTIONS
+
+    async getRegisteredUsers() {
+        try {
+            const { count, error } = await this.supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact', head: true });
+
+            if (error) {
+                console.error('Error getting registered users:', error);
+                return 0;
+            }
+
+            return count || 0;
+        } catch (e) {
+            console.error('Failed to get registered users:', e);
+            return 0;
+        }
+    }
+
+    async getActiveUserMetrics() {
+        try {
+            const metrics = {
+                today: 0,
+                week: 0,
+                month: 0,
+                avgGamesPerUser: 0
+            };
+
+            // Get users who played today
+            const today = new Date().toISOString().split('T')[0];
+            const { data: todayData, error: todayError } = await this.supabase
+                .from('user_stats')
+                .select('user_id')
+                .eq('last_played', today);
+
+            if (!todayError && todayData) {
+                metrics.today = todayData.length;
+            }
+
+            // Get users active in last 7 days
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const { data: weekData, error: weekError } = await this.supabase
+                .from('user_stats')
+                .select('user_id')
+                .gte('last_played', weekAgo);
+
+            if (!weekError && weekData) {
+                metrics.week = weekData.length;
+            }
+
+            // Get users active in last 30 days
+            const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const { data: monthData, error: monthError } = await this.supabase
+                .from('user_stats')
+                .select('user_id, games_played')
+                .gte('last_played', monthAgo);
+
+            if (!monthError && monthData) {
+                metrics.month = monthData.length;
+
+                // Calculate average games per active user
+                const activeUsers = monthData.filter(u => u.games_played > 0);
+                if (activeUsers.length > 0) {
+                    const totalGames = activeUsers.reduce((sum, u) => sum + u.games_played, 0);
+                    metrics.avgGamesPerUser = (totalGames / activeUsers.length).toFixed(1);
+                }
+            }
+
+            return metrics;
+        } catch (e) {
+            console.error('Failed to get active user metrics:', e);
+            return { today: 0, week: 0, month: 0, avgGamesPerUser: 0 };
+        }
+    }
+
+    async getRetentionMetrics() {
+        try {
+            const metrics = {
+                sevenDay: '0%',
+                thirtyDay: '0%'
+            };
+
+            // Get users who signed up 7+ days ago
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+            const { data: eligibleWeek, error: weekError } = await this.supabase
+                .from('user_profiles')
+                .select('id')
+                .lte('created_at', sevenDaysAgo);
+
+            if (!weekError && eligibleWeek && eligibleWeek.length > 0) {
+                // Check how many are still active
+                const userIds = eligibleWeek.map(u => u.id);
+                const weekAgoDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                const { data: activeWeek, error: activeError } = await this.supabase
+                    .from('user_stats')
+                    .select('user_id')
+                    .in('user_id', userIds)
+                    .gte('last_played', weekAgoDate);
+
+                if (!activeError && activeWeek) {
+                    const retentionRate = (activeWeek.length / eligibleWeek.length * 100).toFixed(1);
+                    metrics.sevenDay = `${retentionRate}%`;
+                }
+            }
+
+            return metrics;
+        } catch (e) {
+            console.error('Failed to get retention metrics:', e);
+            return { sevenDay: '0%', thirtyDay: '0%' };
+        }
+    }
+
+    async getGuestSessions() {
+        try {
+            const { data, error } = await this.supabase
+                .from('user_stats')
+                .select('session_id')
+                .is('user_id', null)
+                .not('session_id', 'is', null);
+
+            if (error) {
+                console.error('Error getting guest sessions:', error);
+                return 0;
+            }
+
+            // Count unique session IDs
+            const uniqueSessions = data ? new Set(data.map(d => d.session_id)).size : 0;
+            return uniqueSessions;
+        } catch (e) {
+            console.error('Failed to get guest sessions:', e);
+            return 0;
+        }
+    }
+
+    async calculateEngagementScore() {
+        try {
+            // Simple engagement score: (Active Rate × Avg Games × Retention)
+            const registered = await this.getRegisteredUsers();
+            const activeMetrics = await this.getActiveUserMetrics();
+            const retentionMetrics = await this.getRetentionMetrics();
+
+            if (registered === 0) return '0.0';
+
+            const activeRate = (activeMetrics.week / registered) || 0;
+            const avgGames = parseFloat(activeMetrics.avgGamesPerUser) || 0;
+            const retention = parseFloat(retentionMetrics.sevenDay) / 100 || 0;
+
+            // Score out of 100
+            const score = (activeRate * avgGames * retention * 100).toFixed(1);
+
+            return score;
+        } catch (e) {
+            console.error('Failed to calculate engagement score:', e);
+            return '0.0';
+        }
     }
 
     async getTotalShares() {
