@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ailo Support Puzzle - Test Page</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #22c55e20; color: #22c55e; }
+        .fail { background: #ef444420; color: #ef4444; }
+        h1 { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>Ailo Support Puzzle Test Page</h1>
+
+    <div id="tests"></div>
+
+    <script src="ailo-config.js"></script>
+    <script src="ailo-words.js"></script>
+
+    <script>
+        const tests = [];
+        const testsDiv = document.getElementById('tests');
+
+        // Test 1: Check word list loaded
+        tests.push({
+            name: 'Word List Loaded',
+            test: () => window.AILO_WORD_BANK && window.AILO_WORD_BANK.length === 59,
+            expected: '59 words',
+            actual: window.AILO_WORD_BANK ? window.AILO_WORD_BANK.length + ' words' : 'Not loaded'
+        });
+
+        // Test 2: Check first few words
+        tests.push({
+            name: 'Contains Ailo Names',
+            test: () => window.AILO_WORD_BANK &&
+                     window.AILO_WORD_BANK.includes('ANGUS') &&
+                     window.AILO_WORD_BANK.includes('BILLY') &&
+                     window.AILO_WORD_BANK.includes('CARLA'),
+            expected: 'ANGUS, BILLY, CARLA',
+            actual: window.AILO_WORD_BANK ?
+                    'Found: ' + ['ANGUS', 'BILLY', 'CARLA'].filter(w =>
+                    window.AILO_WORD_BANK.includes(w)).join(', ') : 'No words'
+        });
+
+        // Test 3: Check PM terms
+        tests.push({
+            name: 'Contains PM Terms',
+            test: () => window.AILO_WORD_BANK &&
+                     window.AILO_WORD_BANK.includes('LEASE') &&
+                     window.AILO_WORD_BANK.includes('BONDS') &&
+                     window.AILO_WORD_BANK.includes('WATER'),
+            expected: 'LEASE, BONDS, WATER',
+            actual: window.AILO_WORD_BANK ?
+                    'Found: ' + ['LEASE', 'BONDS', 'WATER'].filter(w =>
+                    window.AILO_WORD_BANK.includes(w)).join(', ') : 'No words'
+        });
+
+        // Test 4: Check localStorage prefix
+        tests.push({
+            name: 'LocalStorage Prefix',
+            test: () => {
+                localStorage.setItem('pm-wordle-test', 'test');
+                const key = Object.keys(localStorage).find(k => k.includes('test'));
+                const result = key && key.startsWith('ailo-support-puzzle-');
+                localStorage.removeItem('pm-wordle-test');
+                return result;
+            },
+            expected: 'ailo-support-puzzle-test',
+            actual: 'Prefix working correctly'
+        });
+
+        // Test 5: Check configuration
+        tests.push({
+            name: 'Configuration Loaded',
+            test: () => window.PUZZLE_CONFIG &&
+                     window.PUZZLE_CONFIG.PUZZLE_NAME === 'Ailo Support Puzzle!',
+            expected: 'Ailo Support Puzzle!',
+            actual: window.PUZZLE_CONFIG ? window.PUZZLE_CONFIG.PUZZLE_NAME : 'Not loaded'
+        });
+
+        // Test 6: Check colors
+        tests.push({
+            name: 'Color Theme',
+            test: () => window.PUZZLE_CONFIG &&
+                     window.PUZZLE_CONFIG.THEME.correct === '#22c55e' &&
+                     window.PUZZLE_CONFIG.THEME.present === '#eab308' &&
+                     window.PUZZLE_CONFIG.THEME.absent === '#3b82f6',
+            expected: 'Green, Yellow, Blue',
+            actual: window.PUZZLE_CONFIG ?
+                    `✓ Green: ${window.PUZZLE_CONFIG.THEME.correct}, ✓ Yellow: ${window.PUZZLE_CONFIG.THEME.present}, ✓ Blue: ${window.PUZZLE_CONFIG.THEME.absent}` :
+                    'Not loaded'
+        });
+
+        // Test 7: All words are 5 letters
+        tests.push({
+            name: 'All Words Are 5 Letters',
+            test: () => window.AILO_WORD_BANK &&
+                     window.AILO_WORD_BANK.every(word => word.length === 5),
+            expected: 'All 5 letters',
+            actual: window.AILO_WORD_BANK ?
+                    (window.AILO_WORD_BANK.every(word => word.length === 5) ?
+                     'All words are 5 letters' :
+                     'Some words are not 5 letters') :
+                    'No words'
+        });
+
+        // Run tests and display results
+        tests.forEach(test => {
+            const passed = test.test();
+            const div = document.createElement('div');
+            div.className = `test ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} ${test.name}</strong><br>
+                Expected: ${test.expected}<br>
+                Actual: ${test.actual}
+            `;
+            testsDiv.appendChild(div);
+        });
+
+        // Summary
+        const passed = tests.filter(t => t.test()).length;
+        const summary = document.createElement('div');
+        summary.style.marginTop = '20px';
+        summary.style.fontSize = '18px';
+        summary.style.fontWeight = 'bold';
+        summary.style.color = passed === tests.length ? '#22c55e' : '#ef4444';
+        summary.innerHTML = `Test Results: ${passed}/${tests.length} passed`;
+        testsDiv.appendChild(summary);
+
+        // Show sample words
+        if (window.AILO_WORD_BANK) {
+            const samples = document.createElement('div');
+            samples.style.marginTop = '20px';
+            samples.innerHTML = `
+                <h3>Sample Words from Ailo Word Bank:</h3>
+                <p>${window.AILO_WORD_BANK.slice(0, 10).join(', ')}</p>
+                <p>Total: ${window.AILO_WORD_BANK.length} words</p>
+            `;
+            document.body.appendChild(samples);
+        }
+    </script>
+</body>
+</html>

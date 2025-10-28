@@ -957,36 +957,24 @@ class SecureAdminDashboard {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('users-table').style.display = 'none';
 
-            // Load ACCURATE metrics
+            // Load only working metrics
             const registeredUsers = await this.getRegisteredUsers();
-            const activeMetrics = await this.getActiveUserMetrics();
             const totalGames = await this.getTotalGames();
-            const retentionMetrics = await this.getRetentionMetrics();
             const totalShares = await this.getTotalShares();
             const guestSessions = await this.getGuestSessions();
             const engagementScore = await this.calculateEngagementScore();
 
-            console.log('=== Accurate Dashboard Stats ===');
+            console.log('=== Dashboard Stats ===');
             console.log('Registered Users:', registeredUsers);
-            console.log('Active Today:', activeMetrics.today);
-            console.log('Active This Week:', activeMetrics.week);
-            console.log('Active This Month:', activeMetrics.month);
             console.log('Total Games (Registered):', totalGames);
-            console.log('7-Day Retention:', retentionMetrics.sevenDay);
-            console.log('Avg Games per User:', activeMetrics.avgGamesPerUser);
-            console.log('Guest Sessions (not unique):', guestSessions);
+            console.log('Guest Sessions:', guestSessions);
             console.log('Total Shares:', totalShares);
-            console.log('Engagement Score:', engagementScore);
-            console.log('================================');
+            console.log('Engagement Score (Signup Ratio):', engagementScore);
+            console.log('========================');
 
-            // Update stats with ACCURATE numbers
+            // Update only working metrics
             document.getElementById('registered-users').textContent = registeredUsers || 0;
-            document.getElementById('active-today').textContent = activeMetrics.today || 0;
-            document.getElementById('active-users-week').textContent = activeMetrics.week || 0;
-            document.getElementById('active-month').textContent = activeMetrics.month || 0;
             document.getElementById('total-games').textContent = totalGames || 0;
-            document.getElementById('retention-rate').textContent = retentionMetrics.sevenDay || '0%';
-            document.getElementById('avg-games-per-user').textContent = activeMetrics.avgGamesPerUser || '0';
             document.getElementById('guest-sessions').textContent = guestSessions || 0;
             document.getElementById('total-shares').textContent = totalShares || 0;
             document.getElementById('engagement-score').textContent = engagementScore || '0';
@@ -1229,67 +1217,98 @@ class SecureAdminDashboard {
                 avgGamesPerUser: 0
             };
 
-            // NOTE: These metrics are for REGISTERED USERS ONLY
-            // We cannot accurately track guest activity
+            console.log('=== STARTING getActiveUserMetrics ===');
 
-            // Get all user stats to analyze
-            const { data: allStats, error: statsError } = await this.supabase
+            // Get Sydney time properly
+            const now = new Date();
+            const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
+            const sydneyNow = new Date(sydneyTimeString);
+
+            const today = `${sydneyNow.getFullYear()}-${String(sydneyNow.getMonth() + 1).padStart(2, '0')}-${String(sydneyNow.getDate()).padStart(2, '0')}`;
+
+            const weekAgo = new Date(sydneyNow);
+            weekAgo.setDate(sydneyNow.getDate() - 7);
+            const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`;
+
+            const monthAgo = new Date(sydneyNow);
+            monthAgo.setDate(sydneyNow.getDate() - 30);
+            const monthAgoStr = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
+
+            console.log('Sydney dates calculated:', { today, weekAgoStr, monthAgoStr });
+
+            // USE USER_STATS TABLE - WE KNOW THIS WORKS!
+            console.log('Querying user_stats table for active metrics...');
+
+            const { data: statsData, error: statsError } = await this.supabase
                 .from('user_stats')
-                .select('user_id, games_played, last_played, last_completed, updated_at')
-                .not('user_id', 'is', null); // Only registered users
+                .select('user_id, last_played, last_completed, games_played, updated_at')
+                .not('user_id', 'is', null);
 
             if (statsError) {
-                console.error('Error fetching user stats:', statsError);
-                return metrics;
+                console.error('ERROR querying user_stats:', statsError);
+                throw statsError;
             }
 
-            if (!allStats || allStats.length === 0) {
-                console.log('No user stats found');
-                return metrics;
+            console.log(`Found ${statsData?.length || 0} user_stats records`);
+
+            if (statsData && statsData.length > 0) {
+                // Count active users based on their last activity
+                let todayActive = 0;
+                let weekActive = 0;
+                let monthActive = 0;
+
+                statsData.forEach(stat => {
+                    // Find most recent activity date
+                    const activityDates = [
+                        stat.last_played,
+                        stat.last_completed,
+                        stat.updated_at
+                    ].filter(d => d);
+
+                    if (activityDates.length > 0) {
+                        // Get the most recent date
+                        const mostRecent = activityDates.sort().reverse()[0];
+                        const activityDateStr = mostRecent.split('T')[0];
+
+                        // Count if active in each period
+                        if (activityDateStr === today) {
+                            todayActive++;
+                        }
+                        if (activityDateStr >= weekAgoStr) {
+                            weekActive++;
+                        }
+                        if (activityDateStr >= monthAgoStr) {
+                            monthActive++;
+                        }
+                    }
+                });
+
+                metrics.today = todayActive;
+                metrics.week = weekActive;
+                metrics.month = monthActive;
+
+                console.log('Active user counts:', {
+                    today: todayActive,
+                    week: weekActive,
+                    month: monthActive
+                });
             }
 
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-            let totalGamesForActive = 0;
-            let activeUserCount = 0;
-
-            allStats.forEach(stat => {
-                // Try multiple date fields to find last activity
-                const lastActivity = stat.last_completed || stat.last_played || stat.updated_at;
-                if (!lastActivity) return;
-
-                const activityDate = new Date(lastActivity);
-
-                // Count active users by period
-                if (activityDate >= today) {
-                    metrics.today++;
-                }
-                if (activityDate >= weekAgo) {
-                    metrics.week++;
-                }
-                if (activityDate >= monthAgo) {
-                    metrics.month++;
-                }
-
-                // Calculate average games for users who have played
-                if (stat.games_played > 0) {
-                    totalGamesForActive += stat.games_played;
-                    activeUserCount++;
-                }
-            });
-
-            // Calculate average
-            if (activeUserCount > 0) {
-                metrics.avgGamesPerUser = (totalGamesForActive / activeUserCount).toFixed(1);
+            // Calculate average games per active user
+            const activeUsersWithGames = statsData?.filter(s => s.games_played > 0) || [];
+            if (activeUsersWithGames.length > 0) {
+                const totalGames = activeUsersWithGames.reduce((sum, stat) => sum + stat.games_played, 0);
+                metrics.avgGamesPerUser = (totalGames / activeUsersWithGames.length).toFixed(1);
+                console.log(`Average games: ${totalGames} total / ${activeUsersWithGames.length} users = ${metrics.avgGamesPerUser}`);
+            } else {
+                console.log('No users with games_played > 0');
             }
 
-            console.log('Active user metrics:', metrics);
+            console.log('=== FINAL METRICS ===', metrics);
             return metrics;
+
         } catch (e) {
-            console.error('Failed to get active user metrics:', e);
+            console.error('CRITICAL ERROR in getActiveUserMetrics:', e);
             return { today: 0, week: 0, month: 0, avgGamesPerUser: 0 };
         }
     }
@@ -1334,22 +1353,43 @@ class SecureAdminDashboard {
 
     async getGuestSessions() {
         try {
-            const { data, error } = await this.supabase
-                .from('user_stats')
-                .select('session_id')
-                .is('user_id', null)
-                .not('session_id', 'is', null);
+            console.log('=== STARTING getGuestSessions ===');
 
-            if (error) {
-                console.error('Error getting guest sessions:', error);
+            // Query ALL records from user_stats to debug
+            const { data: allData, error: allError } = await this.supabase
+                .from('user_stats')
+                .select('session_id, user_id, games_played');
+
+            if (allError) {
+                console.error('ERROR querying user_stats for guest sessions:', allError);
                 return 0;
             }
 
+            console.log(`Total user_stats records: ${allData?.length || 0}`);
+
+            if (!allData || allData.length === 0) {
+                console.log('No data in user_stats table');
+                return 0;
+            }
+
+            // Filter for guest sessions (no user_id but has session_id)
+            const guestRecords = allData.filter(record =>
+                !record.user_id && record.session_id
+            );
+
+            console.log(`Guest records found: ${guestRecords.length}`);
+
             // Count unique session IDs
-            const uniqueSessions = data ? new Set(data.map(d => d.session_id)).size : 0;
-            return uniqueSessions;
+            const uniqueSessionIds = new Set(guestRecords.map(r => r.session_id));
+            const uniqueGuestSessions = uniqueSessionIds.size;
+
+            console.log(`Unique guest sessions: ${uniqueGuestSessions}`);
+            console.log('Sample guest session IDs:', Array.from(uniqueSessionIds).slice(0, 5));
+
+            return uniqueGuestSessions;
+
         } catch (e) {
-            console.error('Failed to get guest sessions:', e);
+            console.error('CRITICAL ERROR in getGuestSessions:', e);
             return 0;
         }
     }
