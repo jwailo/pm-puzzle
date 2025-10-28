@@ -2959,7 +2959,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 max_streak: Math.max(existingStats?.max_streak || 0, guestStats.maxStreak),
                 guess_distribution: existingStats?.guess_distribution
                     ? existingStats.guess_distribution.map((val, i) => (val || 0) + (guestStats.guessDistribution[i] || 0))
-                    : guestStats.guessDistribution
+                    : guestStats.guessDistribution,
+                last_played: this.getPuzzleDate() // Add current puzzle date as last_played
             };
 
             // Save merged stats to database
@@ -3375,12 +3376,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     async shouldContinueStreak(currentStats) {
-        // Check if the streak should continue based on weekday-only requirement
-        const today = new Date();
-        const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+        // Check if the streak should continue
+        // Use Sydney time for consistency with puzzle dates
+        const todayPuzzleDate = this.getPuzzleDate(); // YYYY-MM-DD in Sydney time
 
         // Get the last play date from database or localStorage
-        let lastPlayDate = null;
+        let lastPlayDateStr = null;
 
         if (!this.isGuest) {
             // Get from database for logged-in users
@@ -3388,49 +3389,58 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             if (user) {
                 const { data } = await this.db.getUserStats(user.id);
                 if (data?.last_played) {
-                    lastPlayDate = new Date(data.last_played);
+                    lastPlayDateStr = data.last_played; // This is already YYYY-MM-DD from getPuzzleDate()
                 }
             }
         } else {
-            // Check localStorage for last play date (we'll need to store this)
-            const lastPlayStr = localStorage.getItem('pm-wordle-last-play');
+            // Check localStorage for last play date
+            const lastPlayStr = localStorage.getItem('pm-wordle-last-play-date');
             if (lastPlayStr) {
-                lastPlayDate = new Date(lastPlayStr);
+                lastPlayDateStr = lastPlayStr;
             }
         }
 
-        if (!lastPlayDate) {
+        if (!lastPlayDateStr) {
             // No previous play record, start new streak
+            console.log('No previous play record found, starting new streak');
             return false;
         }
 
-        // Calculate the number of weekdays between last play and today
-        const weekdaysSinceLastPlay = this.countWeekdaysBetween(lastPlayDate, today);
+        // Parse dates for comparison
+        const today = new Date(todayPuzzleDate + 'T00:00:00');
+        const lastPlay = new Date(lastPlayDateStr + 'T00:00:00');
+
+        // Calculate days between dates
+        const daysDiff = Math.floor((today - lastPlay) / (1000 * 60 * 60 * 24));
 
         console.log('Streak check:', {
-            today: today.toDateString(),
-            lastPlay: lastPlayDate.toDateString(),
-            weekdaysSince: weekdaysSinceLastPlay,
+            todayPuzzle: todayPuzzleDate,
+            lastPlayPuzzle: lastPlayDateStr,
+            daysDifference: daysDiff,
             currentStreak: currentStats.currentStreak
         });
 
-        // Streak continues if:
-        // 1. Played yesterday (regardless of weekend/weekday)
-        // 2. OR last play was Friday and today is Monday (weekend skip)
-        // 3. OR only weekdays were missed and it's been 0-1 weekdays
+        // Streak continues if played yesterday (1 day difference)
+        // or today (0 day difference - playing multiple times same day)
+        if (daysDiff === 0 || daysDiff === 1) {
+            console.log('Streak continues!');
+            return true;
+        }
 
-        const daysSinceLastPlay = Math.floor((today - lastPlayDate) / (1000 * 60 * 60 * 24));
+        // Check for weekend skip (Friday to Monday = 3 days)
+        if (daysDiff === 3) {
+            const lastPlayDay = lastPlay.getDay();
+            const todayDay = today.getDay();
 
-        // If played yesterday, always continue
-        if (daysSinceLastPlay === 1) return true;
-
-        // If played today already, continue
-        if (daysSinceLastPlay === 0) return true;
-
-        // If only weekdays matter and no weekdays were missed
-        if (weekdaysSinceLastPlay <= 1) return true;
+            // If last play was Friday (5) and today is Monday (1)
+            if (lastPlayDay === 5 && todayDay === 1) {
+                console.log('Weekend skip detected, streak continues!');
+                return true;
+            }
+        }
 
         // Otherwise, streak is broken
+        console.log('Streak broken - too many days passed');
         return false;
     }
 
@@ -3585,10 +3595,10 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
         console.log('New stats to save:', newStats);
 
-        // Store last play date for streak calculation
+        // Store last play date for streak calculation (using Sydney date)
         if (this.gameWon) {
-            const today = new Date().toISOString();
-            localStorage.setItem('pm-wordle-last-play', today);
+            const todayPuzzleDate = this.getPuzzleDate(); // YYYY-MM-DD in Sydney time
+            localStorage.setItem('pm-wordle-last-play-date', todayPuzzleDate);
         }
 
         if (this.isGuest && this.currentUser && this.currentUser.startsWith('guest_')) {
@@ -3598,7 +3608,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 games_won: newStats.gamesWon,
                 current_streak: newStats.currentStreak,
                 max_streak: newStats.maxStreak,
-                guess_distribution: newStats.guessDistribution
+                guess_distribution: newStats.guessDistribution,
+                last_played: this.getPuzzleDate() // Add last_played using Sydney date
             };
 
             console.log('Saving guest stats to database for guest:', this.currentUser, 'Stats:', dbStats);
@@ -3628,7 +3639,8 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 games_won: newStats.gamesWon,
                 current_streak: newStats.currentStreak,
                 max_streak: newStats.maxStreak,
-                guess_distribution: newStats.guessDistribution
+                guess_distribution: newStats.guessDistribution,
+                last_played: this.getPuzzleDate() // Add last_played using Sydney date
             };
 
             console.log('Saving stats to database for user:', user.id, 'Stats:', dbStats);
