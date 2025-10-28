@@ -3380,6 +3380,10 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Use Sydney time for consistency with puzzle dates
         const todayPuzzleDate = this.getPuzzleDate(); // YYYY-MM-DD in Sydney time
 
+        console.log('=== STREAK CHECK DEBUG ===');
+        console.log('Today puzzle date:', todayPuzzleDate);
+        console.log('Current stats:', currentStats);
+
         // Get the last play date from database or localStorage
         let lastPlayDateStr = null;
 
@@ -3388,13 +3392,16 @@ Love you! Give it a try when you have a cuppa ☕ xx`
             const { data: { user } } = await this.db.supabase.auth.getUser();
             if (user) {
                 const { data } = await this.db.getUserStats(user.id);
+                console.log('Database stats data:', data);
                 if (data?.last_played) {
                     lastPlayDateStr = data.last_played; // This is already YYYY-MM-DD from getPuzzleDate()
+                    console.log('Got last_played from database:', lastPlayDateStr);
                 }
             }
         } else {
             // Check localStorage for last play date
             const lastPlayStr = localStorage.getItem('pm-wordle-last-play-date');
+            console.log('localStorage last-play-date:', lastPlayStr);
             if (lastPlayStr) {
                 lastPlayDateStr = lastPlayStr;
             }
@@ -3413,12 +3420,12 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         // Calculate days between dates
         const daysDiff = Math.floor((today - lastPlay) / (1000 * 60 * 60 * 24));
 
-        console.log('Streak check:', {
-            todayPuzzle: todayPuzzleDate,
-            lastPlayPuzzle: lastPlayDateStr,
-            daysDifference: daysDiff,
-            currentStreak: currentStats.currentStreak
-        });
+        console.log('=== STREAK CALCULATION ===');
+        console.log('Today date object:', today);
+        console.log('Last play date object:', lastPlay);
+        console.log('Days difference:', daysDiff);
+        console.log('Current streak:', currentStats.currentStreak);
+        console.log('Will continue?:', daysDiff === 0 || daysDiff === 1);
 
         // Streak continues if played yesterday (1 day difference)
         // or today (0 day difference - playing multiple times same day)
@@ -3537,14 +3544,17 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const currentStats = await this.getStats();
         console.log('Current stats before save:', currentStats);
 
-        // Calculate streak considering weekdays only
+        // Calculate streak
         let newStreak = currentStats.currentStreak;
         if (this.gameWon) {
-            // Check if streak should continue (weekday logic)
+            // Check if streak should continue
             const shouldContinueStreak = await this.shouldContinueStreak(currentStats);
+            console.log('Should continue streak?', shouldContinueStreak);
             newStreak = shouldContinueStreak ? currentStats.currentStreak + 1 : 1;
+            console.log(`Streak calculation: ${shouldContinueStreak ? 'continuing' : 'resetting'} - New streak: ${newStreak}`);
         } else {
             newStreak = 0;
+            console.log('Game lost, streak reset to 0');
         }
 
         const newStats = {

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streak Fix Test - PM Puzzle</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .branch-info {
+            background: #e8f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .fix-list {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .fix-list h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .fix-list li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #fff3e0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ff9800;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #f57c00;
+        }
+        .test-step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #ffe0b2;
+        }
+        .test-step strong {
+            color: #e65100;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .button.secondary {
+            background: #2196F3;
+        }
+        .button.secondary:hover {
+            background: #1976D2;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Streak Fix Test Page</h1>
+        <p>Testing the streak calculation fix on the <strong>fix-streak-calculation</strong> branch</p>
+
+        <div class="branch-info">
+            <h3>📌 Current Branch: fix-streak-calculation</h3>
+            <p>This branch contains fixes for the streak calculation bug where streaks would always reset to 1 day.</p>
+        </div>
+
+        <div class="fix-list">
+            <h3>✅ What Was Fixed:</h3>
+            <ul>
+                <li><strong>Added <code>last_played</code> field</strong> - Now properly saves the last play date to the database (was completely missing!)</li>
+                <li><strong>Sydney timezone consistency</strong> - All dates now use Sydney time (AEDT/AEST) via <code>getPuzzleDate()</code></li>
+                <li><strong>Fixed streak comparison</strong> - Compares puzzle dates (YYYY-MM-DD) instead of UTC timestamps</li>
+                <li><strong>localStorage update</strong> - Stores dates in Sydney format for guests</li>
+                <li><strong>Guest stats transfer</strong> - Includes last_played when merging guest stats to user account</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 How to Test the Fix:</h3>
+
+            <div class="test-step">
+                <strong>Step 1: Open the Game</strong>
+                <p>Click below to open the PM Puzzle with the streak fix:</p>
+                <a href="index.html" class="button">Open PM Puzzle</a>
+            </div>
+
+            <div class="test-step">
+                <strong>Step 2: Complete Today's Puzzle</strong>
+                <p>Play and complete today's puzzle. Note your current streak in the stats.</p>
+            </div>
+
+            <div class="test-step">
+                <strong>Step 3: Check Console Logs</strong>
+                <p>Open browser console (F12) and look for these logs:</p>
+                <ul>
+                    <li><code>Saving stats to database... Stats: { ... last_played: "2024-10-28" }</code></li>
+                    <li><code>Streak check: { todayPuzzle: "2024-10-28", lastPlayPuzzle: "2024-10-27", daysDifference: 1 }</code></li>
+                    <li><code>Streak continues!</code> (if you played yesterday)</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <strong>Step 4: Test Tomorrow</strong>
+                <p>Complete the puzzle again tomorrow and verify that:</p>
+                <ul>
+                    <li>Your streak increments to 2 days (not reset to 1)</li>
+                    <li>The console shows <code>Streak continues!</code></li>
+                    <li>The <code>last_played</code> date updates correctly</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <strong>Step 5: Database Check</strong>
+                <p>If you have Supabase access, verify the <code>user_stats</code> table:</p>
+                <ul>
+                    <li>The <code>last_played</code> column should show today's date in YYYY-MM-DD format</li>
+                    <li>The <code>current_streak</code> should increment properly</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <h3>🚀 Ready for Production?</h3>
+            <p>Once testing confirms the fix works:</p>
+            <a href="https://github.com/jwailo/pm-puzzle/pull/new/fix-streak-calculation" class="button secondary" target="_blank">
+                Create Pull Request
+            </a>
+            <p style="margin-top: 10px; color: #666;">
+                This will merge the fix into the main branch for production deployment.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

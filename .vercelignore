@@ -1,0 +1,11 @@
+# Ignore unnecessary files for deployment
+.git
+.gitignore
+*.md
+sql/
+sydney-timezone-fix.js
+test-ailo.html
+update-and-run.md
+vercel-ailo.json
+node_modules/
+.DS_Store
