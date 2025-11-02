@@ -1134,15 +1134,16 @@ class PMWordle {
     getPuzzleDate() {
         // Get Sydney time for consistent puzzle dates across all users
         const now = new Date();
-        const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
-        const sydneyNow = new Date(sydneyTimeString);
 
-        // Format as YYYY-MM-DD for database compatibility
-        const year = sydneyNow.getFullYear();
-        const month = String(sydneyNow.getMonth() + 1).padStart(2, '0');
-        const day = String(sydneyNow.getDate()).padStart(2, '0');
+        // Use Intl.DateTimeFormat for proper timezone conversion
+        // 'en-CA' format returns YYYY-MM-DD directly
+        const puzzleDate = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Australia/Sydney',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now);
 
-        const puzzleDate = `${year}-${month}-${day}`;
         console.log('Puzzle date (Sydney time):', puzzleDate);
         return puzzleDate;
     }
@@ -1156,11 +1157,21 @@ class PMWordle {
 
         // Get Sydney time for consistent word selection worldwide
         const now = new Date();
-        const sydneyTimeString = now.toLocaleString("en-US", {timeZone: "Australia/Sydney"});
-        const sydneyNow = new Date(sydneyTimeString);
+
+        // Get Sydney date components properly using Intl.DateTimeFormat
+        const sydneyParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Australia/Sydney',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric'
+        }).formatToParts(now);
+
+        const year = parseInt(sydneyParts.find(p => p.type === 'year').value);
+        const month = parseInt(sydneyParts.find(p => p.type === 'month').value) - 1; // 0-indexed
+        const day = parseInt(sydneyParts.find(p => p.type === 'day').value);
 
         // Create seed based on Sydney date only (ignoring time)
-        const sydneyDateOnly = new Date(sydneyNow.getFullYear(), sydneyNow.getMonth(), sydneyNow.getDate());
+        const sydneyDateOnly = new Date(year, month, day);
         const seed = Math.floor(sydneyDateOnly.getTime() / (1000 * 60 * 60 * 24));
         const wordIndex = seed % this.answerBank.length;
         const selectedWord = this.answerBank[wordIndex];

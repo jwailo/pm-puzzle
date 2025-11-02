@@ -369,19 +369,23 @@ class SecureAdminDashboard {
                 try {
                     // Get completions for the last 30 days
                     const allCompletions = [];
-                    const today = new Date();
 
-                    // Adjust for timezone - puzzle resets at midnight AEST
-                    const aestOffset = 11 * 60; // AEST is UTC+11 during daylight saving
-                    const localOffset = today.getTimezoneOffset();
-                    const totalOffset = aestOffset + localOffset;
-
-                    today.setMinutes(today.getMinutes() + totalOffset);
+                    // Use proper timezone conversion to get Sydney date
+                    const now = new Date();
 
                     for (let i = 0; i < 30; i++) {
-                        const checkDate = new Date(today);
-                        checkDate.setDate(today.getDate() - i);
-                        const dateStr = checkDate.toISOString().split('T')[0];
+                        // Calculate the date by subtracting days from now
+                        const checkDate = new Date(now);
+                        checkDate.setDate(now.getDate() - i);
+
+                        // Get the Sydney date for this timestamp using Intl.DateTimeFormat
+                        // This properly handles timezone conversion
+                        const dateStr = new Intl.DateTimeFormat('en-CA', {
+                            timeZone: 'Australia/Sydney',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        }).format(checkDate);
 
                         console.log(`Fetching completions for ${dateStr}`);
 
@@ -474,18 +478,23 @@ class SecureAdminDashboard {
 
                 try {
                     const allCompletions = [];
-                    const today = new Date();
 
-                    // Adjust for AEST timezone
-                    const aestOffset = 11 * 60;
-                    const localOffset = today.getTimezoneOffset();
-                    const totalOffset = aestOffset + localOffset;
-                    today.setMinutes(today.getMinutes() + totalOffset);
+                    // Use proper timezone conversion to get Sydney date
+                    const now = new Date();
 
                     for (let i = 0; i < 30; i++) {
-                        const checkDate = new Date(today);
-                        checkDate.setDate(today.getDate() - i);
-                        const dateStr = checkDate.toISOString().split('T')[0];
+                        // Calculate the date by subtracting days from now
+                        const checkDate = new Date(now);
+                        checkDate.setDate(now.getDate() - i);
+
+                        // Get the Sydney date for this timestamp using Intl.DateTimeFormat
+                        // This properly handles timezone conversion
+                        const dateStr = new Intl.DateTimeFormat('en-CA', {
+                            timeZone: 'Australia/Sydney',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        }).format(checkDate);
 
                         // Try custom function first
                         try {
