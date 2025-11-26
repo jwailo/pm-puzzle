@@ -248,7 +248,7 @@ body.dark-mode .icon-btn:hover {
 }
 
 .auth-section:not(.logged-in) + .game-board {
-    margin-top: 8px; /* Reduce game board top margin when auth is visible */
+    margin-top: 0px; /* Remove gap between auth and game board */
 }
 
 .auth-form {
