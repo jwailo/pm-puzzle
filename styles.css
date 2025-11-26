@@ -258,6 +258,18 @@ body.dark-mode .icon-btn:hover {
     width: 100%;
 }
 
+/* Visually hidden but accessible for screen readers and JS */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
 .auth-form h2 {
     margin-bottom: 16px;
     font-size: 18px;
