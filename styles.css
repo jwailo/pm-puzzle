@@ -187,7 +187,7 @@ body.dark-mode {
     font-family: 'Georgia', 'Times New Roman', serif;
     color: var(--color-ailo-pink);
     margin-top: 2px;
-    margin-bottom: 8px; /* Add bottom margin to create space */
+    margin-bottom: 4px; /* Reduced by 50% from 8px */
     white-space: nowrap;
     opacity: 0.8;
     position: relative;
@@ -239,8 +239,8 @@ body.dark-mode .icon-btn:hover {
 
 /* Auth Section */
 .auth-section {
-    padding: 24px 8px;
-    margin-top: 16px; /* Add space between header and auth */
+    padding: 12px 8px; /* Reduced by 50% from 24px */
+    margin-top: 8px; /* Reduced by 50% from 16px */
 }
 
 .auth-section.logged-in {
@@ -313,7 +313,7 @@ body.dark-mode .icon-btn:hover {
 
 /* Value Proposition */
 .value-proposition {
-    margin: 10px 0 8px 0;
+    margin: 5px 0 4px 0;
     padding: 10px;
     background-color: rgba(74, 144, 226, 0.05);
     border-radius: 8px;
@@ -347,42 +347,32 @@ body.dark-mode .icon-btn:hover {
     border-radius: 8px;
 }
 
-/* Auth links on same row */
-.auth-links-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Auth links container - three line structure */
+.auth-links-container {
+    text-align: center;
     margin: 8px 0;
-    gap: 12px;
 }
 
-.auth-switch {
+.auth-account-text {
     font-size: 14px;
-    text-align: left;
-    margin: 0;
+    margin-bottom: 4px;
 }
 
-#auth-toggle {
-    background: none;
-    color: var(--color-ailo-blue);
-    text-decoration: underline;
-    padding: 0;
-    margin: 0 0 0 4px;
-    width: auto;
+.auth-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.separator {
+    color: var(--color-text);
+    opacity: 0.5;
     font-size: 14px;
-    border: none;
-    cursor: pointer;
 }
 
-#auth-toggle:hover {
-    color: var(--color-ailo-blue-dark);
-}
-
-.forgot-password-section {
-    text-align: right;
-    margin: 0;
-}
-
+#auth-toggle,
 #forgot-password-btn {
     background: none;
     color: var(--color-ailo-blue);
@@ -393,8 +383,10 @@ body.dark-mode .icon-btn:hover {
     font-size: 14px;
     border: none;
     cursor: pointer;
+    min-height: auto;
 }
 
+#auth-toggle:hover,
 #forgot-password-btn:hover {
     color: var(--color-ailo-blue-dark);
 }
@@ -411,7 +403,7 @@ body.dark-mode .icon-btn:hover {
 /* Guest link - de-emphasized */
 .guest-link-container {
     text-align: center;
-    margin-top: 8px;
+    margin-top: 0;
 }
 
 .skip-link {
@@ -423,6 +415,7 @@ body.dark-mode .icon-btn:hover {
     padding: 6px;
     cursor: pointer;
     opacity: 0.7;
+    min-height: auto;
 }
 
 .skip-link:hover {
@@ -542,7 +535,7 @@ body.dark-mode .icon-btn:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px 0;
+    padding: 10px 0; /* Reduced by 50% from 20px */
     pointer-events: auto;
     width: 100%;
     min-height: 0;
@@ -1514,19 +1507,28 @@ input[type="checkbox"]:checked + .toggle-label::after {
         margin: 6px 0;
     }
 
-    /* Mobile auth links row */
-    .auth-links-row {
-        flex-direction: column;
-        gap: 8px;
+    /* Mobile auth links container */
+    .auth-links-container {
         margin: 6px 0;
     }
 
-    .auth-switch {
-        text-align: center;
+    .auth-account-text {
+        font-size: 13px;
+        margin-bottom: 3px;
     }
 
-    .forgot-password-section {
-        text-align: center;
+    .auth-actions {
+        margin-bottom: 3px;
+        gap: 6px;
+    }
+
+    .separator {
+        font-size: 13px;
+    }
+
+    #auth-toggle,
+    #forgot-password-btn {
+        font-size: 13px;
     }
 
     /* Ensure guest link is still tappable on mobile */
@@ -1537,10 +1539,6 @@ input[type="checkbox"]:checked + .toggle-label::after {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-    }
-
-    .guest-link-container {
-        margin-top: 6px;
     }
 }
 
