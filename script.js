@@ -834,6 +834,13 @@ class PMWordle {
         this.loadSettings();
         this.updateCountdown();
 
+        // Load longest streak for social proof on signup page
+        try {
+            await this.loadLongestStreak();
+        } catch (error) {
+            console.error('Failed to load longest streak:', error);
+        }
+
         // Ensure game elements are interactive
         document.querySelector('.game-board').style.pointerEvents = 'auto';
         document.querySelector('.keyboard').style.pointerEvents = 'auto';
@@ -3060,11 +3067,27 @@ Love you! Give it a try when you have a cuppa ☕ xx`
         const passwordReqs = document.getElementById('password-requirements');
         const passwordField = document.getElementById('password');
 
-        if (title.textContent === 'Sign In') {
+        if (title.textContent === 'Sign Up') {
+            // Switch to Sign In mode
+            title.textContent = 'Sign In';
+            submit.textContent = 'Sign In';
+            switchText.textContent = "Don't have an account?";
+            marketingConsent.classList.add('hidden');
+            termsAgreement.classList.add('hidden');
+            forgotPasswordSection.style.display = 'block';
+            firstnameField.style.display = 'none';
+            firstnameField.required = false;
+            // Hide password requirements for login
+            if (passwordReqs) passwordReqs.classList.add('hidden');
+            // Clear password field and validation state when switching modes
+            if (passwordField) {
+                passwordField.value = '';
+                passwordField.classList.remove('valid', 'invalid');
+            }
+        } else {
             // Switch to Sign Up mode
             title.textContent = 'Sign Up';
             submit.textContent = 'Sign Up';
-            toggle.textContent = 'Sign In';
             switchText.textContent = 'Already have an account?';
             marketingConsent.classList.remove('hidden');
             termsAgreement.classList.remove('hidden');
@@ -3079,24 +3102,32 @@ Love you! Give it a try when you have a cuppa ☕ xx`
                 passwordField.classList.remove('valid', 'invalid');
                 this.validatePasswordRealTime('');
             }
-        } else {
-            // Switch to Sign In mode
-            title.textContent = 'Sign In';
-            submit.textContent = 'Sign In';
-            toggle.textContent = 'Sign Up';
-            switchText.textContent = "Don't have an account?";
-            marketingConsent.classList.add('hidden');
-            termsAgreement.classList.add('hidden');
-            forgotPasswordSection.style.display = 'block';
-            firstnameField.style.display = 'none';
-            firstnameField.required = false;
-            // Hide password requirements for login
-            if (passwordReqs) passwordReqs.classList.add('hidden');
-            // Clear password field and validation state when switching modes
-            if (passwordField) {
-                passwordField.value = '';
-                passwordField.classList.remove('valid', 'invalid');
+        }
+    }
+
+    async loadLongestStreak() {
+        try {
+            const { data, error } = await this.db.getStreakLeaderboard();
+
+            if (error || !data || data.length === 0) {
+                document.getElementById('longest-streak-text').textContent = 'Join the leaderboard!';
+                return;
             }
+
+            // Get the longest current streak from the leaderboard
+            const longestStreak = data[0]?.current_streak || 0;
+            const streakHolder = data[0]?.first_name || 'Someone';
+
+            if (longestStreak > 0) {
+                document.getElementById('longest-streak-text').textContent =
+                    `Longest streak right now: ${longestStreak} days — can you beat it?`;
+            } else {
+                document.getElementById('longest-streak-text').textContent =
+                    'Be the first to start a streak!';
+            }
+        } catch (err) {
+            console.error('Error loading longest streak:', err);
+            document.getElementById('longest-streak-text').textContent = 'Join the competition!';
         }
     }
 

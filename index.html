@@ -107,7 +107,29 @@
         <!-- Auth Section -->
         <div id="auth-section" class="auth-section">
             <div id="auth-form" class="auth-form">
-                <h2 id="auth-title">Sign In</h2>
+                <h2 id="auth-title">Sign Up</h2>
+
+                <!-- Value Proposition -->
+                <div class="value-proposition">
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>Track your streak</span>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>Compete on the leaderboard</span>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>Enter the weekly $50 Mecca voucher draw</span>
+                    </div>
+                </div>
+
+                <!-- Longest Streak Display -->
+                <div id="longest-streak-display" class="longest-streak-display">
+                    🔥 <span id="longest-streak-text">Loading...</span>
+                </div>
+
                 <form id="login-form" autocomplete="off">
                     <input type="text" id="firstname" placeholder="First Name" autocomplete="given-name">
                     <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
@@ -139,19 +161,21 @@
                     <div id="terms-agreement" class="terms-agreement hidden">
                         <small>By signing up, you agree to our <a href="terms.html" target="_blank">Competition Terms & Conditions</a></small>
                     </div>
-                    <button type="submit" id="auth-submit">Sign In</button>
+                    <button type="submit" id="auth-submit">Sign Up</button>
                 </form>
                 <div class="mecca-voucher">
-                    $50 MECCA VOUCHER GIVEN TO A PLAYER WEEKLY
+                    Registered players go in the weekly $50 Mecca draw
                 </div>
                 <div class="auth-switch">
-                    <span id="auth-switch-text">Don't have an account?</span>
-                    <button type="button" id="auth-toggle">Sign Up</button>
+                    <span id="auth-switch-text">Already have an account?</span>
+                    <button type="button" id="auth-toggle" class="link-btn">Sign In</button>
                 </div>
                 <div id="forgot-password-section" class="forgot-password-section">
                     <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
                 </div>
-                <button type="button" id="skip-auth" class="skip-btn">Skip & Play as Guest</button>
+                <div class="guest-link-container">
+                    <button type="button" id="skip-auth" class="skip-link">or play as guest</button>
+                </div>
             </div>
         </div>
 

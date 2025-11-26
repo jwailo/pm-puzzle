@@ -311,18 +311,62 @@ body.dark-mode .icon-btn:hover {
     background-color: var(--color-ailo-pink-dark);
 }
 
+/* Value Proposition */
+.value-proposition {
+    margin: 16px 0;
+    padding: 12px;
+    background-color: rgba(74, 144, 226, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid var(--color-ailo-blue);
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.benefit-icon {
+    color: var(--color-ailo-blue);
+    font-weight: bold;
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+/* Longest Streak Display */
+.longest-streak-display {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 12px 0 16px 0;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(238, 11, 79, 0.08), rgba(74, 144, 226, 0.08));
+    border-radius: 8px;
+}
+
 .auth-switch {
     margin-bottom: 12px;
     font-size: 14px;
+    text-align: center;
 }
 
 #auth-toggle {
     background: none;
-    color: var(--color-primary);
+    color: var(--color-ailo-blue);
     text-decoration: underline;
     padding: 0;
-    margin: 0 0 0 8px;
+    margin: 0 0 0 4px;
     width: auto;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+#auth-toggle:hover {
+    color: var(--color-ailo-blue-dark);
 }
 
 .skip-btn {
@@ -334,18 +378,38 @@ body.dark-mode .icon-btn:hover {
     background-color: var(--color-absent);
 }
 
+/* Guest link - de-emphasized */
+.guest-link-container {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.skip-link {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    text-decoration: underline;
+    padding: 8px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.skip-link:hover {
+    opacity: 1;
+    color: var(--color-text);
+}
+
 .mecca-voucher {
     text-align: center;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--color-ailo-pink);
     margin: 12px 0;
-    padding: 8px;
+    padding: 10px;
     background: linear-gradient(135deg, rgba(238, 11, 79, 0.1), rgba(74, 144, 226, 0.1));
     border: 1px solid var(--color-ailo-pink);
     border-radius: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .user-dropdown {
@@ -1359,18 +1423,18 @@ input[type="checkbox"]:checked + .toggle-label::after {
         -webkit-appearance: none;
         appearance: none;
     }
-    
+
     /* Improve scrolling performance */
     * {
         -webkit-transform: translate3d(0, 0, 0);
         transform: translate3d(0, 0, 0);
     }
-    
+
     /* Prevent horizontal scrolling */
     body {
         overflow-x: hidden;
     }
-    
+
     /* Optimize tap targets */
     button,
     .key,
@@ -1381,13 +1445,53 @@ input[type="checkbox"]:checked + .toggle-label::after {
         position: relative;
         z-index: 1;
     }
-    
+
     /* Improve focus visibility on mobile */
     .key:focus,
     .icon-btn:focus,
     button:focus {
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
+    }
+
+    /* Mobile-optimized value proposition */
+    .value-proposition {
+        margin: 12px 0;
+        padding: 10px;
+    }
+
+    .benefit-item {
+        font-size: 13px;
+        margin: 6px 0;
+    }
+
+    .benefit-icon {
+        font-size: 14px;
+        margin-right: 6px;
+    }
+
+    /* Mobile-optimized longest streak display */
+    .longest-streak-display {
+        font-size: 14px;
+        padding: 8px;
+        margin: 10px 0 14px 0;
+    }
+
+    /* Mobile-optimized Mecca voucher */
+    .mecca-voucher {
+        font-size: 12px;
+        padding: 8px;
+        margin: 10px 0;
+    }
+
+    /* Ensure guest link is still tappable on mobile */
+    .skip-link {
+        padding: 12px;
+        font-size: 12px;
+    }
+
+    .guest-link-container {
+        margin-top: 12px;
     }
 }
 
