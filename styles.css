@@ -313,8 +313,8 @@ body.dark-mode .icon-btn:hover {
 
 /* Value Proposition */
 .value-proposition {
-    margin: 16px 0;
-    padding: 12px;
+    margin: 10px 0 8px 0;
+    padding: 10px;
     background-color: rgba(74, 144, 226, 0.05);
     border-radius: 8px;
     border-left: 3px solid var(--color-ailo-blue);
@@ -323,7 +323,7 @@ body.dark-mode .icon-btn:hover {
 .benefit-item {
     display: flex;
     align-items: center;
-    margin: 8px 0;
+    margin: 6px 0;
     font-size: 14px;
     color: var(--color-text);
 }
@@ -341,16 +341,25 @@ body.dark-mode .icon-btn:hover {
     font-size: 15px;
     font-weight: 600;
     color: var(--color-text);
-    margin: 12px 0 16px 0;
-    padding: 10px;
+    margin: 8px 0 10px 0;
+    padding: 8px;
     background: linear-gradient(135deg, rgba(238, 11, 79, 0.08), rgba(74, 144, 226, 0.08));
     border-radius: 8px;
 }
 
+/* Auth links on same row */
+.auth-links-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+    gap: 12px;
+}
+
 .auth-switch {
-    margin-bottom: 12px;
     font-size: 14px;
-    text-align: center;
+    text-align: left;
+    margin: 0;
 }
 
 #auth-toggle {
@@ -369,6 +378,27 @@ body.dark-mode .icon-btn:hover {
     color: var(--color-ailo-blue-dark);
 }
 
+.forgot-password-section {
+    text-align: right;
+    margin: 0;
+}
+
+#forgot-password-btn {
+    background: none;
+    color: var(--color-ailo-blue);
+    text-decoration: underline;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+#forgot-password-btn:hover {
+    color: var(--color-ailo-blue-dark);
+}
+
 .skip-btn {
     background-color: var(--color-key-bg);
     color: var(--color-key-text);
@@ -381,7 +411,7 @@ body.dark-mode .icon-btn:hover {
 /* Guest link - de-emphasized */
 .guest-link-container {
     text-align: center;
-    margin-top: 16px;
+    margin-top: 8px;
 }
 
 .skip-link {
@@ -390,7 +420,7 @@ body.dark-mode .icon-btn:hover {
     color: var(--color-text-secondary);
     font-size: 13px;
     text-decoration: underline;
-    padding: 8px;
+    padding: 6px;
     cursor: pointer;
     opacity: 0.7;
 }
@@ -405,8 +435,8 @@ body.dark-mode .icon-btn:hover {
     font-size: 13px;
     font-weight: 600;
     color: var(--color-ailo-pink);
-    margin: 12px 0;
-    padding: 10px;
+    margin: 8px 0;
+    padding: 8px;
     background: linear-gradient(135deg, rgba(238, 11, 79, 0.1), rgba(74, 144, 226, 0.1));
     border: 1px solid var(--color-ailo-pink);
     border-radius: 6px;
@@ -1456,13 +1486,13 @@ input[type="checkbox"]:checked + .toggle-label::after {
 
     /* Mobile-optimized value proposition */
     .value-proposition {
-        margin: 12px 0;
-        padding: 10px;
+        margin: 8px 0 6px 0;
+        padding: 8px;
     }
 
     .benefit-item {
         font-size: 13px;
-        margin: 6px 0;
+        margin: 5px 0;
     }
 
     .benefit-icon {
@@ -1473,25 +1503,44 @@ input[type="checkbox"]:checked + .toggle-label::after {
     /* Mobile-optimized longest streak display */
     .longest-streak-display {
         font-size: 14px;
-        padding: 8px;
-        margin: 10px 0 14px 0;
+        padding: 7px;
+        margin: 6px 0 8px 0;
     }
 
     /* Mobile-optimized Mecca voucher */
     .mecca-voucher {
         font-size: 12px;
-        padding: 8px;
-        margin: 10px 0;
+        padding: 7px;
+        margin: 6px 0;
+    }
+
+    /* Mobile auth links row */
+    .auth-links-row {
+        flex-direction: column;
+        gap: 8px;
+        margin: 6px 0;
+    }
+
+    .auth-switch {
+        text-align: center;
+    }
+
+    .forgot-password-section {
+        text-align: center;
     }
 
     /* Ensure guest link is still tappable on mobile */
     .skip-link {
-        padding: 12px;
+        padding: 10px;
         font-size: 12px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .guest-link-container {
-        margin-top: 12px;
+        margin-top: 6px;
     }
 }
 
