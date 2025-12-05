@@ -248,7 +248,7 @@ body.dark-mode .icon-btn:hover {
 }
 
 .auth-section:not(.logged-in) + .game-board {
-    margin-top: 0px; /* Remove gap between auth and game board */
+    margin-top: 16px; /* Provide spacing to prevent overlap with auth form */
 }
 
 .auth-form {
