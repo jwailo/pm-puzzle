@@ -2235,9 +2235,26 @@ Love you! Give it a try when you have a cuppa ☕ xx`
 
     initializeAuthMode() {
         // Ensure we start in Sign Up mode with proper field setup
+        const title = document.getElementById('auth-title');
+        const submit = document.getElementById('auth-submit');
+        const switchText = document.getElementById('auth-switch-text');
+        const marketingConsent = document.getElementById('marketing-consent');
+        const termsAgreement = document.getElementById('terms-agreement');
+        const forgotPasswordSection = document.getElementById('forgot-password-section');
         const firstnameField = document.getElementById('firstname');
+        const passwordReqs = document.getElementById('password-requirements');
+
+        // Set Sign Up mode
+        if (title) title.textContent = 'Sign Up';
+        if (submit) submit.textContent = 'Sign Up';
+        if (switchText) switchText.textContent = 'Already have an account?';
+        if (marketingConsent) marketingConsent.classList.remove('hidden');
+        if (termsAgreement) termsAgreement.classList.remove('hidden');
+        if (forgotPasswordSection) forgotPasswordSection.style.display = 'none';
+        if (passwordReqs) passwordReqs.classList.remove('hidden');
+
         if (firstnameField) {
-            firstnameField.required = false; // Not required (optional field)
+            firstnameField.required = true; // Required for sign up
             firstnameField.style.display = 'block';
         }
     }
