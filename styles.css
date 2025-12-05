@@ -102,6 +102,7 @@ body.dark-mode {
     width: 100%;
     align-items: center;
     justify-content: flex-start;
+    overflow-y: auto; /* Allow scrolling when keyboard appears */
 }
 
 /* Header - Mobile First */
@@ -543,7 +544,7 @@ body.dark-mode .icon-btn:hover {
 
 /* Game Board - Perfect Mobile Centering */
 .game-board {
-    flex: 1;
+    flex: 0 0 auto; /* Prevent flex growing/shrinking to avoid keyboard shifts */
     display: flex;
     align-items: center;
     justify-content: center;
