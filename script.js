@@ -2234,11 +2234,11 @@ Love you! Give it a try when you have a cuppa ☕ xx`
     }
 
     initializeAuthMode() {
-        // Ensure we start in Sign In mode with proper field setup
+        // Ensure we start in Sign Up mode with proper field setup
         const firstnameField = document.getElementById('firstname');
         if (firstnameField) {
-            firstnameField.required = false; // Start in sign-in mode
-            firstnameField.style.display = 'none';
+            firstnameField.required = false; // Not required (optional field)
+            firstnameField.style.display = 'block';
         }
     }
 
